@@ -1,18 +1,13 @@
+mod push;
+
+use self::push::atoms::{Atom, InstructionMeta, Literal, PushType};
+
 fn main() {
     let input = "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR )";
     let mut tokens: Vec<&str> = input.split_whitespace().collect();
     println!("tokens = {:?}", tokens);
 
-    let mut float_stack: Vec<f32> = Vec::new();
-    let mut exec_stack: Vec<&str> = Vec::new();
-    let mut code_stack: Vec<&str> = Vec::new();
-    let mut int_stack: Vec<i32> = Vec::new();
-    let mut bool_stack: Vec<bool> = Vec::new();
-
     // Push P onto the EXEC stack
-    code_stack.extend(&tokens);
-    // LOOP until the EXEC stack is empty:
-    exec_stack.extend(&tokens);
 
     loop {
         // TODO: Stop conditions here
@@ -22,9 +17,19 @@ fn main() {
             Some(token) => token,
         };
         // Check Atom type
-        let atom = match parse_atom(token) {
+        match parse_atom(token) {
             None => break,
-            Some(Literal) => break,
+            Some(Atom::Literal(atom)) => match atom.pushType {
+                PushType::PushBoolType { val } => println!("Push bool {}", val),
+                PushType::PushIntType { val } => println!("Push int {}", val),
+                PushType::PushFloatType { val } => println!("Push float {}", val),
+            },
+            Some(Atom::InstructionMeta(atom)) => continue,
+
+            // TODO
+            Some(Atom::Closer) => continue,
+            Some(Atom::CodeBlock) => continue,
+            Some(Atom::Input) => continue,
         };
         // TODO: Growth cap here
     }
@@ -39,15 +44,6 @@ fn main() {
 }
 
 fn parse_atom(atom: &str) -> Option<Atom> {
+    // TODO: Define Instruction Set
     None
 }
-
-enum Atom {
-    CodeBlock,
-    Closer,
-    Literal(Literal),
-    InstructionMeta,
-    Input,
-}
-
-struct Literal {}
