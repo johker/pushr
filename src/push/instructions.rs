@@ -29,7 +29,9 @@ pub enum Instruction {
 pub struct IntegerAdd {}
 
 impl IntegerAdd {
-    fn execute(push_state: &mut PushState) {}
+    fn execute(push_state: &mut PushState) {
+        match push_state.int_stack.pop_vec(2) {}
+    }
 }
 
 //pub trait Instruction {
