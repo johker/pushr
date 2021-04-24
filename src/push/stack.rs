@@ -6,6 +6,12 @@ impl<T> PushStack<T>
 where
     T: Clone,
 {
+    pub fn new() -> Self {
+        Self {
+            elements: Vec::new(),
+        }
+    }
+
     pub fn push(&mut self, value: T) {
         self.elements.push(value);
     }
@@ -48,5 +54,15 @@ mod tests {
             None => assert!(false),
             Some(pv) => assert_eq!(pv[0], 3),
         }
+    }
+
+    #[test]
+    fn push_vec_in_right_order() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3],
+        };
+        let mut test_vec = vec![5, 4];
+        test_stack.push_vec(&mut test_vec);
+        assert_eq!(test_stack.elements, [1, 2, 3, 4, 5]);
     }
 }

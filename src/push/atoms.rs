@@ -1,22 +1,19 @@
 // Atoms
+#[derive(Clone)]
 pub enum Atom {
     CodeBlock,
     Closer,
-    InstructionMeta(InstructionMeta),
+    InstructionMeta { name: String, code_blocks: i32 },
     Literal(Literal),
     Input,
 }
 
-pub struct InstructionMeta {
-    name: String,
-    // Number of code_blocks that are expected to follow the instruction
-    code_blocks: i32,
-}
-
+#[derive(Clone)]
 pub struct Literal {
     pub pushType: PushType,
 }
 
+#[derive(Clone)]
 pub enum PushType {
     PushBoolType { val: bool },
     PushIntType { val: i32 },

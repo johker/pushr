@@ -10,27 +10,51 @@ use std::collections::HashMap;
 // Instruction Set is a hashmap with string key and struct as value
 
 pub struct InstructionSet {
-    pub instructionMap: HashMap<String, Instruction>,
+    pub map: HashMap<String, Box<Instruction>>,
 }
 
 impl InstructionSet {
-    pub fn new(&mut self) {
-        self.instructionMap.insert(
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn load(&mut self) {
+        self.map.insert(
             String::from("INTEGER.+"),
-            Instruction::IntegerAdd(IntegerAdd {}),
+            Instruction {
+                execute: add_integers,
+                code_blocks: 0,
+            },
         );
     }
 }
 
-pub enum Instruction {
-    IntegerAdd(IntegerAdd),
+struct Instruction<F>
+where
+    F: FnMut(&mut PushState),
+{
+    pub execute: F,
+    pub code_blocks: u32,
 }
 
-pub struct IntegerAdd {}
+impl<F> Instruction<F>
+where
+    F: FnMut(&mut PushState),
+{
+    fn new(execute: F, code_blocks: u32) -> Self {
+        Self {
+            execute,
+            code_blocks,
+        }
+    }
+}
 
-impl IntegerAdd {
-    fn execute(push_state: &mut PushState) {
-        match push_state.int_stack.pop_vec(2) {}
+fn add_integers(push_state: &mut PushState) {
+    match push_state.int_stack.pop_vec(2) {
+        None => return,
+        Some(pv) => push_state.int_stack.push(pv[0] + pv[1]),
     }
 }
 
