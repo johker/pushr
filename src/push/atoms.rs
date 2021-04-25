@@ -3,14 +3,9 @@
 pub enum Atom {
     CodeBlock,
     Closer,
-    InstructionMeta { name: String, code_blocks: i32 },
-    Literal(Literal),
+    InstructionMeta { name: String, code_blocks: u32 },
+    Literal { push_type: PushType },
     Input,
-}
-
-#[derive(Clone)]
-pub struct Literal {
-    pub pushType: PushType,
 }
 
 #[derive(Clone)]
