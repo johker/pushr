@@ -2,13 +2,13 @@ use crate::push::atoms::{Atom, PushType};
 use crate::push::instructions::InstructionSet;
 use crate::push::state::PushState;
 
-pub struct PushInterpreter {
+pub struct PushInterpreter<'a> {
     instruction_set: InstructionSet,
-    push_state: PushState,
+    push_state: PushState<'a>,
 }
 
-impl PushInterpreter {
-    pub fn new(instruction_set: InstructionSet, push_state: PushState) -> Self {
+impl<'a> PushInterpreter<'a> {
+    pub fn new(instruction_set: InstructionSet, push_state: PushState<'a>) -> Self {
         Self {
             instruction_set: instruction_set,
             push_state: push_state,
@@ -16,17 +16,20 @@ impl PushInterpreter {
     }
 
     pub fn run(&mut self) {
+        // TODO: Push to code stack here?
+        // self.push_state.exec_stack.observe_vec();
+
         loop {
             // TODO: Stop conditions here
 
             let token = match self.push_state.exec_stack.pop() {
                 None => break,
                 Some(Atom::Literal { push_type }) => match push_type {
-                    PushType::PushBoolType { val } => println!("Push bool {}", val),
-                    PushType::PushIntType { val } => println!("Push int {}", val),
-                    PushType::PushFloatType { val } => println!("Push float {}", val),
+                    PushType::PushBoolType { val } => self.push_state.bool_stack.push(val),
+                    PushType::PushIntType { val } => self.push_state.int_stack.push(val),
+                    PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
-                Some(Atom::InstructionMeta { name, code_blocks }) => continue,
+                Some(Atom::InstructionMeta { name, code_blocks }) => {}
 
                 // TODO
                 Some(Atom::Closer) => continue,
@@ -45,7 +48,7 @@ impl PushInterpreter {
         // in reverse order (so that the item that was first in the list ends up on top).
     }
 
-    pub fn parse_program(&mut self, code: &str) {
+    pub fn parse_program(&mut self, code: &'a str) {
         for token in code.split_whitespace().rev() {
             println!("token = {:?}", token);
             if ")" == token {
@@ -54,10 +57,11 @@ impl PushInterpreter {
             // Check for instruction
             match self.instruction_set.map.get(token) {
                 Some(instruction) => {
-                    self.push_state.exec_stack.push(Atom::InstructionMeta {
-                        name: token.to_string(),
+                    let x = Atom::InstructionMeta {
+                        name: token,
                         code_blocks: instruction.code_blocks,
-                    });
+                    };
+                    self.push_state.exec_stack.push(x);
                     continue;
                 }
                 None => (),

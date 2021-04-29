@@ -1,15 +1,15 @@
 use crate::push::atoms::Atom;
 use crate::push::stack::PushStack;
 
-pub struct PushState {
+pub struct PushState<'a> {
     pub float_stack: PushStack<f32>,
-    pub exec_stack: PushStack<Atom>,
-    pub code_stack: PushStack<Atom>,
+    pub exec_stack: PushStack<Atom<'a>>,
+    pub code_stack: PushStack<Atom<'a>>,
     pub int_stack: PushStack<i32>,
     pub bool_stack: PushStack<bool>,
 }
 
-impl PushState {
+impl<'a> PushState<'a> {
     pub fn new() -> Self {
         Self {
             float_stack: PushStack::new(),

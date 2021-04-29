@@ -4,7 +4,7 @@ pub struct PushStack<T> {
 
 impl<T> PushStack<T>
 where
-    T: Clone,
+    T: Clone + Copy,
 {
     pub fn new() -> Self {
         Self {
@@ -31,6 +31,18 @@ where
                     .rev()
                     .collect(),
             )
+        }
+    }
+
+    pub fn observe_vec(&self, req_size: usize) -> Option<Vec<T>> {
+        if req_size > self.elements.len() {
+            None
+        } else {
+            let mut dst = Vec::new();
+            dst.copy_from_slice(
+                &self.elements[self.elements.len() - req_size..self.elements.len()],
+            );
+            Some(dst)
         }
     }
 
@@ -64,5 +76,21 @@ mod tests {
         let mut test_vec = vec![5, 4];
         test_stack.push_vec(&mut test_vec);
         assert_eq!(test_stack.elements, [1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn observe_vec() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3],
+        };
+
+        match test_stack.observe_vec(2) {
+            None => assert!(false),
+            Some(cv) => {
+                assert_eq!(cv[0], 2);
+                assert_eq!(cv[1], 3);
+            }
+        }
+        assert_eq!(test_stack.elements.len(), 3)
     }
 }

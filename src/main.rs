@@ -2,6 +2,7 @@ mod push;
 
 use self::push::atoms::{Atom, PushType};
 use self::push::instructions::InstructionSet;
+use self::push::interpreter::PushInterpreter;
 use self::push::state::PushState;
 
 fn main() {
@@ -10,6 +11,9 @@ fn main() {
     let push_state = PushState::new();
     let mut instruction_set = InstructionSet::new();
     instruction_set.load();
-    // Push P onto the CODE stack
+
+    let mut interpreter = PushInterpreter::new(instruction_set, push_state);
+
     // Push P onto the EXEC stack
+    interpreter.parse_program(&input);
 }
