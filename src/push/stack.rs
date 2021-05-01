@@ -38,9 +38,11 @@ where
         if req_size > self.elements.len() {
             None
         } else {
-            let mut dst = vec![self.elements[0].clone(); req_size];
-            dst[..req_size].copy_from_slice(&self.elements[(self.elements.len() - req_size)..]);
-            Some(dst)
+            let mut cpy = Vec::with_capacity(req_size);
+            for i in 1..req_size + 1 {
+                cpy.push(self.elements[self.elements.len() - i].clone());
+            }
+            Some(cpy)
         }
     }
 
@@ -77,7 +79,7 @@ mod tests {
     }
 
     #[test]
-    fn observe_vec() {
+    fn observe_vec_preserves_stack() {
         let test_stack = PushStack {
             elements: vec![1, 2, 3],
         };
@@ -85,8 +87,9 @@ mod tests {
         match test_stack.observe_vec(2) {
             None => assert!(false, "Should return values"),
             Some(cv) => {
-                //assert_eq!(cv[0], 3);
-                //assert_eq!(cv[1], 2);
+                assert_eq!(cv.len(), 2);
+                assert_eq!(cv[0], 3);
+                assert_eq!(cv[1], 2);
             }
         }
         assert_eq!(
