@@ -12,6 +12,10 @@ where
         }
     }
 
+    pub fn size(&self) -> usize {
+        return self.elements.len();
+    }
+
     pub fn push(&mut self, value: T) {
         self.elements.push(value);
     }
@@ -35,20 +39,20 @@ where
     }
 
     pub fn observe_vec(&self, req_size: usize) -> Option<Vec<T>> {
-        if req_size > self.elements.len() {
+        if req_size > self.size() {
             None
         } else {
             let mut cpy = Vec::with_capacity(req_size);
             for i in 1..req_size + 1 {
-                cpy.push(self.elements[self.elements.len() - i].clone());
+                cpy.push(self.elements[self.size() - i].clone());
             }
             Some(cpy)
         }
     }
 
-    pub fn push_vec(&mut self, to_push: &mut Vec<T>) {
+    pub fn push_vec(&mut self, mut to_push: Vec<T>) {
         to_push.reverse();
-        self.elements.extend(to_push.clone());
+        self.elements.extend(to_push);
     }
 }
 
@@ -73,8 +77,8 @@ mod tests {
         let mut test_stack = PushStack {
             elements: vec![1, 2, 3],
         };
-        let mut test_vec = vec![5, 4];
-        test_stack.push_vec(&mut test_vec);
+        let test_vec = vec![5, 4];
+        test_stack.push_vec(test_vec);
         assert_eq!(test_stack.elements, [1, 2, 3, 4, 5]);
     }
 
