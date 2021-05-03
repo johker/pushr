@@ -61,7 +61,6 @@ impl<'a> PushInterpreter<'a> {
 
     pub fn parse_program(&mut self, code: &'a str) {
         for token in code.split_whitespace().rev() {
-            println!("token = {:?}", token);
             if ")" == token {
                 continue;
             }
@@ -96,14 +95,20 @@ impl<'a> PushInterpreter<'a> {
                 }
                 Err(_) => (),
             }
-            match token.to_string().parse::<bool>() {
-                Ok(bval) => {
+            match token {
+                "TRUE" => {
                     self.push_state.exec_stack.push(Atom::Literal {
-                        push_type: PushType::PushBoolType { val: bval },
+                        push_type: PushType::PushBoolType { val: true },
                     });
                     continue;
                 }
-                Err(_) => (),
+                "FALSE" => {
+                    self.push_state.exec_stack.push(Atom::Literal {
+                        push_type: PushType::PushBoolType { val: false },
+                    });
+                    continue;
+                }
+                &_ => (),
             }
         }
     }
@@ -122,22 +127,6 @@ mod tests {
         let mut interpreter = PushInterpreter::new(instruction_set, push_state);
 
         interpreter.parse_program(&input);
-        let mut es = interpreter.push_state.exec_stack;
-        let mut ival = 0;
-        if let Some(Atom::Literal { push_type }) = es.pop() {
-            if let PushType::PushIntType { val } = push_type {
-                ival = val;
-            }
-        }
-        assert_eq!(ival, 2);
-        if let Some(Atom::Literal { push_type }) = es.pop() {
-            if let PushType::PushIntType { val } = push_type {
-                ival = val;
-            }
-        }
-        assert_eq!(ival, 3);
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); ")
     }
-
-    #[test]
-    pub fn run_simple_test_stack() {}
 }

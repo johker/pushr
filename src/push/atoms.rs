@@ -1,3 +1,5 @@
+use std::fmt;
+
 // Atoms
 #[derive(Clone, Copy)]
 pub enum Atom<'a> {
@@ -13,6 +15,30 @@ pub enum PushType {
     PushBoolType { val: bool },
     PushIntType { val: i32 },
     PushFloatType { val: f32 },
+}
+
+impl<'a> fmt::Display for Atom<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Atom::CodeBlock => write!(f, "CodeBlock"),
+            Atom::Closer => write!(f, "Closer"),
+            Atom::InstructionMeta { name, code_blocks } => {
+                let at = "InstructionMeta".to_string();
+                write!(f, "{}({})", at, name)
+            }
+            Atom::Literal { push_type } => {
+                let at = "Literal".to_string();
+                let info;
+                match push_type {
+                    PushType::PushBoolType { val } => info = val.to_string(),
+                    PushType::PushIntType { val } => info = val.to_string(),
+                    PushType::PushFloatType { val } => info = val.to_string(),
+                }
+                write!(f, "{}({})", at, info)
+            }
+            Atom::Input => write!(f, "Input"),
+        }
+    }
 }
 
 struct InstructionMeta {

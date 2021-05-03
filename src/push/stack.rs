@@ -1,15 +1,26 @@
+use std::fmt;
+
 pub struct PushStack<T> {
     elements: Vec<T>,
 }
 
 impl<T> PushStack<T>
 where
-    T: Clone + Copy,
+    T: Clone + Copy + fmt::Display,
 {
     pub fn new() -> Self {
         Self {
             elements: Vec::new(),
         }
+    }
+
+    pub fn to_string(&self) -> String {
+        println!("Printing stack");
+        let mut result = "".to_string();
+        for (i, x) in self.elements.iter().rev().enumerate() {
+            result.push_str(&format!("{}:{}; ", (i + 1), x));
+        }
+        result
     }
 
     pub fn size(&self) -> usize {
