@@ -129,4 +129,60 @@ mod tests {
         interpreter.parse_program(&input);
         assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); ")
     }
+
+    #[test]
+    pub fn run_simple_program() {
+        let push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        let mut interpreter = PushInterpreter::new(instruction_set, push_state);
+
+        interpreter
+            .push_state
+            .exec_stack
+            .push(Atom::InstructionMeta {
+                name: "BOOLEAN.OR",
+                code_blocks: 0,
+            });
+        interpreter.push_state.exec_stack.push(Atom::Literal {
+            push_type: PushType::PushBoolType { val: false },
+        });
+        interpreter.push_state.exec_stack.push(Atom::Literal {
+            push_type: PushType::PushBoolType { val: true },
+        });
+        interpreter
+            .push_state
+            .exec_stack
+            .push(Atom::InstructionMeta {
+                name: "FLOAT.+",
+                code_blocks: 0,
+            });
+        interpreter.push_state.exec_stack.push(Atom::Literal {
+            push_type: PushType::PushFloatType { val: 5.2 },
+        });
+        interpreter.push_state.exec_stack.push(Atom::Literal {
+            push_type: PushType::PushFloatType { val: 4.1 },
+        });
+        interpreter
+            .push_state
+            .exec_stack
+            .push(Atom::InstructionMeta {
+                name: "INTEGER.*",
+                code_blocks: 0,
+            });
+        interpreter.push_state.exec_stack.push(Atom::Literal {
+            push_type: PushType::PushIntType { val: 3 },
+        });
+        interpreter.push_state.exec_stack.push(Atom::Literal {
+            push_type: PushType::PushIntType { val: 2 },
+        });
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); ");
+
+        interpreter.run();
+        assert_eq!(interpreter.push_state.int_stack.to_string(), "1:6; ");
+        assert!(
+            (interpreter.push_state.float_stack.observe_vec(1).unwrap()[0] - 9.3).abs() < 0.00001
+        );
+        assert_eq!(interpreter.push_state.bool_stack.to_string(), "1:true; ");
+    }
 }

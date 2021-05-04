@@ -15,7 +15,6 @@ where
     }
 
     pub fn to_string(&self) -> String {
-        println!("Printing stack");
         let mut result = "".to_string();
         for (i, x) in self.elements.iter().rev().enumerate() {
             result.push_str(&format!("{}:{}; ", (i + 1), x));
