@@ -26,6 +26,10 @@ where
         return self.elements.len();
     }
 
+    pub fn flush(&mut self) {
+        self.elements = Vec::new();
+    }
+
     pub fn push(&mut self, value: T) {
         self.elements.push(value);
     }

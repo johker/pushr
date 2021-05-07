@@ -64,6 +64,10 @@ impl<'a> PushInterpreter<'a> {
             if ")" == token {
                 continue;
             }
+            if ")" == token {
+                continue;
+            }
+
             // Check for instruction
             match self.instruction_set.map.get(token) {
                 Some(instruction) => {
@@ -108,7 +112,15 @@ impl<'a> PushInterpreter<'a> {
                     });
                     continue;
                 }
-                &_ => (),
+                &_ => {
+                    if let Some(instruction) = self.push_state.name_bindings.get(token) {
+                        // Existing name binding -> Push to execution stack
+                        self.push_state.exec_stack.push(instruction.clone());
+                    } else {
+                        // Unknonw identifier -> Push onto name stack
+                        self.push_state.name_stack.push(token);
+                    }
+                }
             }
         }
     }
