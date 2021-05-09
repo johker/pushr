@@ -1,6 +1,7 @@
-use crate::push::atoms::{Atom, PushType};
 use crate::push::state::PushState;
 use std::collections::HashMap;
+
+use crate::push::boolean::*;
 
 // Instructions
 //
@@ -54,6 +55,14 @@ impl InstructionSet {
         );
         self.map
             .insert(String::from("BOOLEAN.OR"), Instruction::new(boolean_or, 0));
+        self.map.insert(
+            String::from("BOOLEAN.POP"),
+            Instruction::new(boolean_pop, 0),
+        );
+        self.map.insert(
+            String::from("BOOLEAN.RAND"),
+            Instruction::new(boolean_rand, 0),
+        );
         self.map
             .insert(String::from("INTEGER.+"), Instruction::new(integer_add, 0));
         self.map.insert(
@@ -79,71 +88,6 @@ impl Instruction {
     }
 }
 
-//
-// ------------------ Type: BOOLEAN ---------------------
-//
-
-fn boolean_eq(push_state: &mut PushState) {
-    if let Some(pv) = push_state.bool_stack.pop_vec(2) {
-        push_state.bool_stack.push(pv[0] == pv[1]);
-    }
-}
-
-fn boolean_and(push_state: &mut PushState) {
-    if let Some(pv) = push_state.bool_stack.pop_vec(2) {
-        push_state.bool_stack.push(pv[0] && pv[1]);
-    }
-}
-
-fn boolean_or(push_state: &mut PushState) {
-    if let Some(pv) = push_state.bool_stack.pop_vec(2) {
-        push_state.bool_stack.push(pv[0] || pv[1]);
-    }
-}
-
-fn boolean_def(push_state: &mut PushState) {
-    if let Some(name) = push_state.name_stack.pop() {
-        if let Some(bval) = push_state.bool_stack.pop() {
-            push_state.name_bindings.insert(
-                name,
-                Atom::Literal {
-                    push_type: PushType::PushBoolType { val: bval },
-                },
-            );
-        }
-    }
-}
-
-fn boolean_dup(push_state: &mut PushState) {
-    if let Some(pv) = push_state.bool_stack.observe_vec(1) {
-        push_state.bool_stack.push(pv[0]);
-    }
-}
-
-fn boolean_flush(push_state: &mut PushState) {
-    push_state.bool_stack.flush();
-}
-
-fn boolean_from_float(push_state: &mut PushState) {
-    if let Some(pv) = push_state.float_stack.observe_vec(1) {
-        // TODO: Float comparison?
-        let x = pv[0] == 0.0;
-        push_state.bool_stack.push(x);
-    }
-}
-
-fn boolean_from_integer(push_state: &mut PushState) {
-    if let Some(pv) = push_state.int_stack.observe_vec(1) {
-        let x = pv[0] == 0;
-        push_state.bool_stack.push(x);
-    }
-}
-
-fn boolean_not(push_state: &mut PushState) {
-    if let Some(pv) = push_state.bool_stack.pop() {
-        push_state.bool_stack.push(!pv);
-    }
-}
 //
 // ------------------ Type: INTEGER ---------------------
 //
