@@ -34,6 +34,22 @@ where
         self.elements.push(value);
     }
 
+    pub fn yank(&mut self, index: usize) {
+        if index < self.size() - 1 {
+            let el = self.elements.remove(self.size() - (index + 1));
+            self.elements.push(el);
+        }
+    }
+
+    pub fn shove(&mut self, index: usize) {
+        if index < self.size() {
+            if let Some(el) = self.elements.pop() {
+                println!("El = {}", el);
+                self.elements.insert(self.size() - index, el);
+            }
+        }
+    }
+
     pub fn pop(&mut self) -> Option<T> {
         self.elements.pop()
     }
@@ -115,5 +131,43 @@ mod tests {
             3,
             "Test stack should remain the same"
         )
+    }
+
+    #[test]
+    fn yank_vec_returns_right_order() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3, 4, 5],
+        };
+        let mut test_idx = 1;
+        test_stack.yank(test_idx);
+        assert_eq!(test_stack.elements, [1, 2, 3, 5, 4]);
+        test_idx = 5; // No change
+        test_stack.yank(test_idx);
+        assert_eq!(test_stack.elements, [1, 2, 3, 5, 4]);
+        test_idx = 3;
+        test_stack.yank(test_idx);
+        assert_eq!(test_stack.elements, [1, 3, 5, 4, 2]);
+        test_idx = 0; // No change
+        test_stack.yank(test_idx);
+        assert_eq!(test_stack.elements, [1, 3, 5, 4, 2]);
+    }
+
+    #[test]
+    fn shove_vec_returns_right_order() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3, 4, 5],
+        };
+        let mut test_idx = 1;
+        test_stack.shove(test_idx);
+        assert_eq!(test_stack.elements, [1, 2, 3, 5, 4]);
+        test_idx = 5; // No change
+        test_stack.shove(test_idx);
+        assert_eq!(test_stack.elements, [1, 2, 3, 5, 4]);
+        test_idx = 3;
+        test_stack.shove(test_idx);
+        assert_eq!(test_stack.elements, [1, 4, 2, 3, 5]);
+        test_idx = 0; // No change
+        test_stack.shove(test_idx);
+        assert_eq!(test_stack.elements, [1, 4, 2, 3, 5]);
     }
 }

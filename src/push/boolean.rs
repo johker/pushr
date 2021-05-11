@@ -1,6 +1,53 @@
 use crate::push::atoms::{Atom, PushType};
+use crate::push::instructions::Instruction;
 use crate::push::state::PushState;
 use rand::Rng;
+use std::collections::HashMap;
+
+pub fn load_boolean_instructions(map: &mut HashMap<String, Instruction>) {
+    map.insert(String::from("BOOLEAN.="), Instruction::new(boolean_eq, 0));
+    map.insert(
+        String::from("BOOLEAN.AND"),
+        Instruction::new(boolean_and, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.DEFINE"),
+        Instruction::new(boolean_def, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.DUP"),
+        Instruction::new(boolean_dup, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.FLUSH"),
+        Instruction::new(boolean_flush, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.FROMFLOAT"),
+        Instruction::new(boolean_from_float, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.FROMINTEGER"),
+        Instruction::new(boolean_from_integer, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.NOT"),
+        Instruction::new(boolean_not, 0),
+    );
+    map.insert(String::from("BOOLEAN.OR"), Instruction::new(boolean_or, 0));
+    map.insert(
+        String::from("BOOLEAN.POP"),
+        Instruction::new(boolean_pop, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.RAND"),
+        Instruction::new(boolean_rand, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.ROT"),
+        Instruction::new(boolean_rot, 0),
+    );
+}
 
 //
 // ------------------ Type: BOOLEAN ---------------------
@@ -77,3 +124,9 @@ pub fn boolean_rand(push_state: &mut PushState) {
     let bval = rng.gen_range(0..2) == 1;
     push_state.bool_stack.push(bval);
 }
+
+pub fn boolean_rot(push_state: &mut PushState) {
+    push_state.bool_stack.yank(2);
+}
+
+pub fn boolean_shove(push_state: &mut PushState) {}

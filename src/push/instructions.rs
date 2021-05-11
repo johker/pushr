@@ -23,46 +23,7 @@ impl InstructionSet {
     }
 
     pub fn load(&mut self) {
-        self.map
-            .insert(String::from("BOOLEAN.="), Instruction::new(boolean_eq, 0));
-        self.map.insert(
-            String::from("BOOLEAN.AND"),
-            Instruction::new(boolean_and, 0),
-        );
-        self.map.insert(
-            String::from("BOOLEAN.DEFINE"),
-            Instruction::new(boolean_def, 0),
-        );
-        self.map.insert(
-            String::from("BOOLEAN.DUP"),
-            Instruction::new(boolean_dup, 0),
-        );
-        self.map.insert(
-            String::from("BOOLEAN.FLUSH"),
-            Instruction::new(boolean_flush, 0),
-        );
-        self.map.insert(
-            String::from("BOOLEAN.FROMFLOAT"),
-            Instruction::new(boolean_from_float, 0),
-        );
-        self.map.insert(
-            String::from("BOOLEAN.FROMINTEGER"),
-            Instruction::new(boolean_from_integer, 0),
-        );
-        self.map.insert(
-            String::from("BOOLEAN.NOT"),
-            Instruction::new(boolean_not, 0),
-        );
-        self.map
-            .insert(String::from("BOOLEAN.OR"), Instruction::new(boolean_or, 0));
-        self.map.insert(
-            String::from("BOOLEAN.POP"),
-            Instruction::new(boolean_pop, 0),
-        );
-        self.map.insert(
-            String::from("BOOLEAN.RAND"),
-            Instruction::new(boolean_rand, 0),
-        );
+        load_boolean_instructions(&mut self.map);
         self.map
             .insert(String::from("INTEGER.+"), Instruction::new(integer_add, 0));
         self.map.insert(
@@ -80,7 +41,7 @@ pub struct Instruction {
 }
 
 impl Instruction {
-    fn new(execute: impl FnMut(&mut PushState) + 'static, code_blocks: u32) -> Self {
+    pub fn new(execute: impl FnMut(&mut PushState) + 'static, code_blocks: u32) -> Self {
         Self {
             execute: Box::new(execute),
             code_blocks: code_blocks,
