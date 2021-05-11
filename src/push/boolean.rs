@@ -47,6 +47,26 @@ pub fn load_boolean_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("BOOLEAN.ROT"),
         Instruction::new(boolean_rot, 0),
     );
+    map.insert(
+        String::from("BOOLEAN.SHOVE"),
+        Instruction::new(boolean_shove, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.STACKDEPTH"),
+        Instruction::new(boolean_stack_depth, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.SWAP"),
+        Instruction::new(boolean_swap, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.YANK"),
+        Instruction::new(boolean_yank, 0),
+    );
+    map.insert(
+        String::from("BOOLEAN.YANKDUP"),
+        Instruction::new(boolean_yank_dup, 0),
+    );
 }
 
 //
@@ -129,4 +149,32 @@ pub fn boolean_rot(push_state: &mut PushState) {
     push_state.bool_stack.yank(2);
 }
 
-pub fn boolean_shove(push_state: &mut PushState) {}
+pub fn boolean_shove(push_state: &mut PushState) {
+    if let Some(ival) = push_state.int_stack.pop() {
+        push_state.bool_stack.shove(ival as usize);
+    }
+}
+
+pub fn boolean_stack_depth(push_state: &mut PushState) {
+    push_state
+        .int_stack
+        .push(push_state.bool_stack.size() as i32);
+}
+
+pub fn boolean_swap(push_state: &mut PushState) {
+    push_state.bool_stack.shove(1);
+}
+
+pub fn boolean_yank(push_state: &mut PushState) {
+    if let Some(ival) = push_state.int_stack.pop() {
+        push_state.bool_stack.yank(ival as usize);
+    }
+}
+
+pub fn boolean_yank_dup(push_state: &mut PushState) {
+    if let Some(ival) = push_state.int_stack.pop() {
+        if let Some(pv) = push_state.bool_stack.observe_vec(ival as usize) {
+            push_state.bool_stack.push(pv[pv.len() - 1]);
+        }
+    }
+}
