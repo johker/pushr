@@ -6,7 +6,7 @@ pub struct PushStack<T> {
 
 impl<T> PushStack<T>
 where
-    T: Clone + Copy + fmt::Display,
+    T: Clone + fmt::Display,
 {
     pub fn new() -> Self {
         Self {

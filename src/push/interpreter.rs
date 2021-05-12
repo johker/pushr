@@ -49,10 +49,12 @@ impl<'a> PushInterpreter<'a> {
                         (instruction.execute)(&mut self.push_state);
                     }
                 }
+                Some(Atom::CodeBlock { atoms }) => {
+                    // TODO: Push to exec stack in reverse order
+                }
 
                 // TODO
                 Some(Atom::Closer) => continue,
-                Some(Atom::CodeBlock) => continue,
                 Some(Atom::Input) => continue,
             };
             // TODO: Growth cap here
@@ -62,9 +64,11 @@ impl<'a> PushInterpreter<'a> {
     pub fn parse_program(&mut self, code: &'a str) {
         for token in code.split_whitespace().rev() {
             if ")" == token {
+                // Start of code block
                 continue;
             }
             if ")" == token {
+                // End of code block
                 continue;
             }
 
