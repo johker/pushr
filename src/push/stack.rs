@@ -6,7 +6,7 @@ pub struct PushStack<T> {
 
 impl<T> PushStack<T>
 where
-    T: Clone + fmt::Display,
+    T: Clone + fmt::Display + PartialEq,
 {
     pub fn new() -> Self {
         Self {
@@ -24,6 +24,10 @@ where
 
     pub fn size(&self) -> usize {
         return self.elements.len();
+    }
+
+    pub fn last_eq(&self, value: &T) -> bool {
+        return *value == self.elements[self.size() - 1];
     }
 
     pub fn flush(&mut self) {
@@ -170,4 +174,7 @@ mod tests {
         test_stack.shove(test_idx);
         assert_eq!(test_stack.elements, [1, 4, 2, 3, 5]);
     }
+
+    #[test]
+    fn last_item_is_code_block_detected() {}
 }

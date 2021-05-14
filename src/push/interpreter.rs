@@ -63,8 +63,10 @@ impl<'a> PushInterpreter<'a> {
 
     pub fn parse_program(&mut self, code: &'a str) {
         for token in code.split_whitespace().rev() {
-            if ")" == token {
+            if "(" == token {
                 // Start of code block
+                let cb = Atom::CodeBlock { atoms: Vec::new() };
+                self.push_state.exec_stack.push(cb);
                 continue;
             }
             if ")" == token {
@@ -75,11 +77,12 @@ impl<'a> PushInterpreter<'a> {
             // Check for instruction
             match self.instruction_set.map.get(token) {
                 Some(instruction) => {
-                    let x = Atom::InstructionMeta {
+                    let im = Atom::InstructionMeta {
                         name: token,
                         code_blocks: instruction.code_blocks,
                     };
-                    self.push_state.exec_stack.push(x);
+                    // TODO: Check if top item is CodeBlock and at to it
+                    self.push_state.exec_stack.push(im);
                     continue;
                 }
                 None => (),
