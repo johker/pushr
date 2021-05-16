@@ -55,8 +55,13 @@ impl<'a> PartialEq for Atom<'a> {
 impl<'a> fmt::Display for Atom<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &*self {
-            // TODO: Recursive print
-            Atom::CodeBlock { atoms: _ } => write!(f, "CodeBlock"),
+            Atom::CodeBlock { atoms } => {
+                let mut atom_info = String::new();
+                for (i, a) in atoms.iter().rev().enumerate() {
+                    atom_info.push_str(&format!("{}:{}; ", (i + 1), a));
+                }
+                write!(f, "CodeBlock; {}", atom_info.trim())
+            }
             Atom::Closer => write!(f, "Closer"),
             Atom::InstructionMeta {
                 name,
@@ -112,5 +117,15 @@ mod tests {
         assert_eq!(closer_a, closer_b);
         assert_ne!(code_block_b, literal_b);
         assert_ne!(closer_a, literal_b);
+    }
+
+    #[test]
+    fn test_display_code_block() {
+        let code_block = Atom::CodeBlock {
+            atoms: vec![Atom::Literal {
+                push_type: PushType::PushIntType { val: 0 },
+            }],
+        };
+        assert_eq!(code_block.to_string(), "CodeBlock; 1:Literal(0);");
     }
 }

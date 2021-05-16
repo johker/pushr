@@ -19,15 +19,31 @@ where
         for (i, x) in self.elements.iter().rev().enumerate() {
             result.push_str(&format!("{}:{}; ", (i + 1), x));
         }
-        result
+        result.trim().to_string()
     }
 
     pub fn size(&self) -> usize {
         return self.elements.len();
     }
 
-    pub fn last_eq(&self, value: &T) -> bool {
-        return *value == self.elements[self.size() - 1];
+    //    pub fn last_eq(&self, value: &T) -> bool {
+    //        return *value == self.elements[self.size() - 1];
+    //    }
+
+    pub fn last_mut(&mut self) -> Option<&mut T> {
+        if self.size() > 0 {
+            self.elements.last_mut()
+        } else {
+            None
+        }
+    }
+
+    pub fn first_mut(&mut self) -> Option<&mut T> {
+        if self.size() > 0 {
+            self.elements.first_mut()
+        } else {
+            None
+        }
     }
 
     pub fn flush(&mut self) {
@@ -36,6 +52,10 @@ where
 
     pub fn push(&mut self, value: T) {
         self.elements.push(value);
+    }
+
+    pub fn push_front(&mut self, value: T) {
+        self.elements.insert(0, value);
     }
 
     pub fn yank(&mut self, index: usize) {
@@ -48,7 +68,6 @@ where
     pub fn shove(&mut self, index: usize) {
         if index < self.size() {
             if let Some(el) = self.elements.pop() {
-                println!("El = {}", el);
                 self.elements.insert(self.size() - index, el);
             }
         }
@@ -174,7 +193,4 @@ mod tests {
         test_stack.shove(test_idx);
         assert_eq!(test_stack.elements, [1, 4, 2, 3, 5]);
     }
-
-    #[test]
-    fn last_item_is_code_block_detected() {}
 }

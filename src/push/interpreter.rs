@@ -1,5 +1,6 @@
 use crate::push::atoms::{Atom, PushType};
 use crate::push::instructions::InstructionSet;
+use crate::push::stack::PushStack;
 use crate::push::state::PushState;
 
 pub struct PushInterpreter<'a> {
@@ -61,16 +62,35 @@ impl<'a> PushInterpreter<'a> {
         }
     }
 
+    pub fn push_atom(&mut self, atom: Atom<'a>) {
+        // TODO Check recursively for CodeBlocks
+        if let Some(mut last_el) = self.push_state.exec_stack.first_mut() {
+            match &mut last_el {
+                Atom::CodeBlock { atoms } => {
+                    // Push to front to reverse order during parsing
+                    atoms.insert(0, atom);
+                }
+                _ => {
+                    // Push to front to reverse order during parsing
+                    self.push_state.exec_stack.push_front(atom);
+                }
+            }
+        } else {
+            // Empty stack -> just push
+            self.push_state.exec_stack.push(atom);
+        }
+    }
+
     pub fn parse_program(&mut self, code: &'a str) {
-        for token in code.split_whitespace().rev() {
+        for token in code.split_whitespace() {
             if "(" == token {
                 // Start of code block
-                let cb = Atom::CodeBlock { atoms: Vec::new() };
-                self.push_state.exec_stack.push(cb);
+                self.push_atom(Atom::CodeBlock { atoms: Vec::new() });
                 continue;
             }
             if ")" == token {
                 // End of code block
+                self.push_atom(Atom::Closer);
                 continue;
             }
 
@@ -81,8 +101,7 @@ impl<'a> PushInterpreter<'a> {
                         name: token,
                         code_blocks: instruction.code_blocks,
                     };
-                    // TODO: Check if top item is CodeBlock and at to it
-                    self.push_state.exec_stack.push(im);
+                    self.push_atom(im);
                     continue;
                 }
                 None => (),
@@ -90,7 +109,7 @@ impl<'a> PushInterpreter<'a> {
             // Check for Literal
             match token.to_string().parse::<i32>() {
                 Ok(ival) => {
-                    self.push_state.exec_stack.push(Atom::Literal {
+                    self.push_atom(Atom::Literal {
                         push_type: PushType::PushIntType { val: ival },
                     });
                     continue;
@@ -99,7 +118,7 @@ impl<'a> PushInterpreter<'a> {
             }
             match token.to_string().parse::<f32>() {
                 Ok(fval) => {
-                    self.push_state.exec_stack.push(Atom::Literal {
+                    self.push_atom(Atom::Literal {
                         push_type: PushType::PushFloatType { val: fval },
                     });
                     continue;
@@ -108,13 +127,13 @@ impl<'a> PushInterpreter<'a> {
             }
             match token {
                 "TRUE" => {
-                    self.push_state.exec_stack.push(Atom::Literal {
+                    self.push_atom(Atom::Literal {
                         push_type: PushType::PushBoolType { val: true },
                     });
                     continue;
                 }
                 "FALSE" => {
-                    self.push_state.exec_stack.push(Atom::Literal {
+                    self.push_atom(Atom::Literal {
                         push_type: PushType::PushBoolType { val: false },
                     });
                     continue;
@@ -122,9 +141,9 @@ impl<'a> PushInterpreter<'a> {
                 &_ => {
                     if let Some(instruction) = self.push_state.name_bindings.get(token) {
                         // Existing name binding -> Push to execution stack
-                        self.push_state.exec_stack.push(instruction.clone());
+                        self.push_atom(instruction.clone());
                     } else {
-                        // Unknonw identifier -> Push onto name stack
+                        // Unknown identifier -> Push onto name stack
                         self.push_state.name_stack.push(token);
                     }
                 }
@@ -146,10 +165,11 @@ mod tests {
         let mut interpreter = PushInterpreter::new(instruction_set, push_state);
 
         interpreter.parse_program(&input);
-        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); ")
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:CodeBlock; 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); 2:Closer;")
     }
 
     #[test]
+    #[ignore]
     pub fn run_simple_program() {
         let push_state = PushState::new();
         let mut instruction_set = InstructionSet::new();
@@ -195,7 +215,7 @@ mod tests {
         interpreter.push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushIntType { val: 2 },
         });
-        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); ");
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:CodeBlock; 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); 2:Coser;");
 
         interpreter.run();
         assert_eq!(interpreter.push_state.int_stack.to_string(), "1:6; ");
