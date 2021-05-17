@@ -1,9 +1,11 @@
 use std::fmt;
 
+use crate::push::stack::PushStack;
+
 // Atoms
 #[derive(Clone, Debug)]
 pub enum Atom<'a> {
-    CodeBlock { atoms: Vec<Atom<'a>> },
+    CodeBlock { atoms: PushStack<Atom<'a>> },
     Closer,
     InstructionMeta { name: &'a str, code_blocks: u32 },
     Literal { push_type: PushType },
@@ -55,13 +57,7 @@ impl<'a> PartialEq for Atom<'a> {
 impl<'a> fmt::Display for Atom<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &*self {
-            Atom::CodeBlock { atoms } => {
-                let mut atom_info = String::new();
-                for (i, a) in atoms.iter().rev().enumerate() {
-                    atom_info.push_str(&format!("{}:{}; ", (i + 1), a));
-                }
-                write!(f, "CodeBlock; {}", atom_info.trim())
-            }
+            Atom::CodeBlock { atoms } => write!(f, "CodeBlock: {}", atoms.to_string()),
             Atom::Closer => write!(f, "Closer"),
             Atom::InstructionMeta {
                 name,
@@ -105,12 +101,12 @@ mod tests {
         let closer_a = Atom::Closer;
         let closer_b = Atom::Closer;
         let code_block_a = Atom::CodeBlock {
-            atoms: vec![Atom::Closer],
+            atoms: PushStack::from_vec(vec![Atom::Closer]),
         };
         let code_block_b = Atom::CodeBlock {
-            atoms: vec![Atom::Literal {
+            atoms: PushStack::from_vec(vec![Atom::Literal {
                 push_type: PushType::PushIntType { val: 0 },
-            }],
+            }]),
         };
         assert_eq!(code_block_a, code_block_b);
         assert_ne!(literal_a, literal_b);
@@ -122,10 +118,10 @@ mod tests {
     #[test]
     fn test_display_code_block() {
         let code_block = Atom::CodeBlock {
-            atoms: vec![Atom::Literal {
+            atoms: PushStack::from_vec(vec![Atom::Literal {
                 push_type: PushType::PushIntType { val: 0 },
-            }],
+            }]),
         };
-        assert_eq!(code_block.to_string(), "CodeBlock; 1:Literal(0);");
+        assert_eq!(code_block.to_string(), "CodeBlock: 1:Literal(0);");
     }
 }

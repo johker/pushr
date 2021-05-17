@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Clone, Debug)]
 pub struct PushStack<T> {
     elements: Vec<T>,
 }
@@ -12,6 +13,10 @@ where
         Self {
             elements: Vec::new(),
         }
+    }
+
+    pub fn from_vec(elements: Vec<T>) -> Self {
+        Self { elements: elements }
     }
 
     pub fn to_string(&self) -> String {

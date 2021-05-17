@@ -64,20 +64,38 @@ impl<'a> PushInterpreter<'a> {
 
     pub fn push_atom(&mut self, atom: Atom<'a>) {
         // TODO Check recursively for CodeBlocks
-        if let Some(mut last_el) = self.push_state.exec_stack.first_mut() {
-            match &mut last_el {
+        if let Some(mut first_el) = self.push_state.exec_stack.first_mut() {
+        } else {
+            // Empty stack -> just push
+            self.push_state.exec_stack.push(atom);
+        }
+    }
+
+    pub fn rec_push(stack: &mut PushStack<Atom<'a>>, atom: Atom<'a>) -> bool {
+        // Push recursively
+        if let Some(mut first_el) = stack.first_mut() {
+            match &mut first_el {
                 Atom::CodeBlock { atoms } => {
-                    // Push to front to reverse order during parsing
-                    atoms.insert(0, atom);
+                    // If the top element is a CodeBlock
+                    // push to its stack
+                    return PushInterpreter::rec_push(atoms, atom);
                 }
                 _ => {
-                    // Push to front to reverse order during parsing
-                    self.push_state.exec_stack.push_front(atom);
+                    if atom == Atom::Closer {
+                        // Closer is pushed on higher stack
+                        // to mark end of CodeBlock
+                        false
+                    } else {
+                        // Push any other element to top
+                        stack.push_front(atom);
+                        true
+                    }
                 }
             }
         } else {
             // Empty stack -> just push
-            self.push_state.exec_stack.push(atom);
+            stack.push(atom);
+            true
         }
     }
 
@@ -85,12 +103,19 @@ impl<'a> PushInterpreter<'a> {
         for token in code.split_whitespace() {
             if "(" == token {
                 // Start of code block
-                self.push_atom(Atom::CodeBlock { atoms: Vec::new() });
+                PushInterpreter::rec_push(
+                    &mut self.push_state.exec_stack,
+                    Atom::CodeBlock {
+                        atoms: PushStack::new(),
+                    },
+                );
                 continue;
             }
             if ")" == token {
                 // End of code block
-                self.push_atom(Atom::Closer);
+                if !PushInterpreter::rec_push(&mut self.push_state.exec_stack, Atom::Closer) {
+                    self.push_state.exec_stack.push_front(Atom::Closer);
+                }
                 continue;
             }
 
@@ -101,7 +126,7 @@ impl<'a> PushInterpreter<'a> {
                         name: token,
                         code_blocks: instruction.code_blocks,
                     };
-                    self.push_atom(im);
+                    PushInterpreter::rec_push(&mut self.push_state.exec_stack, im);
                     continue;
                 }
                 None => (),
@@ -109,39 +134,54 @@ impl<'a> PushInterpreter<'a> {
             // Check for Literal
             match token.to_string().parse::<i32>() {
                 Ok(ival) => {
-                    self.push_atom(Atom::Literal {
-                        push_type: PushType::PushIntType { val: ival },
-                    });
+                    PushInterpreter::rec_push(
+                        &mut self.push_state.exec_stack,
+                        Atom::Literal {
+                            push_type: PushType::PushIntType { val: ival },
+                        },
+                    );
                     continue;
                 }
                 Err(_) => (),
             }
             match token.to_string().parse::<f32>() {
                 Ok(fval) => {
-                    self.push_atom(Atom::Literal {
-                        push_type: PushType::PushFloatType { val: fval },
-                    });
+                    PushInterpreter::rec_push(
+                        &mut self.push_state.exec_stack,
+                        Atom::Literal {
+                            push_type: PushType::PushFloatType { val: fval },
+                        },
+                    );
                     continue;
                 }
                 Err(_) => (),
             }
             match token {
                 "TRUE" => {
-                    self.push_atom(Atom::Literal {
-                        push_type: PushType::PushBoolType { val: true },
-                    });
+                    PushInterpreter::rec_push(
+                        &mut self.push_state.exec_stack,
+                        Atom::Literal {
+                            push_type: PushType::PushBoolType { val: true },
+                        },
+                    );
                     continue;
                 }
                 "FALSE" => {
-                    self.push_atom(Atom::Literal {
-                        push_type: PushType::PushBoolType { val: false },
-                    });
+                    PushInterpreter::rec_push(
+                        &mut self.push_state.exec_stack,
+                        Atom::Literal {
+                            push_type: PushType::PushBoolType { val: false },
+                        },
+                    );
                     continue;
                 }
                 &_ => {
                     if let Some(instruction) = self.push_state.name_bindings.get(token) {
                         // Existing name binding -> Push to execution stack
-                        self.push_atom(instruction.clone());
+                        PushInterpreter::rec_push(
+                            &mut self.push_state.exec_stack,
+                            instruction.clone(),
+                        );
                     } else {
                         // Unknown identifier -> Push onto name stack
                         self.push_state.name_stack.push(token);
@@ -165,7 +205,7 @@ mod tests {
         let mut interpreter = PushInterpreter::new(instruction_set, push_state);
 
         interpreter.parse_program(&input);
-        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:CodeBlock; 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); 2:Closer;")
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:CodeBlock: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;")
     }
 
     #[test]
