@@ -209,7 +209,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     pub fn run_simple_program() {
         let push_state = PushState::new();
         let mut instruction_set = InstructionSet::new();
@@ -255,13 +254,13 @@ mod tests {
         interpreter.push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushIntType { val: 2 },
         });
-        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:CodeBlock; 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR); 2:Coser;");
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);");
 
         interpreter.run();
-        assert_eq!(interpreter.push_state.int_stack.to_string(), "1:6; ");
+        assert_eq!(interpreter.push_state.int_stack.to_string(), "1:6;");
         assert!(
             (interpreter.push_state.float_stack.observe_vec(1).unwrap()[0] - 9.3).abs() < 0.00001
         );
-        assert_eq!(interpreter.push_state.bool_stack.to_string(), "1:true; ");
+        assert_eq!(interpreter.push_state.bool_stack.to_string(), "1:true;");
     }
 }
