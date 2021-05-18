@@ -28,6 +28,7 @@ impl<'a> PushInterpreter<'a> {
     }
 
     pub fn run(&mut self) {
+        self.copy_to_code_stack();
         loop {
             // TODO: Stop conditions here
             // If the first item on the EXEC stack is a single instruction
@@ -206,6 +207,18 @@ mod tests {
 
         interpreter.parse_program(&input);
         assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:CodeBlock: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;")
+    }
+
+    #[test]
+    pub fn copy_simple_program_to_code_stack() {
+        let input = "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR )";
+        let push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        let mut interpreter = PushInterpreter::new(instruction_set, push_state);
+        interpreter.parse_program(&input);
+        interpreter.copy_to_code_stack();
+        assert_eq!(interpreter.push_state.code_stack.to_string(), "1:CodeBlock: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;");
     }
 
     #[test]

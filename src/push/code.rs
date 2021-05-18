@@ -12,7 +12,7 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
 // ------------------ Type: BOOLEAN ---------------------
 //
 
-pub fn boolean_eq(push_state: &mut PushState) {
+pub fn code_eq(push_state: &mut PushState) {
     if let Some(pv) = push_state.code_stack.observe_vec(2) {
         push_state
             .bool_stack
