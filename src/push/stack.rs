@@ -31,10 +31,6 @@ where
         return self.elements.len();
     }
 
-    //    pub fn last_eq(&self, value: &T) -> bool {
-    //        return *value == self.elements[self.size() - 1];
-    //    }
-
     pub fn last_mut(&mut self) -> Option<&mut T> {
         if self.size() > 0 {
             self.elements.last_mut()
