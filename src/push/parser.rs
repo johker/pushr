@@ -135,12 +135,12 @@ mod tests {
     #[test]
     pub fn parse_simple_program() {
         let input = "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR )";
-        let push_state = PushState::new();
+        let mut push_state = PushState::new();
         let mut instruction_set = InstructionSet::new();
         instruction_set.load();
         PushParser::parse_program(&instruction_set, &mut push_state, &input);
-        let mut interpreter = PushInterpreter::new(&instruction_set, &mut push_state);
+        let mut interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
 
-        assert_eq!(push_state.exec_stack.to_string(), "1:CodeBlock: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;")
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:CodeBlock: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;")
     }
 }

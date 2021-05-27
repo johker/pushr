@@ -5,8 +5,8 @@ use crate::push::stack::PushStack;
 use crate::push::state::PushState;
 
 pub struct PushInterpreter<'a> {
-    instruction_set: &'a mut InstructionSet,
-    push_state: &'a mut PushState<'a>,
+    pub instruction_set: &'a mut InstructionSet,
+    pub push_state: &'a mut PushState<'a>,
 }
 
 impl<'a> PushInterpreter<'a> {
@@ -97,61 +97,54 @@ mod tests {
     #[test]
     pub fn copy_simple_program_to_code_stack() {
         let input = "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR )";
-        let push_state = PushState::new();
+        let mut push_state = PushState::new();
         let mut instruction_set = InstructionSet::new();
         instruction_set.load();
         PushParser::parse_program(&instruction_set, &mut push_state, &input);
-        let mut interpreter = PushInterpreter::new(&instruction_set, &mut push_state);
+        let mut interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
         interpreter.copy_to_code_stack();
         assert_eq!(interpreter.push_state.code_stack.to_string(), "1:CodeBlock: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;");
     }
 
     #[test]
     pub fn run_simple_program() {
-        let push_state = PushState::new();
+        let mut push_state = PushState::new();
         let mut instruction_set = InstructionSet::new();
         instruction_set.load();
-        let mut interpreter = PushInterpreter::new(&instruction_set, &mut push_state);
 
-        interpreter
-            .push_state
-            .exec_stack
-            .push(Atom::InstructionMeta {
-                name: "BOOLEAN.OR",
-                code_blocks: 0,
-            });
-        interpreter.push_state.exec_stack.push(Atom::Literal {
+        push_state.exec_stack.push(Atom::InstructionMeta {
+            name: "BOOLEAN.OR",
+            code_blocks: 0,
+        });
+        push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushBoolType { val: false },
         });
-        interpreter.push_state.exec_stack.push(Atom::Literal {
+        push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushBoolType { val: true },
         });
-        interpreter
-            .push_state
-            .exec_stack
-            .push(Atom::InstructionMeta {
-                name: "FLOAT.+",
-                code_blocks: 0,
-            });
-        interpreter.push_state.exec_stack.push(Atom::Literal {
+
+        push_state.exec_stack.push(Atom::InstructionMeta {
+            name: "FLOAT.+",
+            code_blocks: 0,
+        });
+        push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushFloatType { val: 5.2 },
         });
-        interpreter.push_state.exec_stack.push(Atom::Literal {
+        push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushFloatType { val: 4.1 },
         });
-        interpreter
-            .push_state
-            .exec_stack
-            .push(Atom::InstructionMeta {
-                name: "INTEGER.*",
-                code_blocks: 0,
-            });
-        interpreter.push_state.exec_stack.push(Atom::Literal {
+
+        push_state.exec_stack.push(Atom::InstructionMeta {
+            name: "INTEGER.*",
+            code_blocks: 0,
+        });
+        push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushIntType { val: 3 },
         });
-        interpreter.push_state.exec_stack.push(Atom::Literal {
+        push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushIntType { val: 2 },
         });
+        let mut interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
         assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);");
 
         interpreter.run();
