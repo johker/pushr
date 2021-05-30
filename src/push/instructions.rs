@@ -2,6 +2,7 @@ use crate::push::state::PushState;
 use std::collections::HashMap;
 
 use crate::push::boolean::*;
+use crate::push::code::*;
 
 // Instructions
 //
@@ -24,6 +25,7 @@ impl InstructionSet {
 
     pub fn load(&mut self) {
         load_boolean_instructions(&mut self.map);
+        load_code_instructions(&mut self.map);
         self.map
             .insert(String::from("INTEGER.+"), Instruction::new(integer_add, 0));
         self.map.insert(

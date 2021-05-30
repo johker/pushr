@@ -31,6 +31,10 @@ where
         return self.elements.len();
     }
 
+    pub fn last_eq(&self, atom: &T) -> bool {
+        return Some(atom) == self.elements.last();
+    }
+
     pub fn last_mut(&mut self) -> Option<&mut T> {
         if self.size() > 0 {
             self.elements.last_mut()
@@ -193,5 +197,21 @@ mod tests {
         test_idx = 0; // No change
         test_stack.shove(test_idx);
         assert_eq!(test_stack.elements, [1, 4, 2, 3, 5]);
+    }
+
+    #[test]
+    fn last_eq_preserves_vector() {
+        let test_stack = PushStack {
+            elements: vec![1, 2, 3, 4, 5],
+        };
+        let candidate = 5;
+        assert_eq!(test_stack.last_eq(&candidate), true);
+        let candidate = 4;
+        assert_eq!(test_stack.last_eq(&candidate), false);
+        assert_eq!(test_stack.size(), 5);
+        let test_stack = PushStack {
+            elements: Vec::new(),
+        };
+        assert_eq!(test_stack.last_eq(&candidate), false);
     }
 }

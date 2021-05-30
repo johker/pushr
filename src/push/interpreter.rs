@@ -37,7 +37,10 @@ impl<'a> PushInterpreter<'a> {
                     PushType::PushIntType { val } => self.push_state.int_stack.push(val),
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
-                Some(Atom::InstructionMeta { name, code_blocks }) => {
+                Some(Atom::InstructionMeta {
+                    name,
+                    code_blocks: _,
+                }) => {
                     if let Some(instruction) = self.instruction_set.map.get_mut(name) {
                         (instruction.execute)(&mut self.push_state);
                     }
