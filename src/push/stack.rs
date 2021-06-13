@@ -35,6 +35,7 @@ where
         return Some(atom) == self.elements.last();
     }
 
+    #[allow(dead_code)]
     pub fn last_mut(&mut self) -> Option<&mut T> {
         if self.size() > 0 {
             self.elements.last_mut()

@@ -1,6 +1,5 @@
 mod push;
 
-use self::push::atoms::{Atom, PushType};
 use self::push::instructions::InstructionSet;
 use self::push::interpreter::PushInterpreter;
 use self::push::parser::PushParser;
@@ -14,7 +13,7 @@ fn main() {
     instruction_set.load();
 
     PushParser::parse_program(&instruction_set, &mut push_state, &input);
-    let mut interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
+    let _interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
 
     // Push P onto the EXEC stack
 }

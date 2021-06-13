@@ -3,6 +3,7 @@ use std::fmt;
 use crate::push::stack::PushStack;
 
 // Atoms
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum Atom<'a> {
     CodeBlock { atoms: PushStack<Atom<'a>> },
@@ -17,6 +18,36 @@ pub enum PushType {
     PushBoolType { val: bool },
     PushIntType { val: i32 },
     PushFloatType { val: f32 },
+}
+
+#[allow(dead_code)]
+impl<'a> Atom<'a> {
+    pub fn int(arg: i32) -> Atom<'a> {
+        Atom::Literal {
+            push_type: PushType::PushIntType { val: arg },
+        }
+    }
+    pub fn float(arg: f32) -> Atom<'a> {
+        Atom::Literal {
+            push_type: PushType::PushFloatType { val: arg },
+        }
+    }
+    pub fn bool(arg: bool) -> Atom<'a> {
+        Atom::Literal {
+            push_type: PushType::PushBoolType { val: arg },
+        }
+    }
+    pub fn noop() -> Atom<'a> {
+        Atom::InstructionMeta {
+            name: "NOOP",
+            code_blocks: 0,
+        }
+    }
+    pub fn block() -> Atom<'a> {
+        Atom::CodeBlock {
+            atoms: PushStack::new(),
+        }
+    }
 }
 
 impl<'a> PartialEq for Atom<'a> {
@@ -81,17 +112,12 @@ impl<'a> fmt::Display for Atom<'a> {
     }
 }
 
-struct InstructionMeta {
-    name: String,
-    code_blocks: u32,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_shallow_equality() {
+    fn shallow_equality_when_comparing_atoms() {
         let literal_a = Atom::Literal {
             push_type: PushType::PushIntType { val: 0 },
         };
@@ -116,7 +142,7 @@ mod tests {
     }
 
     #[test]
-    fn test_display_code_block() {
+    fn print_code_block() {
         let code_block = Atom::CodeBlock {
             atoms: PushStack::from_vec(vec![Atom::Literal {
                 push_type: PushType::PushIntType { val: 0 },

@@ -24,6 +24,8 @@ impl InstructionSet {
     }
 
     pub fn load(&mut self) {
+        self.map
+            .insert(String::from("NOOP"), Instruction::new(noop, 0));
         load_boolean_instructions(&mut self.map);
         load_code_instructions(&mut self.map);
         self.map
@@ -54,6 +56,8 @@ impl Instruction {
 //
 // ------------------ Type: INTEGER ---------------------
 //
+
+fn noop(_push_state: &mut PushState) {}
 
 fn integer_add(push_state: &mut PushState) {
     if let Some(pv) = push_state.int_stack.pop_vec(2) {

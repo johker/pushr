@@ -28,6 +28,7 @@ impl<'a> PushInterpreter<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn run_stack(&mut self, stack: &mut PushStack<Atom<'a>>) {
         loop {
             match stack.pop() {
@@ -75,12 +76,15 @@ impl<'a> PushInterpreter<'a> {
                     PushType::PushIntType { val } => self.push_state.int_stack.push(val),
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
-                Some(Atom::InstructionMeta { name, code_blocks }) => {
+                Some(Atom::InstructionMeta {
+                    name,
+                    code_blocks: _,
+                }) => {
                     if let Some(instruction) = self.instruction_set.map.get_mut(name) {
                         (instruction.execute)(&mut self.push_state);
                     }
                 }
-                Some(Atom::CodeBlock { atoms }) => {
+                Some(Atom::CodeBlock { atoms: _ }) => {
                     // TODO: Push to exec stack in reverse order
                 }
 
