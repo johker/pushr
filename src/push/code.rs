@@ -107,13 +107,12 @@ mod tests {
     #[test]
     fn code_atom_pushes_true_when_no_list_found() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(1));
+        test_state.code_stack.push(Atom::int(0));
         code_atom(&mut test_state);
         assert!(test_state.bool_stack.last_eq(&true));
         test_state = PushState::new();
         test_state.code_stack.push(Atom::noop());
         code_atom(&mut test_state);
-        println!("{}", test_state.code_stack.to_string());
         assert!(test_state.bool_stack.last_eq(&true));
     }
 

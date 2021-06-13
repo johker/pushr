@@ -62,19 +62,17 @@ impl<'a> PartialEq for Atom<'a> {
                 _ => return false,
             },
             Atom::InstructionMeta {
-                name,
+                name: _,
                 code_blocks: _,
             } => match &*other {
                 Atom::InstructionMeta {
-                    name: oname,
+                    name: _,
                     code_blocks: _,
-                } => return name == oname,
+                } => return true,
                 _ => return false,
             },
-            Atom::Literal { push_type } => match &*other {
-                Atom::Literal {
-                    push_type: opush_type,
-                } => return push_type == opush_type,
+            Atom::Literal { push_type: _ } => match &*other {
+                Atom::Literal { push_type: _ } => return true,
                 _ => return false,
             },
             Atom::Input => match &*other {
@@ -118,24 +116,24 @@ mod tests {
 
     #[test]
     fn shallow_equality_when_comparing_atoms() {
-        let literal_a = Atom::Literal {
-            push_type: PushType::PushIntType { val: 0 },
-        };
-        let literal_b = Atom::Literal {
-            push_type: PushType::PushIntType { val: 2 },
-        };
+        let literal_a = Atom::int(0);
+        let literal_b = Atom::int(2);
         let closer_a = Atom::Closer;
         let closer_b = Atom::Closer;
         let code_block_a = Atom::CodeBlock {
             atoms: PushStack::from_vec(vec![Atom::Closer]),
         };
         let code_block_b = Atom::CodeBlock {
-            atoms: PushStack::from_vec(vec![Atom::Literal {
-                push_type: PushType::PushIntType { val: 0 },
-            }]),
+            atoms: PushStack::from_vec(vec![Atom::int(0)]),
+        };
+        let inst_a = Atom::noop();
+        let inst_b = Atom::InstructionMeta {
+            name: "BOOLEAN.AND",
+            code_blocks: 0,
         };
         assert_eq!(code_block_a, code_block_b);
-        assert_ne!(literal_a, literal_b);
+        assert_eq!(inst_a, inst_b);
+        assert_eq!(literal_a, literal_b);
         assert_eq!(closer_a, closer_b);
         assert_ne!(code_block_b, literal_b);
         assert_ne!(closer_a, literal_b);
@@ -144,9 +142,7 @@ mod tests {
     #[test]
     fn print_code_block() {
         let code_block = Atom::CodeBlock {
-            atoms: PushStack::from_vec(vec![Atom::Literal {
-                push_type: PushType::PushIntType { val: 0 },
-            }]),
+            atoms: PushStack::from_vec(vec![Atom::int(0)]),
         };
         assert_eq!(code_block.to_string(), "CodeBlock: 1:Literal(0);");
     }
