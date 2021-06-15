@@ -1,4 +1,4 @@
-use crate::push::atoms::{Atom, PushType};
+use crate::push::atoms::Atom;
 use crate::push::instructions::Instruction;
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
@@ -11,7 +11,8 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(code_append, 0),
     );
     map.insert(String::from("CODE.ATOM"), Instruction::new(code_atom, 0));
-    map.insert(String::from("CODE.CAR"), Instruction::new(code_car, 0));
+    map.insert(String::from("CODE.CAR"), Instruction::new(code_first, 0));
+    map.insert(String::from("CODE.CDR"), Instruction::new(code_rest, 0));
 }
 
 //
@@ -37,28 +38,32 @@ pub fn code_append(push_state: &mut PushState) {
 pub fn code_atom(push_state: &mut PushState) {
     // Equality only checks type and ignores value
     push_state.bool_stack.push(
-        push_state.code_stack.last_eq(&Atom::Literal {
-            push_type: PushType::PushIntType { val: 0 },
-        }) || push_state.code_stack.last_eq(&Atom::InstructionMeta {
-            name: "",
-            code_blocks: 0,
-        }),
+        push_state.code_stack.last_eq(&Atom::int(0))
+            || push_state.code_stack.last_eq(&Atom::noop()),
     );
 }
 
-pub fn code_car(push_state: &mut PushState) {
-    if push_state.code_stack.last_eq(&Atom::CodeBlock {
-        atoms: PushStack::new(),
-    }) {
+pub fn code_first(push_state: &mut PushState) {
+    if push_state.code_stack.last_eq(&Atom::block()) {
         match push_state.code_stack.pop() {
             Some(Atom::CodeBlock { mut atoms }) => {
                 if let Some(atom) = atoms.pop() {
-                    push_state.exec_stack.push(atom);
+                    push_state.code_stack.push(atom);
                 }
-                push_state.code_stack.push(Atom::CodeBlock { atoms: atoms });
             }
             _ => (),
         }
+    }
+}
+
+pub fn code_rest(push_state: &mut PushState) {
+    println!("{}", push_state.code_stack.to_string());
+    match push_state.code_stack.pop() {
+        Some(Atom::CodeBlock { mut atoms }) => {
+            atoms.pop();
+            push_state.code_stack.push(Atom::CodeBlock { atoms: atoms });
+        }
+        _ => (),
     }
 }
 
@@ -100,8 +105,11 @@ mod tests {
         test_state.code_stack.push(Atom::int(1));
         test_state.code_stack.push(Atom::int(2));
         code_append(&mut test_state);
-        assert_eq!(test_state.code_stack.size(), 1);
-        assert!(test_state.code_stack.last_eq(&Atom::block()));
+        assert_eq!(test_state.code_stack.size(), 1, "Excpected single element");
+        assert!(
+            test_state.code_stack.last_eq(&Atom::block()),
+            "Expected Code Block"
+        );
     }
 
     #[test]
@@ -109,30 +117,46 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.code_stack.push(Atom::int(0));
         code_atom(&mut test_state);
-        assert!(test_state.bool_stack.last_eq(&true));
+        assert!(
+            test_state.bool_stack.last_eq(&true),
+            "Should push true for Literal"
+        );
         test_state = PushState::new();
         test_state.code_stack.push(Atom::noop());
         code_atom(&mut test_state);
-        assert!(test_state.bool_stack.last_eq(&true));
+        assert!(
+            test_state.bool_stack.last_eq(&true),
+            "Should push true for Instruction"
+        );
+        test_state = PushState::new();
+        test_state.code_stack.push(Atom::block());
+        code_atom(&mut test_state);
+        assert!(
+            test_state.bool_stack.last_eq(&false),
+            "Should push false for Code Block"
+        );
     }
 
     #[test]
-    fn code_car_pushes_to_exec_stack_when_cb_is_found() {
+    fn code_first_pushes_first_element_when_cb_is_found() {
         let mut test_state = PushState::new();
         test_state.code_stack.push(Atom::CodeBlock {
-            atoms: PushStack::from_vec(vec![Atom::int(1), Atom::int(2)]),
+            atoms: PushStack::from_vec(vec![Atom::int(1), Atom::int(2), Atom::int(3)]),
         });
-        code_car(&mut test_state);
-        assert_eq!(test_state.code_stack.size(), 1);
-        assert_eq!(test_state.exec_stack.size(), 1);
-        if let Some(Atom::Literal { push_type }) = test_state.exec_stack.pop() {
-            if let PushType::PushIntType { val } = push_type {
-                assert_eq!(val, 2);
-            } else {
-                assert!(false, "Expected int literal");
-            }
-        } else {
-            assert!(false, "Expected Literal");
-        }
+        code_first(&mut test_state);
+        assert_eq!(test_state.code_stack.to_string(), "1:Literal(3);");
+    }
+
+    #[test]
+    fn code_rest_pushes_all_except_first_element() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::CodeBlock {
+            atoms: PushStack::from_vec(vec![Atom::int(1), Atom::int(2), Atom::int(3)]),
+        });
+        code_rest(&mut test_state);
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:CodeBlock: 1:Literal(2); 2:Literal(1);;"
+        );
     }
 }

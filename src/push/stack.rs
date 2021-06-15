@@ -83,6 +83,14 @@ where
         self.elements.pop()
     }
 
+    pub fn pop_front(&mut self) -> Option<T> {
+        if self.elements.len() == 0 {
+            None
+        } else {
+            Some(self.elements.remove(0))
+        }
+    }
+
     pub fn pop_vec(&mut self, req_size: usize) -> Option<Vec<T>> {
         if req_size > self.elements.len() {
             None
@@ -109,8 +117,12 @@ where
         }
     }
 
-    pub fn push_vec(&mut self, mut to_push: Vec<T>) {
+    pub fn push_vec_rev(&mut self, mut to_push: Vec<T>) {
         to_push.reverse();
+        self.elements.extend(to_push);
+    }
+
+    pub fn push_vec(&mut self, to_push: Vec<T>) {
         self.elements.extend(to_push);
     }
 }
@@ -132,12 +144,34 @@ mod tests {
     }
 
     #[test]
+    fn pop_front_returns_first_element() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3],
+        };
+        match test_stack.pop_front() {
+            None => assert!(false),
+            Some(el) => assert_eq!(el, 1),
+        }
+        assert_eq!(test_stack.size(), 2);
+    }
+
+    #[test]
     fn push_vec_in_right_order() {
         let mut test_stack = PushStack {
             elements: vec![1, 2, 3],
         };
-        let test_vec = vec![5, 4];
+        let test_vec = vec![4, 5];
         test_stack.push_vec(test_vec);
+        assert_eq!(test_stack.elements, [1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn push_vec_rev_in_right_order() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3],
+        };
+        let test_vec = vec![5, 4];
+        test_stack.push_vec_rev(test_vec);
         assert_eq!(test_stack.elements, [1, 2, 3, 4, 5]);
     }
 

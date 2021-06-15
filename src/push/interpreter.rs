@@ -17,6 +17,7 @@ impl<'a> PushInterpreter<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn copy_to_code_stack(&mut self) {
         // Push top-level program to code stack
         if let Some(code) = self
@@ -24,7 +25,7 @@ impl<'a> PushInterpreter<'a> {
             .exec_stack
             .observe_vec(self.push_state.exec_stack.size())
         {
-            self.push_state.code_stack.push_vec(code);
+            self.push_state.code_stack.push_vec_rev(code);
         }
     }
 
