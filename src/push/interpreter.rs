@@ -25,7 +25,7 @@ impl<'a> PushInterpreter<'a> {
             .exec_stack
             .observe_vec(self.push_state.exec_stack.size())
         {
-            self.push_state.code_stack.push_vec_rev(code);
+            self.push_state.code_stack.push_vec(code);
         }
     }
 

@@ -19,6 +19,8 @@ where
         Self { elements: elements }
     }
 
+    /// Prints the stack from top to bottom
+    /// enumerating its elements
     pub fn to_string(&self) -> String {
         let mut result = "".to_string();
         for (i, x) in self.elements.iter().rev().enumerate() {
@@ -33,15 +35,6 @@ where
 
     pub fn last_eq(&self, atom: &T) -> bool {
         return Some(atom) == self.elements.last();
-    }
-
-    #[allow(dead_code)]
-    pub fn last_mut(&mut self) -> Option<&mut T> {
-        if self.size() > 0 {
-            self.elements.last_mut()
-        } else {
-            None
-        }
     }
 
     pub fn first_mut(&mut self) -> Option<&mut T> {
@@ -99,7 +92,6 @@ where
                 self.elements
                     .split_off(self.elements.len() - req_size)
                     .into_iter()
-                    .rev()
                     .collect(),
             )
         }
@@ -110,8 +102,8 @@ where
             None
         } else {
             let mut cpy = Vec::with_capacity(req_size);
-            for i in 1..req_size + 1 {
-                cpy.push(self.elements[self.size() - i].clone());
+            for i in 0..req_size {
+                cpy.push(self.elements[self.size() - req_size + i].clone());
             }
             Some(cpy)
         }
@@ -124,6 +116,10 @@ where
 
     pub fn push_vec(&mut self, to_push: Vec<T>) {
         self.elements.extend(to_push);
+    }
+
+    pub fn reverse(&mut self) {
+        self.elements.reverse();
     }
 }
 
@@ -139,7 +135,7 @@ mod tests {
 
         match test_stack.pop_vec(2) {
             None => assert!(false),
-            Some(pv) => assert_eq!(pv[0], 3),
+            Some(pv) => assert_eq!(pv[0], 2),
         }
     }
 
@@ -185,8 +181,8 @@ mod tests {
             None => assert!(false, "Should return values"),
             Some(cv) => {
                 assert_eq!(cv.len(), 2);
-                assert_eq!(cv[0], 3);
-                assert_eq!(cv[1], 2);
+                assert_eq!(cv[0], 2);
+                assert_eq!(cv[1], 3);
             }
         }
         assert_eq!(

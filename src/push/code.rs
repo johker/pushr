@@ -13,6 +13,7 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("CODE.ATOM"), Instruction::new(code_atom, 0));
     map.insert(String::from("CODE.CAR"), Instruction::new(code_first, 0));
     map.insert(String::from("CODE.CDR"), Instruction::new(code_rest, 0));
+    map.insert(String::from("CODE.CONS"), Instruction::new(code_cons, 0));
 }
 
 //
@@ -64,6 +65,36 @@ pub fn code_rest(push_state: &mut PushState) {
             push_state.code_stack.push(Atom::CodeBlock { atoms: atoms });
         }
         _ => (),
+    }
+}
+
+pub fn code_cons(push_state: &mut PushState) {
+    if let Some(pv) = push_state.code_stack.pop_vec(2) {
+        let mut consblock = PushStack::new();
+        for i in (0..2).rev() {
+            match &pv[i] {
+                Atom::Literal { push_type: _ } => {
+                    consblock.push(pv[i].clone());
+                }
+                Atom::CodeBlock { atoms: a } => {
+                    if let Some(vec) = a.observe_vec(a.size()) {
+                        consblock.push_vec(vec)
+                    }
+                }
+                _ => (),
+            }
+        }
+        push_state
+            .code_stack
+            .push(Atom::CodeBlock { atoms: consblock });
+    }
+}
+
+pub fn code_container(push_state: &mut PushState) {
+    if let Some(ov) = push_state.code_stack.observe_vec(2) {
+        if ov[1].to_string().contains(&ov[0].to_string()) {
+            println!("Top element {} contains second element {}", ov[1], ov[0]);
+        }
     }
 }
 
@@ -153,10 +184,39 @@ mod tests {
         test_state.code_stack.push(Atom::CodeBlock {
             atoms: PushStack::from_vec(vec![Atom::int(1), Atom::int(2), Atom::int(3)]),
         });
+        //println!("Before rest: {}", test_state.code_stack.to_string());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:CodeBlock: 1:Literal(3); 2:Literal(2); 3:Literal(1);;"
+        );
         code_rest(&mut test_state);
         assert_eq!(
             test_state.code_stack.to_string(),
             "1:CodeBlock: 1:Literal(2); 2:Literal(1);;"
         );
+    }
+
+    #[test]
+    fn code_cons_appends_in_reverse_order() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::int(1));
+        test_state.code_stack.push(Atom::int(2));
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(2); 2:Literal(1);"
+        );
+        code_cons(&mut test_state);
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:CodeBlock: 1:Literal(1); 2:Literal(2);;"
+        );
+    }
+
+    fn code_container_finds_subelement() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::int(1));
+        test_state.code_stack.push(Atom::CodeBlock {
+            atoms: PushStack::from_vec(vec![Atom::int(2)]),
+        });
     }
 }
