@@ -4,6 +4,7 @@ use crate::push::stack::PushStack;
 use crate::push::state::PushState;
 use std::collections::HashMap;
 
+/// Maps the default code instructions to their identifiers
 pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("CODE.="), Instruction::new(code_eq, 0));
     map.insert(
@@ -22,12 +23,18 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("CODE.CONTAINS"),
         Instruction::new(code_contains, 0),
     );
+    map.insert(
+        String::from("CODE.DEFINE"),
+        Instruction::new(code_define, 0),
+    );
 }
 
 //
 // ------------------ Type: BOOLEAN ---------------------
 //
 
+/// CODE.=: Pushes TRUE if the top two pieces of CODE are equal,
+/// or FALSE otherwise.
 pub fn code_eq(push_state: &mut PushState) {
     if let Some(pv) = push_state.code_stack.observe_vec(2) {
         push_state
@@ -36,6 +43,10 @@ pub fn code_eq(push_state: &mut PushState) {
     }
 }
 
+/// CODE.APPEND: Pushes the result of appending the top two pieces of code.
+/// If one of the pieces of code is a single instruction or literal (that is,
+/// something not surrounded by parentheses) then it is surrounded by
+/// parentheses first.
 pub fn code_append(push_state: &mut PushState) {
     if let Some(pv) = push_state.code_stack.pop_vec(2) {
         push_state.code_stack.push(Atom::List {
@@ -44,6 +55,8 @@ pub fn code_append(push_state: &mut PushState) {
     }
 }
 
+/// CODE.ATOM: Pushes TRUE onto the BOOLEAN stack if the top piece of code is a single instruction
+/// or a literal, and FALSE otherwise (that is, if it is something surrounded by parentheses).
 pub fn code_atom(push_state: &mut PushState) {
     // Equality only checks type and ignores value
     push_state.bool_stack.push(
@@ -52,6 +65,10 @@ pub fn code_atom(push_state: &mut PushState) {
     );
 }
 
+/// CODE.CAR: Pushes the first item of the list on top of the CODE stack. For example, if the top
+/// piece of code is "( A B )" then this pushes "A" (after popping the argument). If the code on
+/// top of the stack is not a list then this has no effect. The name derives from the similar Lisp
+/// function; a more generic name would be "FIRST".
 pub fn code_first(push_state: &mut PushState) {
     if push_state.code_stack.last_eq(&Atom::empty_list()) {
         match push_state.code_stack.pop() {
@@ -65,6 +82,11 @@ pub fn code_first(push_state: &mut PushState) {
     }
 }
 
+/// CODE.CDR: Pushes a version of the list from the top of the CODE stack without its first
+/// element. For example, if the top piece of code is "( A B )" then this pushes "( B )" (after
+/// popping the argument). If the code on top of the stack is not a list then this pushes the empty
+/// list ("( )"). The name derives from the similar Lisp function; a more generic name would be
+/// "REST".
 pub fn code_rest(push_state: &mut PushState) {
     println!("{}", push_state.code_stack.to_string());
     match push_state.code_stack.pop() {
@@ -76,6 +98,10 @@ pub fn code_rest(push_state: &mut PushState) {
     }
 }
 
+/// CODE.CONS: Pushes the result of "consing" (in the Lisp sense) the second stack item onto the
+/// first stack item (which is coerced to a list if necessary). For example, if the top piece of
+/// code is "( A B )" and the second piece of code is "X" then this pushes "( X A B )" (after
+/// popping the argument).
 pub fn code_cons(push_state: &mut PushState) {
     if let Some(pv) = push_state.code_stack.pop_vec(2) {
         let mut consblock = PushStack::new();
@@ -96,6 +122,12 @@ pub fn code_cons(push_state: &mut PushState) {
     }
 }
 
+/// CODE.CONTAINER: Pushes the "container" of the second CODE stack item within the first CODE
+/// stack item onto the CODE stack. If second item contains the first anywhere (i.e. in any nested
+/// list) then the container is the smallest sub-list that contains but is not equal to the first
+/// instance. For example, if the top piece of code is "( B ( C ( A ) ) ( D ( A ) ) )" and the
+/// second piece of code is "( A )" then this pushes ( C ( A ) ). Pushes an empty list if there is
+/// no such container.
 pub fn code_container(push_state: &mut PushState) {
     if let Some(ov) = push_state.code_stack.observe_vec(2) {
         let stack_str = push_state.code_stack.to_string();
@@ -139,6 +171,8 @@ pub fn code_container(push_state: &mut PushState) {
     }
 }
 
+/// CODE.CONTAINS: Pushes TRUE on the BOOLEAN stack if the second CODE stack item contains the
+/// first CODE stack item anywhere (e.g. in a sub-list).
 pub fn code_contains(push_state: &mut PushState) {
     if let Some(ov) = push_state.code_stack.observe_vec(2) {
         let first_el = ov[1].to_string();
@@ -147,6 +181,28 @@ pub fn code_contains(push_state: &mut PushState) {
             push_state.bool_stack.push(true);
         } else {
             push_state.bool_stack.push(false);
+        }
+    }
+}
+
+/// CODE.DEFINE: Defines the name on top of the NAME stack as an instruction that will push the top
+/// item of the CODE stack onto the EXEC stack.
+pub fn code_define(push_state: &mut PushState) {
+    if let Some(name) = push_state.name_stack.pop() {
+        if let Some(instruction) = push_state.code_stack.pop() {
+            push_state.name_bindings.insert(name, instruction);
+        }
+    }
+}
+
+/// CODE.DEFINITION: Pushes the definition associated with the top NAME on the NAME stack (if any)
+/// onto the CODE stack. This extracts the definition for inspection/manipulation, rather than for
+/// immediate execution (although it may then be executed with a call to CODE.DO or a similar
+/// instruction).
+pub fn code_definition(push_state: &mut PushState) {
+    if let Some(name) = push_state.name_stack.pop() {
+        if let Some(instruction) = push_state.name_bindings.get(name) {
+            push_state.code_stack.push(instruction.clone());
         }
     }
 }
@@ -308,5 +364,29 @@ mod tests {
         ]));
         code_contains(&mut test_state);
         assert_eq!(test_state.bool_stack.to_string(), "1:true;");
+    }
+
+    #[test]
+    fn code_define_creates_name_binding() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::int(2));
+        test_state.name_stack.push(&"TEST");
+        code_define(&mut test_state);
+        assert_eq!(
+            *test_state.name_bindings.get("TEST").unwrap().to_string(),
+            Atom::int(2).to_string()
+        );
+    }
+
+    #[test]
+    fn code_definition_pushes_to_code_stack() {
+        let mut test_state = PushState::new();
+        test_state.name_bindings.insert("TEST", Atom::int(2));
+        test_state.name_stack.push("TEST");
+        code_definition(&mut test_state);
+        assert_eq!(
+            test_state.code_stack.pop().unwrap().to_string(),
+            Atom::int(2).to_string()
+        );
     }
 }
