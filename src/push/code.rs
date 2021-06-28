@@ -14,6 +14,14 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("CODE.CAR"), Instruction::new(code_first, 0));
     map.insert(String::from("CODE.CDR"), Instruction::new(code_rest, 0));
     map.insert(String::from("CODE.CONS"), Instruction::new(code_cons, 0));
+    map.insert(
+        String::from("CODE.CONTAINER"),
+        Instruction::new(code_container, 0),
+    );
+    map.insert(
+        String::from("CODE.CONTAINS"),
+        Instruction::new(code_contains, 0),
+    );
 }
 
 //
@@ -127,6 +135,18 @@ pub fn code_container(push_state: &mut PushState) {
         } else {
             // Push empty list if second atom is not part of first
             push_state.code_stack.push(Atom::empty_list());
+        }
+    }
+}
+
+pub fn code_contains(push_state: &mut PushState) {
+    if let Some(ov) = push_state.code_stack.observe_vec(2) {
+        let first_el = ov[1].to_string();
+        let code_str = ov[0].to_string();
+        if first_el.contains(&code_str) {
+            push_state.bool_stack.push(true);
+        } else {
+            push_state.bool_stack.push(false);
         }
     }
 }
@@ -267,5 +287,26 @@ mod tests {
             .code_stack
             .to_string()
             .starts_with("1:List: 1:Literal(3); 2:List: 1:Literal(3); 2:Literal(3);; 3:List: 1:Literal(2); 2:Literal(1);; 4:Literal(3)"));
+    }
+
+    #[test]
+    fn code_contains_pushes_true_if_second_contains_first() {
+        let mut test_state = PushState::new();
+        // Test element is (1 2)'
+        test_state
+            .code_stack
+            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+        test_state.code_stack.push(Atom::list(vec![
+            Atom::list(vec![
+                Atom::int(3),
+                Atom::list(vec![Atom::int(1), Atom::int(2)]),
+                Atom::list(vec![Atom::int(3), Atom::int(3)]),
+                Atom::int(3),
+            ]),
+            Atom::int(4),
+            Atom::int(5),
+        ]));
+        code_contains(&mut test_state);
+        assert_eq!(test_state.bool_stack.to_string(), "1:true;");
     }
 }
