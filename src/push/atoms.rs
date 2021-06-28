@@ -6,7 +6,7 @@ use crate::push::stack::PushStack;
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum Atom<'a> {
-    CodeBlock { atoms: PushStack<Atom<'a>> },
+    List { atoms: PushStack<Atom<'a>> },
     Closer,
     InstructionMeta { name: &'a str, code_blocks: u32 },
     Literal { push_type: PushType },
@@ -43,9 +43,14 @@ impl<'a> Atom<'a> {
             code_blocks: 0,
         }
     }
-    pub fn block() -> Atom<'a> {
-        Atom::CodeBlock {
+    pub fn empty_list() -> Atom<'a> {
+        Atom::List {
             atoms: PushStack::new(),
+        }
+    }
+    pub fn list(arg: Vec<Atom<'a>>) -> Atom<'a> {
+        Atom::List {
+            atoms: PushStack::from_vec(arg),
         }
     }
 }
@@ -53,8 +58,8 @@ impl<'a> Atom<'a> {
 impl<'a> PartialEq for Atom<'a> {
     fn eq(&self, other: &Self) -> bool {
         match &*self {
-            Atom::CodeBlock { atoms: _ } => match &*other {
-                Atom::CodeBlock { atoms: _ } => return true,
+            Atom::List { atoms: _ } => match &*other {
+                Atom::List { atoms: _ } => return true,
                 _ => return false,
             },
             Atom::Closer => match &*other {
@@ -86,7 +91,7 @@ impl<'a> PartialEq for Atom<'a> {
 impl<'a> fmt::Display for Atom<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &*self {
-            Atom::CodeBlock { atoms } => write!(f, "CodeBlock: {}", atoms.to_string()),
+            Atom::List { atoms } => write!(f, "List: {}", atoms.to_string()),
             Atom::Closer => write!(f, "Closer"),
             Atom::InstructionMeta {
                 name,
@@ -120,30 +125,26 @@ mod tests {
         let literal_b = Atom::int(2);
         let closer_a = Atom::Closer;
         let closer_b = Atom::Closer;
-        let code_block_a = Atom::CodeBlock {
-            atoms: PushStack::from_vec(vec![Atom::Closer]),
-        };
-        let code_block_b = Atom::CodeBlock {
-            atoms: PushStack::from_vec(vec![Atom::int(0)]),
-        };
+        let list_a = Atom::list(vec![Atom::Closer]);
+        let list_b = Atom::list(vec![Atom::int(0)]);
         let inst_a = Atom::noop();
         let inst_b = Atom::InstructionMeta {
             name: "BOOLEAN.AND",
             code_blocks: 0,
         };
-        assert_eq!(code_block_a, code_block_b);
+        assert_eq!(list_a, list_b);
         assert_eq!(inst_a, inst_b);
         assert_eq!(literal_a, literal_b);
         assert_eq!(closer_a, closer_b);
-        assert_ne!(code_block_b, literal_b);
+        assert_ne!(list_a, literal_b);
         assert_ne!(closer_a, literal_b);
     }
 
     #[test]
     fn print_code_block() {
-        let code_block = Atom::CodeBlock {
+        let code_block = Atom::List {
             atoms: PushStack::from_vec(vec![Atom::int(0)]),
         };
-        assert_eq!(code_block.to_string(), "CodeBlock: 1:Literal(0);");
+        assert_eq!(code_block.to_string(), "List: 1:Literal(0);");
     }
 }

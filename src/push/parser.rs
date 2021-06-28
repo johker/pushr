@@ -11,15 +11,15 @@ impl<'a> PushParser {
         // Push recursively
         if let Some(mut first_el) = stack.first_mut() {
             match &mut first_el {
-                Atom::CodeBlock { atoms } => {
-                    // If the top element is a CodeBlock
+                Atom::List { atoms } => {
+                    // If the top element is a List
                     // push to its stack
                     return PushParser::rec_push(atoms, atom);
                 }
                 _ => {
                     if atom == Atom::Closer {
                         // Closer is pushed on higher stack
-                        // to mark end of CodeBlock
+                        // to mark end of List
                         false
                     } else {
                         // Push any other element to top
@@ -45,7 +45,7 @@ impl<'a> PushParser {
                 // Start of code block
                 PushParser::rec_push(
                     &mut push_state.exec_stack,
-                    Atom::CodeBlock {
+                    Atom::List {
                         atoms: PushStack::new(),
                     },
                 );
@@ -141,6 +141,6 @@ mod tests {
         PushParser::parse_program(&instruction_set, &mut push_state, &input);
         let interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
 
-        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:CodeBlock: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;")
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:List: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;")
     }
 }

@@ -96,6 +96,13 @@ where
             )
         }
     }
+    pub fn observe(&self, index: usize) -> Option<T> {
+        if index > self.size() - 1 {
+            None
+        } else {
+            Some(self.elements[index].clone())
+        }
+    }
 
     pub fn observe_vec(&self, req_size: usize) -> Option<Vec<T>> {
         if req_size > self.size() {

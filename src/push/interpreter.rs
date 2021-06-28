@@ -47,7 +47,7 @@ impl<'a> PushInterpreter<'a> {
                         (instruction.execute)(&mut self.push_state);
                     }
                 }
-                Some(Atom::CodeBlock { mut atoms }) => {
+                Some(Atom::List { mut atoms }) => {
                     // TODO: Push to exec stack in reverse order
                     self.run_stack(&mut atoms);
                 }
@@ -85,7 +85,7 @@ impl<'a> PushInterpreter<'a> {
                         (instruction.execute)(&mut self.push_state);
                     }
                 }
-                Some(Atom::CodeBlock { atoms: _ }) => {
+                Some(Atom::List { atoms: _ }) => {
                     // TODO: Push to exec stack in reverse order
                 }
 
@@ -111,7 +111,7 @@ mod tests {
         PushParser::parse_program(&instruction_set, &mut push_state, &input);
         let mut interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
         interpreter.copy_to_code_stack();
-        assert_eq!(interpreter.push_state.code_stack.to_string(), "1:CodeBlock: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;");
+        assert_eq!(interpreter.push_state.code_stack.to_string(), "1:List: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;");
     }
 
     #[test]
