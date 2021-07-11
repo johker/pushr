@@ -27,6 +27,18 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("CODE.DEFINE"),
         Instruction::new(code_define, 0),
     );
+    map.insert(
+        String::from("CODE.DEFINITION"),
+        Instruction::new(code_definition, 0),
+    );
+    map.insert(
+        String::from("CODE.DISCREPANCY"),
+        Instruction::new(code_discrepancy, 0),
+    );
+    map.insert(
+        String::from("CODE.DO"),
+        Instruction::new(code_discrepancy, 0),
+    );
 }
 
 //
@@ -157,7 +169,7 @@ pub fn code_container(push_state: &mut PushState) {
                 }
                 match container {
                     Atom::List { atoms: sublist } => {
-                        container = sublist.observe(sublist.size() - (*x as usize)).unwrap();
+                        container = sublist.observe((*x as usize) - 1).unwrap();
                     }
                     _ => println!("Unexpected element - container: {}", container.to_string()),
                 }
@@ -204,6 +216,69 @@ pub fn code_definition(push_state: &mut PushState) {
         if let Some(instruction) = push_state.name_bindings.get(name) {
             push_state.code_stack.push(instruction.clone());
         }
+    }
+}
+/// CODE.DISCREPANCY: Pushes a measure of the discrepancy between the top two CODE stack items onto
+/// the INTEGER stack. This will be zero if the top two items are equivalent, and will be higher
+/// the 'more different' the items are from one another. The calculation is as follows:
+/// 1. Construct a list of all of the unique items in both of the lists (where uniqueness is
+///    determined by equalp). Sub-lists and atoms all count as items.
+/// 2. Initialize the result to zero.
+/// 3. For each unique item increment the result by the difference between the number of
+///    occurrences of the item in the two pieces of code.
+/// 4. Push the result.
+pub fn code_discrepancy(push_state: &mut PushState) {
+    let mut discrepancy = 0;
+    if let Some(ov) = push_state.code_stack.observe_vec(2) {
+        match &ov[0] {
+            Atom::List { atoms: fstlist } => {
+                match &ov[1] {
+                    Atom::List { atoms: scdlist } => {
+                        // Compare lists
+                        if let Some(fstvec) = fstlist.observe_vec(fstlist.size()) {
+                            for (i, x) in fstvec.iter().rev().enumerate() {
+                                if let Some(val) = scdlist.equal_at(i, x) {
+                                    if !val {
+                                        discrepancy += 1;
+                                    }
+                                }
+                            }
+                        }
+                        discrepancy =
+                            discrepancy + (fstlist.size() as i32 - scdlist.size() as i32).abs();
+                    }
+                    _ => {
+                        discrepancy = if ov[0].to_string() != ov[1].to_string() {
+                            1
+                        } else {
+                            0
+                        }
+                    }
+                }
+            }
+            _ => {
+                discrepancy = if ov[0].to_string() != ov[1].to_string() {
+                    1
+                } else {
+                    0
+                }
+            }
+        }
+        push_state.int_stack.push(discrepancy);
+    }
+}
+
+/// CODE.DO: Recursively invokes the interpreter on the program on top of the CODE stack. After
+/// evaluation the CODE stack is popped; normally this pops the program that was just executed, but
+/// if the expression itself manipulates the stack then this final pop may end up popping something
+/// else.
+pub fn code_do(push_state: &mut PushState) {
+    if let Some(instruction) = push_state.code_stack.observe(0) {
+        push_state.exec_stack.push(Atom::InstructionMeta {
+            name: "CODE.POP",
+            code_blocks: 0,
+        });
+        push_state.exec_stack.push(instruction);
     }
 }
 
@@ -387,6 +462,45 @@ mod tests {
         assert_eq!(
             test_state.code_stack.pop().unwrap().to_string(),
             Atom::int(2).to_string()
+        );
+    }
+
+    #[test]
+    fn code_discrepancy_calculates_zero_discrepancy_correctly() {
+        let mut test_state = PushState::new();
+        // Test element is (1 2)'
+        test_state
+            .code_stack
+            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+        test_state
+            .code_stack
+            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+        code_discrepancy(&mut test_state);
+        assert_eq!(test_state.int_stack.to_string(), "1:0;");
+    }
+
+    #[test]
+    fn code_discrepancy_calculates_discrepancy_correctly() {
+        let mut test_state = PushState::new();
+        // Test element is (1 2)'
+        test_state
+            .code_stack
+            .push(Atom::list(vec![Atom::int(0), Atom::int(2)]));
+        test_state
+            .code_stack
+            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+        code_discrepancy(&mut test_state);
+        assert_eq!(test_state.int_stack.to_string(), "1:1;");
+    }
+
+    #[test]
+    fn code_do_adds_instruction_to_excecution_stack() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::int(9));
+        code_do(&mut test_state);
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(9); 2:InstructionMeta(CODE.POP);"
         );
     }
 }
