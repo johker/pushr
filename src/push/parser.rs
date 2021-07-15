@@ -61,11 +61,8 @@ impl<'a> PushParser {
 
             // Check for instruction
             match instruction_set.map.get(token) {
-                Some(instruction) => {
-                    let im = Atom::InstructionMeta {
-                        name: token,
-                        code_blocks: instruction.code_blocks,
-                    };
+                Some(_instruction) => {
+                    let im = Atom::InstructionMeta { name: token };
                     PushParser::rec_push(&mut push_state.exec_stack, im);
                     continue;
                 }

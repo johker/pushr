@@ -8,9 +8,9 @@ use crate::push::stack::PushStack;
 pub enum Atom<'a> {
     List { atoms: PushStack<Atom<'a>> },
     Closer,
-    InstructionMeta { name: &'a str, code_blocks: u32 },
+    InstructionMeta { name: &'a str },
     Literal { push_type: PushType },
-    Input,
+    Identifier { name: &'a str },
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -38,10 +38,7 @@ impl<'a> Atom<'a> {
         }
     }
     pub fn noop() -> Atom<'a> {
-        Atom::InstructionMeta {
-            name: "NOOP",
-            code_blocks: 0,
-        }
+        Atom::InstructionMeta { name: "NOOP" }
     }
     pub fn empty_list() -> Atom<'a> {
         Atom::List {
@@ -52,6 +49,9 @@ impl<'a> Atom<'a> {
         Atom::List {
             atoms: PushStack::from_vec(arg),
         }
+    }
+    pub fn id(arg: &'a str) -> Atom<'a> {
+        Atom::Identifier { name: arg }
     }
 }
 
@@ -66,22 +66,16 @@ impl<'a> PartialEq for Atom<'a> {
                 Atom::Closer => return true,
                 _ => return false,
             },
-            Atom::InstructionMeta {
-                name: _,
-                code_blocks: _,
-            } => match &*other {
-                Atom::InstructionMeta {
-                    name: _,
-                    code_blocks: _,
-                } => return true,
+            Atom::InstructionMeta { name: _ } => match &*other {
+                Atom::InstructionMeta { name: _ } => return true,
                 _ => return false,
             },
             Atom::Literal { push_type: _ } => match &*other {
                 Atom::Literal { push_type: _ } => return true,
                 _ => return false,
             },
-            Atom::Input => match &*other {
-                Atom::Input => return true,
+            Atom::Identifier { name: _ } => match &*other {
+                Atom::Identifier { name: _ } => return true,
                 _ => return false,
             },
         }
@@ -93,10 +87,7 @@ impl<'a> fmt::Display for Atom<'a> {
         match &*self {
             Atom::List { atoms } => write!(f, "List: {}", atoms.to_string()),
             Atom::Closer => write!(f, "Closer"),
-            Atom::InstructionMeta {
-                name,
-                code_blocks: _,
-            } => {
+            Atom::InstructionMeta { name } => {
                 let at = "InstructionMeta".to_string();
                 write!(f, "{}({})", at, name)
             }
@@ -110,7 +101,10 @@ impl<'a> fmt::Display for Atom<'a> {
                 }
                 write!(f, "{}({})", at, info)
             }
-            Atom::Input => write!(f, "Input"),
+            Atom::Identifier { name } => {
+                let at = "Identifier".to_string();
+                write!(f, "{}({})", at, name)
+            }
         }
     }
 }
@@ -130,7 +124,6 @@ mod tests {
         let inst_a = Atom::noop();
         let inst_b = Atom::InstructionMeta {
             name: "BOOLEAN.AND",
-            code_blocks: 0,
         };
         assert_eq!(list_a, list_b);
         assert_eq!(inst_a, inst_b);
@@ -141,10 +134,10 @@ mod tests {
     }
 
     #[test]
-    fn print_code_block() {
-        let code_block = Atom::List {
+    fn print_list() {
+        let list = Atom::List {
             atoms: PushStack::from_vec(vec![Atom::int(0)]),
         };
-        assert_eq!(code_block.to_string(), "List: 1:Literal(0);");
+        assert_eq!(list.to_string(), "List: 1:Literal(0);");
     }
 }

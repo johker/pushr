@@ -5,67 +5,43 @@ use rand::Rng;
 use std::collections::HashMap;
 
 pub fn load_boolean_instructions(map: &mut HashMap<String, Instruction>) {
-    map.insert(String::from("BOOLEAN.="), Instruction::new(boolean_eq, 0));
-    map.insert(
-        String::from("BOOLEAN.AND"),
-        Instruction::new(boolean_and, 0),
-    );
+    map.insert(String::from("BOOLEAN.="), Instruction::new(boolean_eq));
+    map.insert(String::from("BOOLEAN.AND"), Instruction::new(boolean_and));
     map.insert(
         String::from("BOOLEAN.DEFINE"),
-        Instruction::new(boolean_def, 0),
+        Instruction::new(boolean_def),
     );
-    map.insert(
-        String::from("BOOLEAN.DUP"),
-        Instruction::new(boolean_dup, 0),
-    );
+    map.insert(String::from("BOOLEAN.DUP"), Instruction::new(boolean_dup));
     map.insert(
         String::from("BOOLEAN.FLUSH"),
-        Instruction::new(boolean_flush, 0),
+        Instruction::new(boolean_flush),
     );
     map.insert(
         String::from("BOOLEAN.FROMFLOAT"),
-        Instruction::new(boolean_from_float, 0),
+        Instruction::new(boolean_from_float),
     );
     map.insert(
         String::from("BOOLEAN.FROMINTEGER"),
-        Instruction::new(boolean_from_integer, 0),
+        Instruction::new(boolean_from_integer),
     );
-    map.insert(
-        String::from("BOOLEAN.NOT"),
-        Instruction::new(boolean_not, 0),
-    );
-    map.insert(String::from("BOOLEAN.OR"), Instruction::new(boolean_or, 0));
-    map.insert(
-        String::from("BOOLEAN.POP"),
-        Instruction::new(boolean_pop, 0),
-    );
-    map.insert(
-        String::from("BOOLEAN.RAND"),
-        Instruction::new(boolean_rand, 0),
-    );
-    map.insert(
-        String::from("BOOLEAN.ROT"),
-        Instruction::new(boolean_rot, 0),
-    );
+    map.insert(String::from("BOOLEAN.NOT"), Instruction::new(boolean_not));
+    map.insert(String::from("BOOLEAN.OR"), Instruction::new(boolean_or));
+    map.insert(String::from("BOOLEAN.POP"), Instruction::new(boolean_pop));
+    map.insert(String::from("BOOLEAN.RAND"), Instruction::new(boolean_rand));
+    map.insert(String::from("BOOLEAN.ROT"), Instruction::new(boolean_rot));
     map.insert(
         String::from("BOOLEAN.SHOVE"),
-        Instruction::new(boolean_shove, 0),
+        Instruction::new(boolean_shove),
     );
     map.insert(
         String::from("BOOLEAN.STACKDEPTH"),
-        Instruction::new(boolean_stack_depth, 0),
+        Instruction::new(boolean_stack_depth),
     );
-    map.insert(
-        String::from("BOOLEAN.SWAP"),
-        Instruction::new(boolean_swap, 0),
-    );
-    map.insert(
-        String::from("BOOLEAN.YANK"),
-        Instruction::new(boolean_yank, 0),
-    );
+    map.insert(String::from("BOOLEAN.SWAP"), Instruction::new(boolean_swap));
+    map.insert(String::from("BOOLEAN.YANK"), Instruction::new(boolean_yank));
     map.insert(
         String::from("BOOLEAN.YANKDUP"),
-        Instruction::new(boolean_yank_dup, 0),
+        Instruction::new(boolean_yank_dup),
     );
 }
 

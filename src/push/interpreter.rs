@@ -39,10 +39,13 @@ impl<'a> PushInterpreter<'a> {
                     PushType::PushIntType { val } => self.push_state.int_stack.push(val),
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
-                Some(Atom::InstructionMeta {
-                    name,
-                    code_blocks: _,
-                }) => {
+                Some(Atom::Identifier { name }) => {
+                    if let Some(atom) = self.push_state.name_bindings.get(name) {
+                        // Evaluate atom for this name in next iteration
+                        stack.push(atom.clone());
+                    }
+                }
+                Some(Atom::InstructionMeta { name }) => {
                     if let Some(instruction) = self.instruction_set.map.get_mut(name) {
                         (instruction.execute)(&mut self.push_state);
                     }
@@ -53,13 +56,14 @@ impl<'a> PushInterpreter<'a> {
                 }
                 // TODO
                 Some(Atom::Closer) => continue,
-                Some(Atom::Input) => continue,
             }
         }
     }
 
     pub fn run(&mut self) {
+        // TODO: Make static / Call run_stack
         self.copy_to_code_stack();
+        // run_stack(push_state.exec_stack);
         loop {
             // TODO: Stop conditions here
             // If the first item on the EXEC stack is a single instruction
@@ -77,10 +81,7 @@ impl<'a> PushInterpreter<'a> {
                     PushType::PushIntType { val } => self.push_state.int_stack.push(val),
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
-                Some(Atom::InstructionMeta {
-                    name,
-                    code_blocks: _,
-                }) => {
+                Some(Atom::InstructionMeta { name }) => {
                     if let Some(instruction) = self.instruction_set.map.get_mut(name) {
                         (instruction.execute)(&mut self.push_state);
                     }
@@ -91,7 +92,7 @@ impl<'a> PushInterpreter<'a> {
 
                 // TODO
                 Some(Atom::Closer) => continue,
-                Some(Atom::Input) => continue,
+                Some(Atom::Identifier { name: _ }) => continue,
             };
             // TODO: Growth cap here
         }
@@ -120,10 +121,9 @@ mod tests {
         let mut instruction_set = InstructionSet::new();
         instruction_set.load();
 
-        push_state.exec_stack.push(Atom::InstructionMeta {
-            name: "BOOLEAN.OR",
-            code_blocks: 0,
-        });
+        push_state
+            .exec_stack
+            .push(Atom::InstructionMeta { name: "BOOLEAN.OR" });
         push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushBoolType { val: false },
         });
@@ -131,10 +131,9 @@ mod tests {
             push_type: PushType::PushBoolType { val: true },
         });
 
-        push_state.exec_stack.push(Atom::InstructionMeta {
-            name: "FLOAT.+",
-            code_blocks: 0,
-        });
+        push_state
+            .exec_stack
+            .push(Atom::InstructionMeta { name: "FLOAT.+" });
         push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushFloatType { val: 5.2 },
         });
@@ -142,10 +141,9 @@ mod tests {
             push_type: PushType::PushFloatType { val: 4.1 },
         });
 
-        push_state.exec_stack.push(Atom::InstructionMeta {
-            name: "INTEGER.*",
-            code_blocks: 0,
-        });
+        push_state
+            .exec_stack
+            .push(Atom::InstructionMeta { name: "INTEGER.*" });
         push_state.exec_stack.push(Atom::Literal {
             push_type: PushType::PushIntType { val: 3 },
         });

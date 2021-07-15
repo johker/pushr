@@ -6,38 +6,61 @@ use std::collections::HashMap;
 
 /// Maps the default code instructions to their identifiers
 pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
-    map.insert(String::from("CODE.="), Instruction::new(code_eq, 0));
-    map.insert(
-        String::from("CODE.APPEND"),
-        Instruction::new(code_append, 0),
-    );
-    map.insert(String::from("CODE.ATOM"), Instruction::new(code_atom, 0));
-    map.insert(String::from("CODE.CAR"), Instruction::new(code_first, 0));
-    map.insert(String::from("CODE.CDR"), Instruction::new(code_rest, 0));
-    map.insert(String::from("CODE.CONS"), Instruction::new(code_cons, 0));
+    map.insert(String::from("CODE.="), Instruction::new(code_eq));
+    map.insert(String::from("CODE.APPEND"), Instruction::new(code_append));
+    map.insert(String::from("CODE.ATOM"), Instruction::new(code_atom));
+    map.insert(String::from("CODE.CAR"), Instruction::new(code_first));
+    map.insert(String::from("CODE.CDR"), Instruction::new(code_rest));
+    map.insert(String::from("CODE.CONS"), Instruction::new(code_cons));
     map.insert(
         String::from("CODE.CONTAINER"),
-        Instruction::new(code_container, 0),
+        Instruction::new(code_container),
     );
     map.insert(
         String::from("CODE.CONTAINS"),
-        Instruction::new(code_contains, 0),
+        Instruction::new(code_contains),
     );
-    map.insert(
-        String::from("CODE.DEFINE"),
-        Instruction::new(code_define, 0),
-    );
+    map.insert(String::from("CODE.DEFINE"), Instruction::new(code_define));
     map.insert(
         String::from("CODE.DEFINITION"),
-        Instruction::new(code_definition, 0),
+        Instruction::new(code_definition),
     );
     map.insert(
         String::from("CODE.DISCREPANCY"),
-        Instruction::new(code_discrepancy, 0),
+        Instruction::new(code_discrepancy),
+    );
+    map.insert(String::from("CODE.DO"), Instruction::new(code_do));
+    map.insert(String::from("CODE.DO*"), Instruction::new(code_pop_and_do));
+    map.insert(
+        String::from("CODE.DO*COUNT"),
+        Instruction::new(code_do_count),
     );
     map.insert(
-        String::from("CODE.DO"),
-        Instruction::new(code_discrepancy, 0),
+        String::from("CODE.DO*RANGE"),
+        Instruction::new(code_do_range),
+    );
+    map.insert(
+        String::from("CODE.DO*TIMES"),
+        Instruction::new(code_do_times),
+    );
+    map.insert(String::from("CODE.DUP"), Instruction::new(code_dup));
+    map.insert(String::from("CODE.EXTRACT"), Instruction::new(code_extract));
+    map.insert(String::from("CODE.FLUSH"), Instruction::new(code_flush));
+    map.insert(
+        String::from("CODE.FROMBOOLEAN"),
+        Instruction::new(code_from_bool),
+    );
+    map.insert(
+        String::from("CODE.FROMFLOAT"),
+        Instruction::new(code_from_float),
+    );
+    map.insert(
+        String::from("CODE.FROMINTEGER"),
+        Instruction::new(code_from_int),
+    );
+    map.insert(
+        String::from("CODE.FROMNAME"),
+        Instruction::new(code_from_name),
     );
 }
 
@@ -274,11 +297,129 @@ pub fn code_discrepancy(push_state: &mut PushState) {
 /// else.
 pub fn code_do(push_state: &mut PushState) {
     if let Some(instruction) = push_state.code_stack.observe(0) {
-        push_state.exec_stack.push(Atom::InstructionMeta {
-            name: "CODE.POP",
-            code_blocks: 0,
-        });
+        push_state
+            .exec_stack
+            .push(Atom::InstructionMeta { name: "CODE.POP" });
         push_state.exec_stack.push(instruction);
+    }
+}
+
+/// CODE.DO*: Like CODE.DO but pops the stack before, rather than after, the recursive execution.
+pub fn code_pop_and_do(push_state: &mut PushState) {
+    if let Some(instruction) = push_state.code_stack.observe(0) {
+        push_state.exec_stack.push(instruction);
+        push_state
+            .exec_stack
+            .push(Atom::InstructionMeta { name: "CODE.POP" });
+    }
+}
+
+/// CODE.DO*COUNT: An iteration instruction that performs a loop (the body of which is taken from
+/// the CODE stack) the number of times indicated by the INTEGER argument, pushing an index (which
+/// runs from zero to one less than the number of iterations) onto the INTEGER stack prior to each
+/// execution of the loop body. This should be implemented as a macro that expands into a call to
+/// CODE.DO*RANGE.
+/// CODE.DO*COUNT takes a single INTEGER argument (the number of times that the loop will be
+/// executed) and a single CODE argument (the body of the loop). If the provided INTEGER argument
+/// is negative or zero then this becomes a NOOP. Otherwise it expands into:
+/// ( 0 <1 - IntegerArg> CODE.QUOTE <CodeArg> CODE.DO*RANGE )
+pub fn code_do_count(_push_state: &mut PushState) {
+    // TODO
+}
+
+/// CODE.DO*RANGE: An iteration instruction that executes the top item on the CODE stack a number
+/// of times that depends on the top two integers, while also pushing the loop counter onto the
+/// INTEGER stack for possible access during the execution of the body of the loop. The top integer
+/// is the "destination index" and the second integer is the "current index." First the code and
+/// the integer arguments are saved locally and popped. Then the integers are compared. If the
+/// integers are equal then the current index is pushed onto the INTEGER stack and the code (which
+/// is the "body" of the loop) is pushed onto the EXEC stack for subsequent execution. If the
+/// integers are not equal then the current index will still be pushed onto the INTEGER stack but
+/// two items will be pushed onto the EXEC stack -- first a recursive call to CODE.DO*RANGE (with
+/// the same code and destination index, but with a current index that has been either incremented
+/// or decremented by 1 to be closer to the destination index) and then the body code. Note that
+/// the range is inclusive of both endpoints; a call with integer arguments 3 and 5 will cause its
+/// body to be executed 3 times, with the loop counter having the values 3, 4, and 5. Note also
+/// that one can specify a loop that "counts down" by providing a destination index that is less
+/// than the specified current index.
+pub fn code_do_range(push_state: &mut PushState) {
+    if let Some(body) = push_state.code_stack.pop() {
+        if let Some(indices) = push_state.int_stack.pop_vec(2) {
+            let destination_idx = indices[1];
+            let mut current_idx = indices[0];
+            if current_idx == destination_idx {
+                push_state.int_stack.push(current_idx);
+                push_state.exec_stack.push(body);
+            } else {
+                push_state.exec_stack.push(Atom::InstructionMeta {
+                    name: "CODE.DO*RANGE",
+                });
+                push_state.exec_stack.push(body);
+                if current_idx < destination_idx {
+                    current_idx += 1;
+                } else {
+                    current_idx -= 1;
+                }
+                push_state.int_stack.push(current_idx);
+                push_state.int_stack.push(destination_idx);
+            }
+        }
+    }
+}
+
+/// CODE.DO*TIMES: Like CODE.DO*COUNT but does not push the loop counter. This should be
+/// implemented as a macro that expands into CODE.DO*RANGE, similarly to the implementation of
+/// CODE.DO*COUNT, except that a call to INTEGER.POP should be tacked on to the front of the loop
+/// body code in the call to CODE.DO*RANGE. This call to INTEGER.POP will remove the loop counter,
+/// which will have been pushed by CODE.DO*RANGE, prior to the execution of the loop body.
+pub fn code_do_times(_push_state: &mut PushState) {
+    // TODO
+}
+
+/// CODE.DUP: Duplicates the top item on the CODE stack. Does not pop its argument (which, if it
+/// did, would negate the effect of the duplication!).
+pub fn code_dup(push_state: &mut PushState) {
+    if let Some(instruction) = push_state.code_stack.observe(0) {
+        push_state.code_stack.push(instruction);
+    }
+}
+
+/// CODE.DUP: Duplicates the top item on the CODE stack. Does not pop its argument (which, if it
+/// did, would negate the effect of the duplication!).
+pub fn code_extract(_push_state: &mut PushState) {
+    // TODO
+}
+
+/// CODE.FLUSH: Empties the CODE stack.
+pub fn code_flush(push_state: &mut PushState) {
+    push_state.code_stack.flush();
+}
+
+/// CODE.FROMBOOLEAN: Pops the BOOLEAN stack and pushes the popped item (TRUE or FALSE) onto the
+/// CODE stack.
+pub fn code_from_bool(push_state: &mut PushState) {
+    if let Some(bval) = push_state.bool_stack.pop() {
+        push_state.code_stack.push(Atom::bool(bval));
+    }
+}
+/// CODE.FROMFLOAT: Pops the FLOAT stack and pushes the popped item onto the CODE stack.
+pub fn code_from_float(push_state: &mut PushState) {
+    if let Some(fval) = push_state.float_stack.pop() {
+        push_state.code_stack.push(Atom::float(fval));
+    }
+}
+
+/// CODE.FROMINTEGER: Pops the INTEGER stack and pushes the popped integer onto the CODE stack.
+pub fn code_from_int(push_state: &mut PushState) {
+    if let Some(ival) = push_state.int_stack.pop() {
+        push_state.code_stack.push(Atom::int(ival));
+    }
+}
+
+/// CODE.FROMNAME: Pops the NAME stack and pushes the popped item onto the CODE stack.
+pub fn code_from_name(push_state: &mut PushState) {
+    if let Some(nval) = push_state.name_stack.pop() {
+        push_state.code_stack.push(Atom::id(nval));
     }
 }
 
@@ -502,5 +643,78 @@ mod tests {
             test_state.exec_stack.to_string(),
             "1:Literal(9); 2:InstructionMeta(CODE.POP);"
         );
+    }
+
+    #[test]
+    fn code_pop_and_do_adds_instruction_to_excecution_stack() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::int(9));
+        code_pop_and_do(&mut test_state);
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:InstructionMeta(CODE.POP); 2:Literal(9);"
+        );
+    }
+
+    #[test]
+    fn code_do_range_counts_upwards() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::noop());
+        test_state.int_stack.push(3); // Current index
+        test_state.int_stack.push(5); // Destination index
+        code_do_range(&mut test_state);
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:InstructionMeta(NOOP); 2:InstructionMeta(CODE.DO*RANGE);"
+        );
+        assert_eq!(test_state.int_stack.to_string(), "1:5; 2:4;");
+    }
+
+    #[test]
+    fn code_do_range_counts_downwards() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::noop());
+        test_state.int_stack.push(6); // Current index
+        test_state.int_stack.push(1); // Destination index
+        code_do_range(&mut test_state);
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:InstructionMeta(NOOP); 2:InstructionMeta(CODE.DO*RANGE);"
+        );
+        assert_eq!(test_state.int_stack.to_string(), "1:1; 2:5;");
+    }
+
+    #[test]
+    fn code_dup_duplicates_top_element() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Atom::noop());
+        code_dup(&mut test_state);
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:InstructionMeta(NOOP); 2:InstructionMeta(NOOP);"
+        );
+    }
+
+    #[test]
+    fn code_flush_empties_stack() {
+        let mut test_state = PushState::new();
+        // Test element is (1 2)'
+        test_state
+            .code_stack
+            .push(Atom::list(vec![Atom::int(0), Atom::int(2)]));
+        test_state
+            .code_stack
+            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+        code_flush(&mut test_state);
+        assert_eq!(test_state.int_stack.to_string(), "");
+    }
+
+    #[test]
+    fn code_from_bool_pushes_literal() {
+        let mut test_state = PushState::new();
+        // Test element is (1 2)'
+        test_state.bool_stack.push(true);
+        code_from_bool(&mut test_state);
+        assert_eq!(test_state.code_stack.to_string(), "1:Literal(true);");
     }
 }

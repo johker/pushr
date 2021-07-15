@@ -25,30 +25,28 @@ impl InstructionSet {
 
     pub fn load(&mut self) {
         self.map
-            .insert(String::from("NOOP"), Instruction::new(noop, 0));
+            .insert(String::from("NOOP"), Instruction::new(noop));
         load_boolean_instructions(&mut self.map);
         load_code_instructions(&mut self.map);
         self.map
-            .insert(String::from("INTEGER.+"), Instruction::new(integer_add, 0));
+            .insert(String::from("INTEGER.+"), Instruction::new(integer_add));
         self.map.insert(
             String::from("INTEGER.*"),
-            Instruction::new(integer_multiply, 0),
+            Instruction::new(integer_multiply),
         );
         self.map
-            .insert(String::from("FLOAT.+"), Instruction::new(float_add, 0));
+            .insert(String::from("FLOAT.+"), Instruction::new(float_add));
     }
 }
 
 pub struct Instruction {
     pub execute: Box<dyn FnMut(&mut PushState)>,
-    pub code_blocks: u32,
 }
 
 impl Instruction {
-    pub fn new(execute: impl FnMut(&mut PushState) + 'static, code_blocks: u32) -> Self {
+    pub fn new(execute: impl FnMut(&mut PushState) + 'static) -> Self {
         Self {
             execute: Box::new(execute),
-            code_blocks: code_blocks,
         }
     }
 }
