@@ -384,10 +384,19 @@ pub fn code_dup(push_state: &mut PushState) {
     }
 }
 
-/// CODE.DUP: Duplicates the top item on the CODE stack. Does not pop its argument (which, if it
-/// did, would negate the effect of the duplication!).
-pub fn code_extract(_push_state: &mut PushState) {
+/// CODE.EXTRACT: Pushes the sub-expression of the top item of the CODE stack that is indexed by
+/// the top item of the INTEGER stack. The indexing here counts "points," where each parenthesized
+/// expression and each literal/instruction is considered a point, and it proceeds in depth first
+/// order. The entire piece of code is at index 0; if it is a list then the first item in the list
+/// is at index 1, etc. The integer used as the index is taken modulo the number of points in the
+/// overall expression (and its absolute value is taken in case it is negative) to ensure that it
+/// is within the meaningful range.
+pub fn code_extract(push_state: &mut PushState) {
     // TODO
+    if let Some(sub_idx) = push_state.int_stack.pop() {
+        let mut i = sub_idx;
+        let mut code = push_state.code_stack.observe(0);
+    }
 }
 
 /// CODE.FLUSH: Empties the CODE stack.
@@ -420,6 +429,22 @@ pub fn code_from_int(push_state: &mut PushState) {
 pub fn code_from_name(push_state: &mut PushState) {
     if let Some(nval) = push_state.name_stack.pop() {
         push_state.code_stack.push(Atom::id(nval));
+    }
+}
+
+/// CODE.IF: If the top item of the BOOLEAN stack is TRUE this recursively executes the second item
+/// of the CODE stack; otherwise it recursively executes the first item of the CODE stack. Either
+/// way both elements of the CODE stack (and the BOOLEAN value upon which the decision was made)
+/// are popped.
+pub fn code_if(push_state: &mut PushState) {
+    if let Some(code) = push_state.code_stack.pop_vec(2) {
+        if let Some(exec_second) = push_state.bool_stack.pop() {
+            if exec_second {
+                push_state.exec_stack.push(code[0].clone());
+            } else {
+                push_state.exec_stack.push(code[1].clone());
+            }
+        }
     }
 }
 
@@ -712,9 +737,32 @@ mod tests {
     #[test]
     fn code_from_bool_pushes_literal() {
         let mut test_state = PushState::new();
-        // Test element is (1 2)'
         test_state.bool_stack.push(true);
         code_from_bool(&mut test_state);
         assert_eq!(test_state.code_stack.to_string(), "1:Literal(true);");
+    }
+
+    #[test]
+    fn code_if_pushes_second_item_when_true() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(true);
+        test_state.code_stack.push(Atom::int(2));
+        test_state.code_stack.push(Atom::int(1));
+        code_if(&mut test_state);
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
+        assert_eq!(test_state.code_stack.to_string(), "");
+        assert_eq!(test_state.bool_stack.to_string(), "");
+    }
+
+    #[test]
+    fn code_if_pushes_first_item_when_false() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(false);
+        test_state.code_stack.push(Atom::int(2));
+        test_state.code_stack.push(Atom::int(1));
+        code_if(&mut test_state);
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
+        assert_eq!(test_state.code_stack.to_string(), "");
+        assert_eq!(test_state.bool_stack.to_string(), "");
     }
 }

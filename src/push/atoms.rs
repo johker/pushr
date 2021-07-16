@@ -53,6 +53,28 @@ impl<'a> Atom<'a> {
     pub fn id(arg: &'a str) -> Atom<'a> {
         Atom::Identifier { name: arg }
     }
+
+    /// Return a nested element of a list using depth first traversal.
+    pub fn traverse(atom: &Atom<'a>, mut depth: usize) -> Result<Atom<'a>, usize> {
+        if depth == 0 {
+            Ok(atom.clone())
+        } else {
+            match atom {
+                Atom::List { atoms } => {
+                    for i in 0..atoms.size() {
+                        depth -= 1;
+                        let next = Atom::traverse(&atoms.observe(i).unwrap(), depth);
+                        match next {
+                            Ok(next) => return Ok(next),
+                            Err(new_depth) => depth = new_depth,
+                        }
+                    }
+                }
+                _ => (),
+            }
+            Err(depth)
+        }
+    }
 }
 
 impl<'a> PartialEq for Atom<'a> {
@@ -114,7 +136,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn shallow_equality_when_comparing_atoms() {
+    fn shallow_equality_returns_true_comparing_atoms_with_different_content() {
         let literal_a = Atom::int(0);
         let literal_b = Atom::int(2);
         let closer_a = Atom::Closer;
@@ -134,10 +156,22 @@ mod tests {
     }
 
     #[test]
-    fn print_list() {
-        let list = Atom::List {
-            atoms: PushStack::from_vec(vec![Atom::int(0)]),
-        };
-        assert_eq!(list.to_string(), "List: 1:Literal(0);");
+    fn print_list_shows_sublements() {
+        let list = Atom::list(vec![Atom::int(0), Atom::int(1)]);
+        assert_eq!(list.to_string(), "List: 1:Literal(1); 2:Literal(0);");
+    }
+
+    #[test]
+    fn traverse_returns_right_element_sublist() {
+        let test_atom = Atom::list(vec![
+            Atom::int(4),
+            Atom::list(vec![Atom::int(3)]),
+            Atom::int(2),
+            Atom::int(1),
+        ]);
+        assert_eq!(
+            Atom::traverse(&test_atom, 4).unwrap().to_string(),
+            "Literal(3)"
+        );
     }
 }
