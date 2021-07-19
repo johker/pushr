@@ -1,5 +1,5 @@
-use crate::push::atoms::{Atom, PushType};
 use crate::push::instructions::InstructionSet;
+use crate::push::item::{Item, PushType};
 use crate::push::parser::PushParser;
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
@@ -30,32 +30,32 @@ impl<'a> PushInterpreter<'a> {
     }
 
     #[allow(dead_code)]
-    pub fn run_stack(&mut self, stack: &mut PushStack<Atom<'a>>) {
+    pub fn run_stack(&mut self, stack: &mut PushStack<Item<'a>>) {
         loop {
             match stack.pop() {
                 None => break,
-                Some(Atom::Literal { push_type }) => match push_type {
+                Some(Item::Literal { push_type }) => match push_type {
                     PushType::PushBoolType { val } => self.push_state.bool_stack.push(val),
                     PushType::PushIntType { val } => self.push_state.int_stack.push(val),
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
-                Some(Atom::Identifier { name }) => {
-                    if let Some(atom) = self.push_state.name_bindings.get(name) {
-                        // Evaluate atom for this name in next iteration
-                        stack.push(atom.clone());
+                Some(Item::Identifier { name }) => {
+                    if let Some(item) = self.push_state.name_bindings.get(name) {
+                        // Evaluate item for this name in next iteration
+                        stack.push(item.clone());
                     }
                 }
-                Some(Atom::InstructionMeta { name }) => {
+                Some(Item::InstructionMeta { name }) => {
                     if let Some(instruction) = self.instruction_set.map.get_mut(name) {
                         (instruction.execute)(&mut self.push_state);
                     }
                 }
-                Some(Atom::List { mut atoms }) => {
+                Some(Item::List { mut items }) => {
                     // TODO: Push to exec stack in reverse order
-                    self.run_stack(&mut atoms);
+                    self.run_stack(&mut items);
                 }
                 // TODO
-                Some(Atom::Closer) => continue,
+                Some(Item::Closer) => continue,
             }
         }
     }
@@ -76,23 +76,23 @@ impl<'a> PushInterpreter<'a> {
 
             match self.push_state.exec_stack.pop() {
                 None => break,
-                Some(Atom::Literal { push_type }) => match push_type {
+                Some(Item::Literal { push_type }) => match push_type {
                     PushType::PushBoolType { val } => self.push_state.bool_stack.push(val),
                     PushType::PushIntType { val } => self.push_state.int_stack.push(val),
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
-                Some(Atom::InstructionMeta { name }) => {
+                Some(Item::InstructionMeta { name }) => {
                     if let Some(instruction) = self.instruction_set.map.get_mut(name) {
                         (instruction.execute)(&mut self.push_state);
                     }
                 }
-                Some(Atom::List { atoms: _ }) => {
+                Some(Item::List { items: _ }) => {
                     // TODO: Push to exec stack in reverse order
                 }
 
                 // TODO
-                Some(Atom::Closer) => continue,
-                Some(Atom::Identifier { name: _ }) => continue,
+                Some(Item::Closer) => continue,
+                Some(Item::Identifier { name: _ }) => continue,
             };
             // TODO: Growth cap here
         }
@@ -123,31 +123,31 @@ mod tests {
 
         push_state
             .exec_stack
-            .push(Atom::InstructionMeta { name: "BOOLEAN.OR" });
-        push_state.exec_stack.push(Atom::Literal {
+            .push(Item::InstructionMeta { name: "BOOLEAN.OR" });
+        push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushBoolType { val: false },
         });
-        push_state.exec_stack.push(Atom::Literal {
+        push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushBoolType { val: true },
         });
 
         push_state
             .exec_stack
-            .push(Atom::InstructionMeta { name: "FLOAT.+" });
-        push_state.exec_stack.push(Atom::Literal {
+            .push(Item::InstructionMeta { name: "FLOAT.+" });
+        push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushFloatType { val: 5.2 },
         });
-        push_state.exec_stack.push(Atom::Literal {
+        push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushFloatType { val: 4.1 },
         });
 
         push_state
             .exec_stack
-            .push(Atom::InstructionMeta { name: "INTEGER.*" });
-        push_state.exec_stack.push(Atom::Literal {
+            .push(Item::InstructionMeta { name: "INTEGER.*" });
+        push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushIntType { val: 3 },
         });
-        push_state.exec_stack.push(Atom::Literal {
+        push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushIntType { val: 2 },
         });
         let mut interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);

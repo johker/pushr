@@ -1,36 +1,36 @@
-use crate::push::atoms::{Atom, PushType};
 use crate::push::instructions::InstructionSet;
 use crate::push::interpreter::PushInterpreter;
+use crate::push::item::{Item, PushType};
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
 
 pub struct PushParser {}
 
 impl<'a> PushParser {
-    pub fn rec_push(stack: &mut PushStack<Atom<'a>>, atom: Atom<'a>) -> bool {
+    pub fn rec_push(stack: &mut PushStack<Item<'a>>, item: Item<'a>) -> bool {
         // Push recursively
         if let Some(mut first_el) = stack.bottom_mut() {
             match &mut first_el {
-                Atom::List { atoms } => {
+                Item::List { items } => {
                     // If the top element is a List
                     // push to its stack
-                    return PushParser::rec_push(atoms, atom);
+                    return PushParser::rec_push(items, item);
                 }
                 _ => {
-                    if atom == Atom::Closer {
+                    if item == Item::Closer {
                         // Closer is pushed on higher stack
                         // to mark end of List
                         false
                     } else {
                         // Push any other element to top
-                        stack.push_front(atom);
+                        stack.push_front(item);
                         true
                     }
                 }
             }
         } else {
             // Empty stack -> just push
-            stack.push(atom);
+            stack.push(item);
             true
         }
     }
@@ -45,16 +45,16 @@ impl<'a> PushParser {
                 // Start of code block
                 PushParser::rec_push(
                     &mut push_state.exec_stack,
-                    Atom::List {
-                        atoms: PushStack::new(),
+                    Item::List {
+                        items: PushStack::new(),
                     },
                 );
                 continue;
             }
             if ")" == token {
                 // End of code block
-                if !PushParser::rec_push(&mut push_state.exec_stack, Atom::Closer) {
-                    push_state.exec_stack.push_front(Atom::Closer);
+                if !PushParser::rec_push(&mut push_state.exec_stack, Item::Closer) {
+                    push_state.exec_stack.push_front(Item::Closer);
                 }
                 continue;
             }
@@ -62,7 +62,7 @@ impl<'a> PushParser {
             // Check for instruction
             match instruction_set.map.get(token) {
                 Some(_instruction) => {
-                    let im = Atom::InstructionMeta { name: token };
+                    let im = Item::InstructionMeta { name: token };
                     PushParser::rec_push(&mut push_state.exec_stack, im);
                     continue;
                 }
@@ -73,7 +73,7 @@ impl<'a> PushParser {
                 Ok(ival) => {
                     PushParser::rec_push(
                         &mut push_state.exec_stack,
-                        Atom::Literal {
+                        Item::Literal {
                             push_type: PushType::PushIntType { val: ival },
                         },
                     );
@@ -85,7 +85,7 @@ impl<'a> PushParser {
                 Ok(fval) => {
                     PushParser::rec_push(
                         &mut push_state.exec_stack,
-                        Atom::Literal {
+                        Item::Literal {
                             push_type: PushType::PushFloatType { val: fval },
                         },
                     );
@@ -97,7 +97,7 @@ impl<'a> PushParser {
                 "TRUE" => {
                     PushParser::rec_push(
                         &mut push_state.exec_stack,
-                        Atom::Literal {
+                        Item::Literal {
                             push_type: PushType::PushBoolType { val: true },
                         },
                     );
@@ -106,7 +106,7 @@ impl<'a> PushParser {
                 "FALSE" => {
                     PushParser::rec_push(
                         &mut push_state.exec_stack,
-                        Atom::Literal {
+                        Item::Literal {
                             push_type: PushType::PushBoolType { val: false },
                         },
                     );

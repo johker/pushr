@@ -1,5 +1,5 @@
-use crate::push::atoms::Atom;
 use crate::push::instructions::Instruction;
+use crate::push::item::Item;
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("CODE.="), Instruction::new(code_eq));
     map.insert(String::from("CODE.APPEND"), Instruction::new(code_append));
-    map.insert(String::from("CODE.ATOM"), Instruction::new(code_atom));
+    map.insert(String::from("CODE.ATOM"), Instruction::new(code_item));
     map.insert(String::from("CODE.CAR"), Instruction::new(code_first));
     map.insert(String::from("CODE.CDR"), Instruction::new(code_rest));
     map.insert(String::from("CODE.CONS"), Instruction::new(code_cons));
@@ -86,19 +86,19 @@ pub fn code_eq(push_state: &mut PushState) {
 /// parentheses first.
 pub fn code_append(push_state: &mut PushState) {
     if let Some(pv) = push_state.code_stack.pop_vec(2) {
-        push_state.code_stack.push(Atom::List {
-            atoms: PushStack::from_vec(pv),
+        push_state.code_stack.push(Item::List {
+            items: PushStack::from_vec(pv),
         });
     }
 }
 
 /// CODE.ATOM: Pushes TRUE onto the BOOLEAN stack if the top piece of code is a single instruction
 /// or a literal, and FALSE otherwise (that is, if it is something surrounded by parentheses).
-pub fn code_atom(push_state: &mut PushState) {
+pub fn code_item(push_state: &mut PushState) {
     // Equality only checks type and ignores value
     push_state.bool_stack.push(
-        push_state.code_stack.last_eq(&Atom::int(0))
-            || push_state.code_stack.last_eq(&Atom::noop()),
+        push_state.code_stack.last_eq(&Item::int(0))
+            || push_state.code_stack.last_eq(&Item::noop()),
     );
 }
 
@@ -107,11 +107,11 @@ pub fn code_atom(push_state: &mut PushState) {
 /// top of the stack is not a list then this has no effect. The name derives from the similar Lisp
 /// function; a more generic name would be "FIRST".
 pub fn code_first(push_state: &mut PushState) {
-    if push_state.code_stack.last_eq(&Atom::empty_list()) {
+    if push_state.code_stack.last_eq(&Item::empty_list()) {
         match push_state.code_stack.pop() {
-            Some(Atom::List { mut atoms }) => {
-                if let Some(atom) = atoms.pop() {
-                    push_state.code_stack.push(atom);
+            Some(Item::List { mut items }) => {
+                if let Some(item) = items.pop() {
+                    push_state.code_stack.push(item);
                 }
             }
             _ => (),
@@ -126,9 +126,9 @@ pub fn code_first(push_state: &mut PushState) {
 /// "REST".
 pub fn code_rest(push_state: &mut PushState) {
     match push_state.code_stack.pop() {
-        Some(Atom::List { mut atoms }) => {
-            atoms.pop();
-            push_state.code_stack.push(Atom::List { atoms: atoms });
+        Some(Item::List { mut items }) => {
+            items.pop();
+            push_state.code_stack.push(Item::List { items: items });
         }
         _ => (),
     }
@@ -143,10 +143,10 @@ pub fn code_cons(push_state: &mut PushState) {
         let mut consblock = PushStack::new();
         for i in (0..2).rev() {
             match &pv[i] {
-                Atom::Literal { push_type: _ } => {
+                Item::Literal { push_type: _ } => {
                     consblock.push(pv[i].clone());
                 }
-                Atom::List { atoms: a } => {
+                Item::List { items: a } => {
                     if let Some(vec) = a.observe_vec(a.size()) {
                         consblock.push_vec(vec)
                     }
@@ -154,7 +154,7 @@ pub fn code_cons(push_state: &mut PushState) {
                 _ => (),
             }
         }
-        push_state.code_stack.push(Atom::List { atoms: consblock });
+        push_state.code_stack.push(Item::List { items: consblock });
     }
 }
 
@@ -191,17 +191,17 @@ pub fn code_container(push_state: &mut PushState) {
                     continue;
                 }
                 match container {
-                    Atom::List { atoms: sublist } => {
+                    Item::List { items: sublist } => {
                         container = sublist.observe((*x as usize) - 1).unwrap();
                     }
                     _ => println!("Unexpected element - container: {}", container.to_string()),
                 }
             }
-            // Push smallest container of fist atom to the stack
+            // Push smallest container of fist item to the stack
             push_state.code_stack.push(container);
         } else {
-            // Push empty list if second atom is not part of first
-            push_state.code_stack.push(Atom::empty_list());
+            // Push empty list if second item is not part of first
+            push_state.code_stack.push(Item::empty_list());
         }
     }
 }
@@ -245,7 +245,7 @@ pub fn code_definition(push_state: &mut PushState) {
 /// the INTEGER stack. This will be zero if the top two items are equivalent, and will be higher
 /// the 'more different' the items are from one another. The calculation is as follows:
 /// 1. Construct a list of all of the unique items in both of the lists (where uniqueness is
-///    determined by equalp). Sub-lists and atoms all count as items.
+///    determined by equalp). Sub-lists and items all count as items.
 /// 2. Initialize the result to zero.
 /// 3. For each unique item increment the result by the difference between the number of
 ///    occurrences of the item in the two pieces of code.
@@ -254,9 +254,9 @@ pub fn code_discrepancy(push_state: &mut PushState) {
     let mut discrepancy = 0;
     if let Some(ov) = push_state.code_stack.observe_vec(2) {
         match &ov[0] {
-            Atom::List { atoms: fstlist } => {
+            Item::List { items: fstlist } => {
                 match &ov[1] {
-                    Atom::List { atoms: scdlist } => {
+                    Item::List { items: scdlist } => {
                         // Compare lists
                         if let Some(fstvec) = fstlist.observe_vec(fstlist.size()) {
                             for (i, x) in fstvec.iter().rev().enumerate() {
@@ -299,7 +299,7 @@ pub fn code_do(push_state: &mut PushState) {
     if let Some(instruction) = push_state.code_stack.observe(0) {
         push_state
             .exec_stack
-            .push(Atom::InstructionMeta { name: "CODE.POP" });
+            .push(Item::InstructionMeta { name: "CODE.POP" });
         push_state.exec_stack.push(instruction);
     }
 }
@@ -310,7 +310,7 @@ pub fn code_pop_and_do(push_state: &mut PushState) {
         push_state.exec_stack.push(instruction);
         push_state
             .exec_stack
-            .push(Atom::InstructionMeta { name: "CODE.POP" });
+            .push(Item::InstructionMeta { name: "CODE.POP" });
     }
 }
 
@@ -351,7 +351,7 @@ pub fn code_do_range(push_state: &mut PushState) {
                 push_state.int_stack.push(current_idx);
                 push_state.exec_stack.push(body);
             } else {
-                push_state.exec_stack.push(Atom::InstructionMeta {
+                push_state.exec_stack.push(Item::InstructionMeta {
                     name: "CODE.DO*RANGE",
                 });
                 push_state.exec_stack.push(body);
@@ -394,7 +394,7 @@ pub fn code_dup(push_state: &mut PushState) {
 pub fn code_extract(push_state: &mut PushState) {
     if let Some(sub_idx) = push_state.int_stack.pop() {
         if let Some(code) = push_state.code_stack.observe(0) {
-            match Atom::traverse(&code, sub_idx as usize) {
+            match Item::traverse(&code, sub_idx as usize) {
                 Ok(el) => push_state.code_stack.push(el),
                 Err(_) => (),
             };
@@ -411,27 +411,27 @@ pub fn code_flush(push_state: &mut PushState) {
 /// CODE stack.
 pub fn code_from_bool(push_state: &mut PushState) {
     if let Some(bval) = push_state.bool_stack.pop() {
-        push_state.code_stack.push(Atom::bool(bval));
+        push_state.code_stack.push(Item::bool(bval));
     }
 }
 /// CODE.FROMFLOAT: Pops the FLOAT stack and pushes the popped item onto the CODE stack.
 pub fn code_from_float(push_state: &mut PushState) {
     if let Some(fval) = push_state.float_stack.pop() {
-        push_state.code_stack.push(Atom::float(fval));
+        push_state.code_stack.push(Item::float(fval));
     }
 }
 
 /// CODE.FROMINTEGER: Pops the INTEGER stack and pushes the popped integer onto the CODE stack.
 pub fn code_from_int(push_state: &mut PushState) {
     if let Some(ival) = push_state.int_stack.pop() {
-        push_state.code_stack.push(Atom::int(ival));
+        push_state.code_stack.push(Item::int(ival));
     }
 }
 
 /// CODE.FROMNAME: Pops the NAME stack and pushes the popped item onto the CODE stack.
 pub fn code_from_name(push_state: &mut PushState) {
     if let Some(nval) = push_state.name_stack.pop() {
-        push_state.code_stack.push(Atom::id(nval));
+        push_state.code_stack.push(Item::id(nval));
     }
 }
 
@@ -457,13 +457,19 @@ pub fn code_if(push_state: &mut PushState) {
 pub fn code_insert(push_state: &mut PushState) {
     if let Some(sub_idx) = push_state.int_stack.pop() {
         if let Some(code_to_be_inserted) = push_state.code_stack.observe(1) {
-            let _ = Atom::insert(
+            let _ = Item::insert(
                 push_state.code_stack.get_mut(0).unwrap(),
                 &code_to_be_inserted,
                 sub_idx as usize,
             );
         }
     }
+}
+
+/// CODE.INSTRUCTIONS: Pushes a list of all active instructions in the interpreter's current
+/// configuration.
+pub fn code_instructions(_push_state: &mut PushState) {
+    //TODO
 }
 
 #[cfg(test)]
@@ -473,8 +479,8 @@ mod tests {
     #[test]
     fn code_eq_pushes_true_when_elements_equal() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(1));
-        test_state.code_stack.push(Atom::int(1));
+        test_state.code_stack.push(Item::int(1));
+        test_state.code_stack.push(Item::int(1));
         code_eq(&mut test_state);
         assert_eq!(test_state.code_stack.size(), 2);
         if let Some(val) = test_state.bool_stack.pop() {
@@ -487,8 +493,8 @@ mod tests {
     #[test]
     fn code_eq_pushes_false_when_elements_unequal() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(1));
-        test_state.code_stack.push(Atom::int(2));
+        test_state.code_stack.push(Item::int(1));
+        test_state.code_stack.push(Item::int(2));
         code_eq(&mut test_state);
         assert_eq!(test_state.code_stack.size(), 2);
         if let Some(val) = test_state.bool_stack.pop() {
@@ -501,35 +507,35 @@ mod tests {
     #[test]
     fn code_append_pushes_block_when_finding_literals() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(1));
-        test_state.code_stack.push(Atom::int(2));
+        test_state.code_stack.push(Item::int(1));
+        test_state.code_stack.push(Item::int(2));
         code_append(&mut test_state);
         assert_eq!(test_state.code_stack.size(), 1, "Excpected single element");
         assert!(
-            test_state.code_stack.last_eq(&Atom::empty_list()),
+            test_state.code_stack.last_eq(&Item::empty_list()),
             "Expected Code Block"
         );
     }
 
     #[test]
-    fn code_atom_pushes_true_when_no_list_found() {
+    fn code_item_pushes_true_when_no_list_found() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(0));
-        code_atom(&mut test_state);
+        test_state.code_stack.push(Item::int(0));
+        code_item(&mut test_state);
         assert!(
             test_state.bool_stack.last_eq(&true),
             "Should push true for Literal"
         );
         test_state = PushState::new();
-        test_state.code_stack.push(Atom::noop());
-        code_atom(&mut test_state);
+        test_state.code_stack.push(Item::noop());
+        code_item(&mut test_state);
         assert!(
             test_state.bool_stack.last_eq(&true),
             "Should push true for Instruction"
         );
         test_state = PushState::new();
-        test_state.code_stack.push(Atom::empty_list());
-        code_atom(&mut test_state);
+        test_state.code_stack.push(Item::empty_list());
+        code_item(&mut test_state);
         assert!(
             test_state.bool_stack.last_eq(&false),
             "Should push false for Code Block"
@@ -541,7 +547,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(1), Atom::int(2), Atom::int(3)]));
+            .push(Item::list(vec![Item::int(1), Item::int(2), Item::int(3)]));
         code_first(&mut test_state);
         assert_eq!(test_state.code_stack.to_string(), "1:Literal(3);");
     }
@@ -551,7 +557,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(1), Atom::int(2), Atom::int(3)]));
+            .push(Item::list(vec![Item::int(1), Item::int(2), Item::int(3)]));
         assert_eq!(
             test_state.code_stack.to_string(),
             "1:List: 1:Literal(3); 2:Literal(2); 3:Literal(1);;"
@@ -566,8 +572,8 @@ mod tests {
     #[test]
     fn code_cons_appends_in_reverse_order() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(1));
-        test_state.code_stack.push(Atom::int(2));
+        test_state.code_stack.push(Item::int(1));
+        test_state.code_stack.push(Item::int(2));
         assert_eq!(
             test_state.code_stack.to_string(),
             "1:Literal(2); 2:Literal(1);"
@@ -585,16 +591,16 @@ mod tests {
         // Test element is (1 2)'
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
-        test_state.code_stack.push(Atom::list(vec![
-            Atom::list(vec![
-                Atom::int(3),
-                Atom::list(vec![Atom::int(1), Atom::int(2)]),
-                Atom::list(vec![Atom::int(3), Atom::int(3)]),
-                Atom::int(3),
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
+        test_state.code_stack.push(Item::list(vec![
+            Item::list(vec![
+                Item::int(3),
+                Item::list(vec![Item::int(1), Item::int(2)]),
+                Item::list(vec![Item::int(3), Item::int(3)]),
+                Item::int(3),
             ]),
-            Atom::int(4),
-            Atom::int(5),
+            Item::int(4),
+            Item::int(5),
         ]));
         code_container(&mut test_state);
         // The top element is expected to be the smallest container of (1 2)' => (3 (1 2)' (3 3)' 3)'
@@ -610,16 +616,16 @@ mod tests {
         // Test element is (1 2)'
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
-        test_state.code_stack.push(Atom::list(vec![
-            Atom::list(vec![
-                Atom::int(3),
-                Atom::list(vec![Atom::int(1), Atom::int(2)]),
-                Atom::list(vec![Atom::int(3), Atom::int(3)]),
-                Atom::int(3),
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
+        test_state.code_stack.push(Item::list(vec![
+            Item::list(vec![
+                Item::int(3),
+                Item::list(vec![Item::int(1), Item::int(2)]),
+                Item::list(vec![Item::int(3), Item::int(3)]),
+                Item::int(3),
             ]),
-            Atom::int(4),
-            Atom::int(5),
+            Item::int(4),
+            Item::int(5),
         ]));
         code_contains(&mut test_state);
         assert_eq!(test_state.bool_stack.to_string(), "1:true;");
@@ -628,24 +634,24 @@ mod tests {
     #[test]
     fn code_define_creates_name_binding() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(2));
+        test_state.code_stack.push(Item::int(2));
         test_state.name_stack.push(&"TEST");
         code_define(&mut test_state);
         assert_eq!(
             *test_state.name_bindings.get("TEST").unwrap().to_string(),
-            Atom::int(2).to_string()
+            Item::int(2).to_string()
         );
     }
 
     #[test]
     fn code_definition_pushes_to_code_stack() {
         let mut test_state = PushState::new();
-        test_state.name_bindings.insert("TEST", Atom::int(2));
+        test_state.name_bindings.insert("TEST", Item::int(2));
         test_state.name_stack.push("TEST");
         code_definition(&mut test_state);
         assert_eq!(
             test_state.code_stack.pop().unwrap().to_string(),
-            Atom::int(2).to_string()
+            Item::int(2).to_string()
         );
     }
 
@@ -655,10 +661,10 @@ mod tests {
         // Test element is (1 2)'
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
         code_discrepancy(&mut test_state);
         assert_eq!(test_state.int_stack.to_string(), "1:0;");
     }
@@ -669,10 +675,10 @@ mod tests {
         // Test element is (1 2)'
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(0), Atom::int(2)]));
+            .push(Item::list(vec![Item::int(0), Item::int(2)]));
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
         code_discrepancy(&mut test_state);
         assert_eq!(test_state.int_stack.to_string(), "1:1;");
     }
@@ -680,7 +686,7 @@ mod tests {
     #[test]
     fn code_do_adds_instruction_to_excecution_stack() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(9));
+        test_state.code_stack.push(Item::int(9));
         code_do(&mut test_state);
         assert_eq!(
             test_state.exec_stack.to_string(),
@@ -691,7 +697,7 @@ mod tests {
     #[test]
     fn code_pop_and_do_adds_instruction_to_excecution_stack() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::int(9));
+        test_state.code_stack.push(Item::int(9));
         code_pop_and_do(&mut test_state);
         assert_eq!(
             test_state.exec_stack.to_string(),
@@ -702,7 +708,7 @@ mod tests {
     #[test]
     fn code_do_range_counts_upwards() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::noop());
+        test_state.code_stack.push(Item::noop());
         test_state.int_stack.push(3); // Current index
         test_state.int_stack.push(5); // Destination index
         code_do_range(&mut test_state);
@@ -716,7 +722,7 @@ mod tests {
     #[test]
     fn code_do_range_counts_downwards() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::noop());
+        test_state.code_stack.push(Item::noop());
         test_state.int_stack.push(6); // Current index
         test_state.int_stack.push(1); // Destination index
         code_do_range(&mut test_state);
@@ -730,7 +736,7 @@ mod tests {
     #[test]
     fn code_dup_duplicates_top_element() {
         let mut test_state = PushState::new();
-        test_state.code_stack.push(Atom::noop());
+        test_state.code_stack.push(Item::noop());
         code_dup(&mut test_state);
         assert_eq!(
             test_state.code_stack.to_string(),
@@ -744,10 +750,10 @@ mod tests {
         // Test element is (1 2)'
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(0), Atom::int(2)]));
+            .push(Item::list(vec![Item::int(0), Item::int(2)]));
         test_state
             .code_stack
-            .push(Atom::list(vec![Atom::int(1), Atom::int(2)]));
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
         code_flush(&mut test_state);
         assert_eq!(test_state.int_stack.to_string(), "");
     }
@@ -764,8 +770,8 @@ mod tests {
     fn code_if_pushes_second_item_when_true() {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(true);
-        test_state.code_stack.push(Atom::int(2));
-        test_state.code_stack.push(Atom::int(1));
+        test_state.code_stack.push(Item::int(2));
+        test_state.code_stack.push(Item::int(1));
         code_if(&mut test_state);
         assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
         assert_eq!(test_state.code_stack.to_string(), "");
@@ -776,8 +782,8 @@ mod tests {
     fn code_if_pushes_first_item_when_false() {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(false);
-        test_state.code_stack.push(Atom::int(2));
-        test_state.code_stack.push(Atom::int(1));
+        test_state.code_stack.push(Item::int(2));
+        test_state.code_stack.push(Item::int(1));
         code_if(&mut test_state);
         assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
         assert_eq!(test_state.code_stack.to_string(), "");
@@ -788,13 +794,13 @@ mod tests {
     fn code_extract_finds_correct_subelement() {
         let mut test_state = PushState::new();
         test_state.int_stack.push(4);
-        let test_atom = Atom::list(vec![
-            Atom::int(4),
-            Atom::list(vec![Atom::int(3)]),
-            Atom::int(2),
-            Atom::int(1),
+        let test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
         ]);
-        test_state.code_stack.push(test_atom);
+        test_state.code_stack.push(test_item);
         code_extract(&mut test_state);
         assert_eq!(test_state.int_stack.to_string(), "");
         assert_eq!(
@@ -807,14 +813,14 @@ mod tests {
     fn code_insert_replaces_element() {
         let mut test_state = PushState::new();
         test_state.int_stack.push(4);
-        let test_container = Atom::list(vec![
-            Atom::int(4),
-            Atom::list(vec![Atom::int(3)]),
-            Atom::int(2),
-            Atom::int(1),
+        let test_container = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
         ]);
-        let test_atom = Atom::int(5);
-        test_state.code_stack.push(test_atom);
+        let test_item = Item::int(5);
+        test_state.code_stack.push(test_item);
         test_state.code_stack.push(test_container);
         code_insert(&mut test_state);
         assert_eq!(test_state.int_stack.to_string(), "");
@@ -828,9 +834,9 @@ mod tests {
     fn code_insert_does_nothing_when_index_too_big() {
         let mut test_state = PushState::new();
         test_state.int_stack.push(4);
-        let test_container = Atom::list(vec![Atom::int(2), Atom::int(1)]);
-        let test_atom = Atom::int(5);
-        test_state.code_stack.push(test_atom);
+        let test_container = Item::list(vec![Item::int(2), Item::int(1)]);
+        let test_item = Item::int(5);
+        test_state.code_stack.push(test_item);
         test_state.code_stack.push(test_container);
         code_insert(&mut test_state);
         assert_eq!(test_state.int_stack.to_string(), "");

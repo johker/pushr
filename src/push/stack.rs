@@ -37,9 +37,9 @@ where
 
     /// Returns true if the argument equals the
     /// top element of the stack. Uses the = operator for
-    /// comparison (shallow for Atoms)
-    pub fn last_eq(&self, atom: &T) -> bool {
-        return Some(atom) == self.elements.last();
+    /// comparison (shallow for Items)
+    pub fn last_eq(&self, item: &T) -> bool {
+        return Some(item) == self.elements.last();
     }
 
     /// Returns true if the element at stack position i counting

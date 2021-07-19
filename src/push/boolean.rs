@@ -1,5 +1,5 @@
-use crate::push::atoms::{Atom, PushType};
 use crate::push::instructions::Instruction;
+use crate::push::item::{Item, PushType};
 use crate::push::state::PushState;
 use rand::Rng;
 use std::collections::HashMap;
@@ -72,7 +72,7 @@ pub fn boolean_def(push_state: &mut PushState) {
         if let Some(bval) = push_state.bool_stack.pop() {
             push_state.name_bindings.insert(
                 name,
-                Atom::Literal {
+                Item::Literal {
                     push_type: PushType::PushBoolType { val: bval },
                 },
             );
