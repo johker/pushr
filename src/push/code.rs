@@ -62,6 +62,8 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("CODE.FROMNAME"),
         Instruction::new(code_from_name),
     );
+    map.insert(String::from("CODE.IF"), Instruction::new(code_if));
+    map.insert(String::from("CODE.INSERT"), Instruction::new(code_insert));
 }
 
 //
@@ -454,11 +456,12 @@ pub fn code_if(push_state: &mut PushState) {
 /// there formerly). The indexing is computed as in CODE.EXTRACT.
 pub fn code_insert(push_state: &mut PushState) {
     if let Some(sub_idx) = push_state.int_stack.pop() {
-        if let Some(code) = push_state.code_stack.observe(1) {
-            match Atom::traverse(&code, sub_idx as usize) {
-                Ok(el) => push_state.code_stack.push(el),
-                Err(_) => (),
-            };
+        if let Some(code_to_be_inserted) = push_state.code_stack.observe(1) {
+            let _ = Atom::insert(
+                push_state.code_stack.get_mut(0).unwrap(),
+                &code_to_be_inserted,
+                sub_idx as usize,
+            );
         }
     }
 }
@@ -797,6 +800,43 @@ mod tests {
         assert_eq!(
             test_state.code_stack.to_string(),
             "1:Literal(3); 2:List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(3);; 4:Literal(4);;"
+        );
+    }
+
+    #[test]
+    fn code_insert_replaces_element() {
+        let mut test_state = PushState::new();
+        test_state.int_stack.push(4);
+        let test_container = Atom::list(vec![
+            Atom::int(4),
+            Atom::list(vec![Atom::int(3)]),
+            Atom::int(2),
+            Atom::int(1),
+        ]);
+        let test_atom = Atom::int(5);
+        test_state.code_stack.push(test_atom);
+        test_state.code_stack.push(test_container);
+        code_insert(&mut test_state);
+        assert_eq!(test_state.int_stack.to_string(), "");
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(5);; 4:Literal(4);; 2:Literal(5);"
+        );
+    }
+
+    #[test]
+    fn code_insert_does_nothing_when_index_too_big() {
+        let mut test_state = PushState::new();
+        test_state.int_stack.push(4);
+        let test_container = Atom::list(vec![Atom::int(2), Atom::int(1)]);
+        let test_atom = Atom::int(5);
+        test_state.code_stack.push(test_atom);
+        test_state.code_stack.push(test_container);
+        code_insert(&mut test_state);
+        assert_eq!(test_state.int_stack.to_string(), "");
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:List: 1:Literal(1); 2:Literal(2);; 2:Literal(5);"
         );
     }
 }
