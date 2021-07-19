@@ -54,7 +54,7 @@ impl<'a> Atom<'a> {
         Atom::Identifier { name: arg }
     }
 
-    /// Return a nested element of a list using depth first traversal.
+    /// Returns a nested element of a list using depth first traversal.
     pub fn traverse(atom: &Atom<'a>, mut depth: usize) -> Result<Atom<'a>, usize> {
         if depth == 0 {
             Ok(atom.clone())
@@ -66,6 +66,43 @@ impl<'a> Atom<'a> {
                         let next = Atom::traverse(&atoms.observe(i).unwrap(), depth);
                         match next {
                             Ok(next) => return Ok(next),
+                            Err(new_depth) => depth = new_depth,
+                        }
+                    }
+                }
+                _ => (),
+            }
+            Err(depth)
+        }
+    }
+
+    /// Replaces a nested element of a list using depth first traversal.
+    pub fn insert(atom: &mut Atom<'a>, new_el: &Atom<'a>, mut depth: usize) -> Result<bool, usize> {
+        println!(
+            "Called insert with atom = {} depth = {}",
+            atom.to_string(),
+            depth
+        );
+        if depth == 0 {
+            Ok(true)
+        } else {
+            match &mut *atom {
+                Atom::List { atoms } => {
+                    let replace_idx = depth - 1;
+                    for i in 0..atoms.size() {
+                        depth -= 1;
+                        let next = Atom::insert(atoms.get_mut(i).unwrap(), new_el, depth);
+                        match next {
+                            Ok(replace_here) => {
+                                if replace_here {
+                                    println!("Replacing at index {}", replace_idx);
+                                    let _ = atoms.replace(replace_idx, new_el.clone());
+                                    println!("Res = {}", atoms.to_string());
+                                } else {
+                                    println!("Replaced: {}", atoms.to_string());
+                                }
+                                return Ok(false);
+                            }
                             Err(new_depth) => depth = new_depth,
                         }
                     }
@@ -173,5 +210,28 @@ mod tests {
             Atom::traverse(&test_atom, 4).unwrap().to_string(),
             "Literal(3)"
         );
+    }
+
+    #[test]
+    fn insert_replaces_element_at_given_index() {
+        let mut test_atom = Atom::list(vec![
+            Atom::int(4),
+            Atom::list(vec![Atom::int(3)]),
+            Atom::int(2),
+            Atom::int(1),
+        ]);
+        let atom_to_insert = Atom::int(99);
+        assert_eq!(Atom::insert(&mut test_atom, &atom_to_insert, 4), Ok(false));
+        assert_eq!(
+            test_atom.to_string(),
+            "List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(99);; 4:Literal(4);"
+        );
+    }
+
+    #[test]
+    fn insert_returns_error_for_too_code_containers() {
+        let mut test_atom = Atom::int(1);
+        let atom_to_insert = Atom::int(99);
+        assert_eq!(Atom::insert(&mut test_atom, &atom_to_insert, 4), Err(4));
     }
 }

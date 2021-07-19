@@ -21,8 +21,7 @@ where
         Self { elements: elements }
     }
 
-    /// Prints the stack from top to bottom
-    /// enumerating its elements.
+    /// Prints the stack from top to bottom enumerating its elements.
     pub fn to_string(&self) -> String {
         let mut result = "".to_string();
         for (i, x) in self.elements.iter().rev().enumerate() {
@@ -50,18 +49,13 @@ where
         if i > self.size() {
             None
         } else {
-            println!(
-                "Element({}) = {})",
-                self.size() - (i + 1),
-                self.elements[self.size() - (i + 1)]
-            );
             Some(self.elements[self.size() - (i + 1)].to_string() == *el.to_string())
         }
     }
 
     /// Returns a mutable pointer to the element at the bottom
     /// of the stack.
-    pub fn first_mut(&mut self) -> Option<&mut T> {
+    pub fn bottom_mut(&mut self) -> Option<&mut T> {
         if self.size() > 0 {
             self.elements.first_mut()
         } else {
@@ -72,6 +66,30 @@ where
     /// Removes all elements from the stack.
     pub fn flush(&mut self) {
         self.elements = Vec::new();
+    }
+
+    /// Replace element at the given position. In case the index does not
+    /// exist it returns the offset to the size of the stack wrapped in the Err enum.
+    pub fn replace(&mut self, idx: usize, new_el: T) -> Result<(), usize> {
+        match idx.checked_sub(self.size()) {
+            None => {
+                let _ = std::mem::replace(&mut self.elements[idx], new_el);
+                println!("New el at {}: {}", idx, self.elements[idx].to_string());
+                Ok(())
+            }
+            Some(diff) => Err(diff + 1),
+        }
+    }
+
+    /// Returns a mutable reference to the element at stack position i counting
+    /// from the top of the stack
+    pub fn get_mut(&mut self, i: usize) -> Option<&mut T> {
+        let size = &mut self.size();
+        if i < *size {
+            Some(&mut self.elements[*size - (i + 1)])
+        } else {
+            None
+        }
     }
 
     /// Pushes element to the top of the stack.
@@ -261,5 +279,18 @@ mod tests {
             elements: Vec::new(),
         };
         assert_eq!(test_stack.last_eq(&candidate), false);
+    }
+
+    #[test]
+    fn replace_returns_right_offset() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3, 4, 5],
+        };
+        assert_eq!(test_stack.replace(2, 19), Ok(()));
+        assert_eq!(test_stack.replace(5, 19), Err(1));
+        assert_eq!(test_stack.replace(6, 19), Err(2));
+        assert_eq!(test_stack.replace(4, 19), Ok(()));
+        assert_eq!(test_stack.replace(0, 19), Ok(()));
+        assert_eq!(test_stack.to_string(), "1:19; 2:4; 3:19; 4:2; 5:19;");
     }
 }

@@ -123,7 +123,6 @@ pub fn code_first(push_state: &mut PushState) {
 /// list ("( )"). The name derives from the similar Lisp function; a more generic name would be
 /// "REST".
 pub fn code_rest(push_state: &mut PushState) {
-    println!("{}", push_state.code_stack.to_string());
     match push_state.code_stack.pop() {
         Some(Atom::List { mut atoms }) => {
             atoms.pop();
@@ -169,7 +168,6 @@ pub fn code_container(push_state: &mut PushState) {
         let first_el = ov[1].to_string();
         let code_str = ov[0].to_string();
         if first_el.contains(&code_str) {
-            println!("Top element {} contains second element {}", ov[1], ov[0]);
             let split = stack_str.split(&code_str);
             let vec: Vec<&str> = split.collect();
             let split = vec[0].split(" ");
@@ -392,10 +390,13 @@ pub fn code_dup(push_state: &mut PushState) {
 /// overall expression (and its absolute value is taken in case it is negative) to ensure that it
 /// is within the meaningful range.
 pub fn code_extract(push_state: &mut PushState) {
-    // TODO
     if let Some(sub_idx) = push_state.int_stack.pop() {
-        let mut i = sub_idx;
-        let mut code = push_state.code_stack.observe(0);
+        if let Some(code) = push_state.code_stack.observe(0) {
+            match Atom::traverse(&code, sub_idx as usize) {
+                Ok(el) => push_state.code_stack.push(el),
+                Err(_) => (),
+            };
+        }
     }
 }
 
@@ -444,6 +445,20 @@ pub fn code_if(push_state: &mut PushState) {
             } else {
                 push_state.exec_stack.push(code[1].clone());
             }
+        }
+    }
+}
+
+/// CODE.INSERT: Pushes the result of inserting the second item of the CODE stack into the first
+/// item, at the position indexed by the top item of the INTEGER stack (and replacing whatever was
+/// there formerly). The indexing is computed as in CODE.EXTRACT.
+pub fn code_insert(push_state: &mut PushState) {
+    if let Some(sub_idx) = push_state.int_stack.pop() {
+        if let Some(code) = push_state.code_stack.observe(1) {
+            match Atom::traverse(&code, sub_idx as usize) {
+                Ok(el) => push_state.code_stack.push(el),
+                Err(_) => (),
+            };
         }
     }
 }
@@ -764,5 +779,24 @@ mod tests {
         assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
         assert_eq!(test_state.code_stack.to_string(), "");
         assert_eq!(test_state.bool_stack.to_string(), "");
+    }
+
+    #[test]
+    fn code_extract_finds_correct_subelement() {
+        let mut test_state = PushState::new();
+        test_state.int_stack.push(4);
+        let test_atom = Atom::list(vec![
+            Atom::int(4),
+            Atom::list(vec![Atom::int(3)]),
+            Atom::int(2),
+            Atom::int(1),
+        ]);
+        test_state.code_stack.push(test_atom);
+        code_extract(&mut test_state);
+        assert_eq!(test_state.int_stack.to_string(), "");
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(3); 2:List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(3);; 4:Literal(4);;"
+        );
     }
 }

@@ -9,7 +9,7 @@ pub struct PushParser {}
 impl<'a> PushParser {
     pub fn rec_push(stack: &mut PushStack<Atom<'a>>, atom: Atom<'a>) -> bool {
         // Push recursively
-        if let Some(mut first_el) = stack.first_mut() {
+        if let Some(mut first_el) = stack.bottom_mut() {
             match &mut first_el {
                 Atom::List { atoms } => {
                     // If the top element is a List
