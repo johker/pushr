@@ -92,6 +92,17 @@ where
         }
     }
 
+    /// Returns a reference to the element at stack position i counting from the
+    /// top of the stack
+    pub fn get(&self, i: usize) -> Option<&T> {
+        let size = self.size();
+        if i < size {
+            Some(&self.elements[size - (i + 1)])
+        } else {
+            None
+        }
+    }
+
     /// Pushes element to the top of the stack.
     pub fn push(&mut self, value: T) {
         self.elements.push(value);
@@ -140,7 +151,7 @@ where
 
     /// Returns a copy of the element at stack position i counting
     /// from top to bottom.
-    pub fn observe(&self, i: usize) -> Option<T> {
+    pub fn copy(&self, i: usize) -> Option<T> {
         if i > self.size() - 1 {
             None
         } else {
@@ -151,7 +162,7 @@ where
     /// Returns a copy of the n top-most elements
     /// of the stack. The first element of the returned vector
     /// is the nth element counted fromt the top of the stack.
-    pub fn observe_vec(&self, n: usize) -> Option<Vec<T>> {
+    pub fn copy_vec(&self, n: usize) -> Option<Vec<T>> {
         if n > self.size() {
             None
         } else {
@@ -197,12 +208,12 @@ mod tests {
     }
 
     #[test]
-    fn observe_vec_preserves_stack() {
+    fn copy_vec_preserves_stack() {
         let test_stack = PushStack {
             elements: vec![1, 2, 3],
         };
 
-        match test_stack.observe_vec(2) {
+        match test_stack.copy_vec(2) {
             None => assert!(false, "Should return values"),
             Some(cv) => {
                 assert_eq!(cv.len(), 2);

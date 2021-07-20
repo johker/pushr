@@ -54,6 +54,22 @@ impl<'a> Item<'a> {
         Item::Identifier { name: arg }
     }
 
+    /// Returns the number of elements where each parenthesized expression and each
+    /// literal/instruction is considered a point. It proceeds in depth first order.
+    pub fn size(item: &Item<'a>) -> usize {
+        let mut size = 0;
+        match item {
+            Item::List { items } => {
+                size += 1;
+                for i in 0..items.size() {
+                    size += Item::size(&items.get(i).unwrap());
+                }
+            }
+            _ => size += 1,
+        }
+        return size;
+    }
+
     /// Returns a nested element of a list using depth first traversal.
     pub fn traverse(item: &Item<'a>, mut depth: usize) -> Result<Item<'a>, usize> {
         if depth == 0 {
@@ -63,7 +79,7 @@ impl<'a> Item<'a> {
                 Item::List { items } => {
                     for i in 0..items.size() {
                         depth -= 1;
-                        let next = Item::traverse(&items.observe(i).unwrap(), depth);
+                        let next = Item::traverse(&items.copy(i).unwrap(), depth);
                         match next {
                             Ok(next) => return Ok(next),
                             Err(new_depth) => depth = new_depth,
@@ -202,7 +218,6 @@ mod tests {
             "Literal(3)"
         );
     }
-
     #[test]
     fn insert_replaces_element_at_given_index() {
         let mut test_item = Item::list(vec![
@@ -224,5 +239,15 @@ mod tests {
         let mut test_item = Item::int(1);
         let item_to_insert = Item::int(99);
         assert_eq!(Item::insert(&mut test_item, &item_to_insert, 4), Err(4));
+    }
+    #[test]
+    fn size_includes_nested_lists_in_count() {
+        let test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        assert_eq!(Item::size(&test_item), 6);
     }
 }

@@ -64,6 +64,14 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     );
     map.insert(String::from("CODE.IF"), Instruction::new(code_if));
     map.insert(String::from("CODE.INSERT"), Instruction::new(code_insert));
+    map.insert(
+        String::from("CODE.INSTRUCTIONS"),
+        Instruction::new(code_instructions),
+    );
+    map.insert(String::from("CODE.LENGTH"), Instruction::new(code_length));
+    map.insert(String::from("CODE.LIST"), Instruction::new(code_list));
+    map.insert(String::from("CODE.MEMBER"), Instruction::new(code_member));
+    map.insert(String::from("CODE.NOOP"), Instruction::new(code_noop));
 }
 
 //
@@ -73,7 +81,7 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
 /// CODE.=: Pushes TRUE if the top two pieces of CODE are equal,
 /// or FALSE otherwise.
 pub fn code_eq(push_state: &mut PushState) {
-    if let Some(pv) = push_state.code_stack.observe_vec(2) {
+    if let Some(pv) = push_state.code_stack.copy_vec(2) {
         push_state
             .bool_stack
             .push(pv[0].to_string() == pv[1].to_string());
@@ -147,7 +155,7 @@ pub fn code_cons(push_state: &mut PushState) {
                     consblock.push(pv[i].clone());
                 }
                 Item::List { items: a } => {
-                    if let Some(vec) = a.observe_vec(a.size()) {
+                    if let Some(vec) = a.copy_vec(a.size()) {
                         consblock.push_vec(vec)
                     }
                 }
@@ -165,7 +173,7 @@ pub fn code_cons(push_state: &mut PushState) {
 /// second piece of code is "( A )" then this pushes ( C ( A ) ). Pushes an empty list if there is
 /// no such container.
 pub fn code_container(push_state: &mut PushState) {
-    if let Some(ov) = push_state.code_stack.observe_vec(2) {
+    if let Some(ov) = push_state.code_stack.copy_vec(2) {
         let stack_str = push_state.code_stack.to_string();
         let first_el = ov[1].to_string();
         let code_str = ov[0].to_string();
@@ -192,7 +200,7 @@ pub fn code_container(push_state: &mut PushState) {
                 }
                 match container {
                     Item::List { items: sublist } => {
-                        container = sublist.observe((*x as usize) - 1).unwrap();
+                        container = sublist.copy((*x as usize) - 1).unwrap();
                     }
                     _ => println!("Unexpected element - container: {}", container.to_string()),
                 }
@@ -209,7 +217,7 @@ pub fn code_container(push_state: &mut PushState) {
 /// CODE.CONTAINS: Pushes TRUE on the BOOLEAN stack if the second CODE stack item contains the
 /// first CODE stack item anywhere (e.g. in a sub-list).
 pub fn code_contains(push_state: &mut PushState) {
-    if let Some(ov) = push_state.code_stack.observe_vec(2) {
+    if let Some(ov) = push_state.code_stack.copy_vec(2) {
         let first_el = ov[1].to_string();
         let code_str = ov[0].to_string();
         if first_el.contains(&code_str) {
@@ -252,13 +260,13 @@ pub fn code_definition(push_state: &mut PushState) {
 /// 4. Push the result.
 pub fn code_discrepancy(push_state: &mut PushState) {
     let mut discrepancy = 0;
-    if let Some(ov) = push_state.code_stack.observe_vec(2) {
+    if let Some(ov) = push_state.code_stack.copy_vec(2) {
         match &ov[0] {
             Item::List { items: fstlist } => {
                 match &ov[1] {
                     Item::List { items: scdlist } => {
                         // Compare lists
-                        if let Some(fstvec) = fstlist.observe_vec(fstlist.size()) {
+                        if let Some(fstvec) = fstlist.copy_vec(fstlist.size()) {
                             for (i, x) in fstvec.iter().rev().enumerate() {
                                 if let Some(val) = scdlist.equal_at(i, x) {
                                     if !val {
@@ -296,7 +304,7 @@ pub fn code_discrepancy(push_state: &mut PushState) {
 /// if the expression itself manipulates the stack then this final pop may end up popping something
 /// else.
 pub fn code_do(push_state: &mut PushState) {
-    if let Some(instruction) = push_state.code_stack.observe(0) {
+    if let Some(instruction) = push_state.code_stack.copy(0) {
         push_state
             .exec_stack
             .push(Item::InstructionMeta { name: "CODE.POP" });
@@ -306,7 +314,7 @@ pub fn code_do(push_state: &mut PushState) {
 
 /// CODE.DO*: Like CODE.DO but pops the stack before, rather than after, the recursive execution.
 pub fn code_pop_and_do(push_state: &mut PushState) {
-    if let Some(instruction) = push_state.code_stack.observe(0) {
+    if let Some(instruction) = push_state.code_stack.copy(0) {
         push_state.exec_stack.push(instruction);
         push_state
             .exec_stack
@@ -379,7 +387,7 @@ pub fn code_do_times(_push_state: &mut PushState) {
 /// CODE.DUP: Duplicates the top item on the CODE stack. Does not pop its argument (which, if it
 /// did, would negate the effect of the duplication!).
 pub fn code_dup(push_state: &mut PushState) {
-    if let Some(instruction) = push_state.code_stack.observe(0) {
+    if let Some(instruction) = push_state.code_stack.copy(0) {
         push_state.code_stack.push(instruction);
     }
 }
@@ -393,8 +401,10 @@ pub fn code_dup(push_state: &mut PushState) {
 /// is within the meaningful range.
 pub fn code_extract(push_state: &mut PushState) {
     if let Some(sub_idx) = push_state.int_stack.pop() {
-        if let Some(code) = push_state.code_stack.observe(0) {
-            match Item::traverse(&code, sub_idx as usize) {
+        if let Some(code) = push_state.code_stack.get(0) {
+            let total_size = Item::size(code);
+            let norm_idx = sub_idx.rem_euclid(total_size as i32);
+            match Item::traverse(&code, norm_idx as usize) {
                 Ok(el) => push_state.code_stack.push(el),
                 Err(_) => (),
             };
@@ -456,7 +466,7 @@ pub fn code_if(push_state: &mut PushState) {
 /// there formerly). The indexing is computed as in CODE.EXTRACT.
 pub fn code_insert(push_state: &mut PushState) {
     if let Some(sub_idx) = push_state.int_stack.pop() {
-        if let Some(code_to_be_inserted) = push_state.code_stack.observe(1) {
+        if let Some(code_to_be_inserted) = push_state.code_stack.copy(1) {
             let _ = Item::insert(
                 push_state.code_stack.get_mut(0).unwrap(),
                 &code_to_be_inserted,
@@ -471,6 +481,45 @@ pub fn code_insert(push_state: &mut PushState) {
 pub fn code_instructions(_push_state: &mut PushState) {
     //TODO
 }
+
+/// CODE.LENGTH: Pushes the length of the top item on the CODE stack onto the INTEGER stack. If the
+/// top item is not a list then this pushes a 1. If the top item is a list then this pushes the
+/// number of items in the top level of the list; that is, nested lists contribute only 1 to this
+/// count, no matter what they contain.
+pub fn code_length(push_state: &mut PushState) {
+    if let Some(top_item) = push_state.code_stack.get(0) {
+        match top_item {
+            Item::List { items } => push_state.int_stack.push(items.size() as i32),
+            _ => push_state.int_stack.push(1),
+        }
+    }
+}
+
+/// CODE.LIST: Pushes a list of the top two items of the CODE stack onto the CODE stack.
+pub fn code_list(push_state: &mut PushState) {
+    if let Some(top_items) = push_state.code_stack.copy_vec(2) {
+        push_state
+            .code_stack
+            .push(Item::list(vec![top_items[0].clone(), top_items[1].clone()]));
+    }
+}
+
+/// CODE.CONTAINS: Pushes TRUE on the BOOLEAN stack if the second CODE stack item contains the
+/// first CODE stack item anywhere (e.g. in a sub-list).
+pub fn code_member(push_state: &mut PushState) {
+    if let Some(ov) = push_state.code_stack.copy_vec(2) {
+        let top_el = ov[1].to_string();
+        let sec_el = ov[0].to_string();
+        if sec_el.contains(&top_el) {
+            push_state.bool_stack.push(true);
+        } else {
+            push_state.bool_stack.push(false);
+        }
+    }
+}
+
+/// CODE.NOOP: Does nothing.
+pub fn code_noop(_push_state: &mut PushState) {}
 
 #[cfg(test)]
 mod tests {
@@ -793,13 +842,15 @@ mod tests {
     #[test]
     fn code_extract_finds_correct_subelement() {
         let mut test_state = PushState::new();
-        test_state.int_stack.push(4);
         let test_item = Item::list(vec![
             Item::int(4),
             Item::list(vec![Item::int(3)]),
             Item::int(2),
             Item::int(1),
         ]);
+        // Total Size = 6 => 10 % 6 = 4
+        // Expected 4th element - Literal(3) - to be extracted
+        test_state.int_stack.push(10);
         test_state.code_stack.push(test_item);
         code_extract(&mut test_state);
         assert_eq!(test_state.int_stack.to_string(), "");
@@ -844,5 +895,28 @@ mod tests {
             test_state.code_stack.to_string(),
             "1:List: 1:Literal(1); 2:Literal(2);; 2:Literal(5);"
         );
+    }
+
+    #[test]
+    fn code_length_pushes_top_list_size() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::list(vec![
+            Item::int(2),
+            Item::int(1),
+            Item::list(vec![Item::int(0), Item::float(2.3)]),
+        ]));
+        code_length(&mut test_state);
+        assert_eq!(test_state.int_stack.to_string(), "1:3;");
+    }
+
+    #[test]
+    fn code_list_pushes_lists_including_top_items() {
+        let mut test_state = PushState::new();
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(0), Item::float(2.3)]));
+        test_state.code_stack.push(Item::int(2));
+        code_list(&mut test_state);
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(2); 2:List: 1:Literal(2.3); 2:Literal(0);;; 2:Literal(2); 3:List: 1:Literal(2.3); 2:Literal(0);;");
     }
 }

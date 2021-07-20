@@ -23,7 +23,7 @@ impl<'a> PushInterpreter<'a> {
         if let Some(code) = self
             .push_state
             .exec_stack
-            .observe_vec(self.push_state.exec_stack.size())
+            .copy_vec(self.push_state.exec_stack.size())
         {
             self.push_state.code_stack.push_vec(code);
         }
@@ -155,9 +155,7 @@ mod tests {
 
         interpreter.run();
         assert_eq!(interpreter.push_state.int_stack.to_string(), "1:6;");
-        assert!(
-            (interpreter.push_state.float_stack.observe_vec(1).unwrap()[0] - 9.3).abs() < 0.00001
-        );
+        assert!((interpreter.push_state.float_stack.copy_vec(1).unwrap()[0] - 9.3).abs() < 0.00001);
         assert_eq!(interpreter.push_state.bool_stack.to_string(), "1:true;");
     }
 }

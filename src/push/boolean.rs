@@ -81,7 +81,7 @@ pub fn boolean_def(push_state: &mut PushState) {
 }
 
 pub fn boolean_dup(push_state: &mut PushState) {
-    if let Some(pv) = push_state.bool_stack.observe_vec(1) {
+    if let Some(pv) = push_state.bool_stack.copy_vec(1) {
         push_state.bool_stack.push(pv[0]);
     }
 }
@@ -91,7 +91,7 @@ pub fn boolean_flush(push_state: &mut PushState) {
 }
 
 pub fn boolean_from_float(push_state: &mut PushState) {
-    if let Some(pv) = push_state.float_stack.observe_vec(1) {
+    if let Some(pv) = push_state.float_stack.copy_vec(1) {
         // TODO: Float comparison?
         let x = pv[0] == 0.0;
         push_state.bool_stack.push(x);
@@ -99,7 +99,7 @@ pub fn boolean_from_float(push_state: &mut PushState) {
 }
 
 pub fn boolean_from_integer(push_state: &mut PushState) {
-    if let Some(pv) = push_state.int_stack.observe_vec(1) {
+    if let Some(pv) = push_state.int_stack.copy_vec(1) {
         let x = pv[0] == 0;
         push_state.bool_stack.push(x);
     }
@@ -149,7 +149,7 @@ pub fn boolean_yank(push_state: &mut PushState) {
 
 pub fn boolean_yank_dup(push_state: &mut PushState) {
     if let Some(ival) = push_state.int_stack.pop() {
-        if let Some(pv) = push_state.bool_stack.observe_vec(ival as usize) {
+        if let Some(pv) = push_state.bool_stack.copy_vec(ival as usize) {
             push_state.bool_stack.push(pv[pv.len() - 1]);
         }
     }
