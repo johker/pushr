@@ -7,7 +7,6 @@ use crate::push::stack::PushStack;
 #[derive(Clone, Debug)]
 pub enum Item<'a> {
     List { items: PushStack<Item<'a>> },
-    Closer,
     InstructionMeta { name: &'a str },
     Literal { push_type: PushType },
     Identifier { name: &'a str },
@@ -70,6 +69,18 @@ impl<'a> Item<'a> {
         return size;
     }
 
+    /// Returns the number of elements the items cotains up to a depth of 1.
+    pub fn shallow_size(item: &Item<'a>) -> usize {
+        let mut size = 0;
+        match item {
+            Item::List { items } => {
+                size += items.size() + 1;
+            }
+            _ => size += 1,
+        }
+        return size;
+    }
+
     /// Returns a nested element of a list using depth first traversal.
     pub fn traverse(item: &Item<'a>, mut depth: usize) -> Result<Item<'a>, usize> {
         if depth == 0 {
@@ -119,6 +130,39 @@ impl<'a> Item<'a> {
             Err(depth)
         }
     }
+
+    /// Executes a deep comparison between two item. Returns true if
+    /// the items and all their elements are equal.
+    pub fn equals(item: &Item<'a>, pattern: &Item<'a>) -> bool {
+        match item {
+            Item::List { items } => match &*pattern {
+                Item::List { items: pitems } => {
+                    if items.size() != pitems.size() {
+                        false;
+                    }
+                    for i in 0..items.size() {
+                        if !Item::equals(items.get(i).unwrap(), pitems.get(i).unwrap()) {
+                            false;
+                        }
+                    }
+                    true
+                }
+                _ => false,
+            },
+            Item::InstructionMeta { name } => match pattern {
+                Item::InstructionMeta { name: pname } => name == pname,
+                _ => false,
+            },
+            Item::Literal { push_type } => match pattern {
+                Item::Literal { push_type: ptype } => push_type.equals(ptype),
+                _ => false,
+            },
+            Item::Identifier { name } => match pattern {
+                Item::Identifier { name: pname } => name == pname,
+                _ => false,
+            },
+        }
+    }
 }
 
 impl<'a> PartialEq for Item<'a> {
@@ -126,10 +170,6 @@ impl<'a> PartialEq for Item<'a> {
         match &*self {
             Item::List { items: _ } => match &*other {
                 Item::List { items: _ } => return true,
-                _ => return false,
-            },
-            Item::Closer => match &*other {
-                Item::Closer => return true,
                 _ => return false,
             },
             Item::InstructionMeta { name: _ } => match &*other {
@@ -152,7 +192,6 @@ impl<'a> fmt::Display for Item<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &*self {
             Item::List { items } => write!(f, "List: {}", items.to_string()),
-            Item::Closer => write!(f, "Closer"),
             Item::InstructionMeta { name } => {
                 let at = "InstructionMeta".to_string();
                 write!(f, "{}({})", at, name)
@@ -175,6 +214,26 @@ impl<'a> fmt::Display for Item<'a> {
     }
 }
 
+impl PushType {
+    /// Returns true if type and value are equal
+    pub fn equals(&self, other: &PushType) -> bool {
+        match &*self {
+            PushType::PushBoolType { val } => match &*other {
+                PushType::PushBoolType { val: other_val } => return val == other_val,
+                _ => false,
+            },
+            PushType::PushIntType { val } => match &*other {
+                PushType::PushIntType { val: other_val } => return val == other_val,
+                _ => false,
+            },
+            PushType::PushFloatType { val } => match &*other {
+                PushType::PushFloatType { val: other_val } => return val == other_val,
+                _ => false,
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -183,9 +242,7 @@ mod tests {
     fn shallow_equality_returns_true_comparing_items_with_different_content() {
         let literal_a = Item::int(0);
         let literal_b = Item::int(2);
-        let closer_a = Item::Closer;
-        let closer_b = Item::Closer;
-        let list_a = Item::list(vec![Item::Closer]);
+        let list_a = Item::list(vec![Item::float(3.4)]);
         let list_b = Item::list(vec![Item::int(0)]);
         let inst_a = Item::noop();
         let inst_b = Item::InstructionMeta {
@@ -194,9 +251,8 @@ mod tests {
         assert_eq!(list_a, list_b);
         assert_eq!(inst_a, inst_b);
         assert_eq!(literal_a, literal_b);
-        assert_eq!(closer_a, closer_b);
         assert_ne!(list_a, literal_b);
-        assert_ne!(closer_a, literal_b);
+        assert_ne!(inst_b, literal_b);
     }
 
     #[test]
@@ -240,6 +296,7 @@ mod tests {
         let item_to_insert = Item::int(99);
         assert_eq!(Item::insert(&mut test_item, &item_to_insert, 4), Err(4));
     }
+
     #[test]
     fn size_includes_nested_lists_in_count() {
         let test_item = Item::list(vec![
@@ -249,5 +306,16 @@ mod tests {
             Item::int(1),
         ]);
         assert_eq!(Item::size(&test_item), 6);
+    }
+
+    #[test]
+    fn shallow_size_only_considers_depth_1() {
+        let test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        assert_eq!(Item::shallow_size(&test_item), 5);
     }
 }

@@ -7,25 +7,23 @@ use crate::push::state::PushState;
 pub struct PushParser {}
 
 impl<'a> PushParser {
-    pub fn rec_push(stack: &mut PushStack<Item<'a>>, item: Item<'a>) -> bool {
-        // Push recursively
-        if let Some(mut first_el) = stack.bottom_mut() {
-            match &mut first_el {
+    /// Recursivley performs a front push to the stack. It keeps track of the open sublist by a depth
+    /// parameter. Returns true if the operation was sucessful
+    pub fn rec_push(stack: &mut PushStack<Item<'a>>, item: Item<'a>, depth: usize) -> bool {
+        if depth == 0 {
+            // Push at this level
+            stack.push_front(item);
+            return true;
+        }
+        if let Some(mut bottom_item) = stack.bottom_mut() {
+            match &mut bottom_item {
                 Item::List { items } => {
-                    // If the top element is a List
-                    // push to its stack
-                    return PushParser::rec_push(items, item);
+                    // If the bottm element is a List push to its stack
+                    return PushParser::rec_push(items, item, depth - 1);
                 }
                 _ => {
-                    if item == Item::Closer {
-                        // Closer is pushed on higher stack
-                        // to mark end of List
-                        false
-                    } else {
-                        // Push any other element to top
-                        stack.push_front(item);
-                        true
-                    }
+                    // Error: No more list found but depth > 0
+                    false
                 }
             }
         } else {
@@ -35,27 +33,30 @@ impl<'a> PushParser {
         }
     }
 
+    /// Splits a string into tokens and front pushes it to the stack s.t. the
+    /// end of the string ends up at the top of the stack.
     pub fn parse_program(
         instruction_set: &InstructionSet,
         push_state: &mut PushState<'a>,
         code: &'a str,
     ) {
+        let mut depth = 0;
         for token in code.split_whitespace() {
             if "(" == token {
-                // Start of code block
                 PushParser::rec_push(
                     &mut push_state.exec_stack,
                     Item::List {
                         items: PushStack::new(),
                     },
+                    depth,
                 );
+                // Start of (sub) list
+                depth += 1;
                 continue;
             }
             if ")" == token {
-                // End of code block
-                if !PushParser::rec_push(&mut push_state.exec_stack, Item::Closer) {
-                    push_state.exec_stack.push_front(Item::Closer);
-                }
+                // End of (sub) list
+                depth -= 1;
                 continue;
             }
 
@@ -63,7 +64,7 @@ impl<'a> PushParser {
             match instruction_set.map.get(token) {
                 Some(_instruction) => {
                     let im = Item::InstructionMeta { name: token };
-                    PushParser::rec_push(&mut push_state.exec_stack, im);
+                    PushParser::rec_push(&mut push_state.exec_stack, im, depth);
                     continue;
                 }
                 None => (),
@@ -76,6 +77,7 @@ impl<'a> PushParser {
                         Item::Literal {
                             push_type: PushType::PushIntType { val: ival },
                         },
+                        depth,
                     );
                     continue;
                 }
@@ -88,6 +90,7 @@ impl<'a> PushParser {
                         Item::Literal {
                             push_type: PushType::PushFloatType { val: fval },
                         },
+                        depth,
                     );
                     continue;
                 }
@@ -100,6 +103,7 @@ impl<'a> PushParser {
                         Item::Literal {
                             push_type: PushType::PushBoolType { val: true },
                         },
+                        depth,
                     );
                     continue;
                 }
@@ -109,13 +113,18 @@ impl<'a> PushParser {
                         Item::Literal {
                             push_type: PushType::PushBoolType { val: false },
                         },
+                        depth,
                     );
                     continue;
                 }
                 &_ => {
                     if let Some(instruction) = push_state.name_bindings.get(token) {
                         // Existing name binding -> Push to execution stack
-                        PushParser::rec_push(&mut push_state.exec_stack, instruction.clone());
+                        PushParser::rec_push(
+                            &mut push_state.exec_stack,
+                            instruction.clone(),
+                            depth,
+                        );
                     } else {
                         // Unknown identifier -> Push onto name stack
                         push_state.name_stack.push(token.clone());
@@ -138,6 +147,6 @@ mod tests {
         PushParser::parse_program(&instruction_set, &mut push_state, &input);
         let interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
 
-        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:List: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);; 2:Closer;")
+        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:List: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);;")
     }
 }

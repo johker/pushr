@@ -72,6 +72,8 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("CODE.LIST"), Instruction::new(code_list));
     map.insert(String::from("CODE.MEMBER"), Instruction::new(code_member));
     map.insert(String::from("CODE.NOOP"), Instruction::new(code_noop));
+    map.insert(String::from("CODE.NTH"), Instruction::new(code_nth));
+    map.insert(String::from("CODE.NTHCDR"), Instruction::new(code_nth_cdr));
 }
 
 //
@@ -521,6 +523,63 @@ pub fn code_member(push_state: &mut PushState) {
 /// CODE.NOOP: Does nothing.
 pub fn code_noop(_push_state: &mut PushState) {}
 
+/// CODE.NTH: Pushes the nth element of the expression on top of the CODE stack (which is coerced
+/// to a list first if necessary). If the expression is an empty list then the result is an empty
+/// list. N is taken from the INTEGER stack and is taken modulo the length of the expression into
+/// which it is indexing.
+pub fn code_nth(push_state: &mut PushState) {
+    if let Some(sub_idx) = push_state.int_stack.pop() {
+        if let Some(code) = push_state.code_stack.get(0) {
+            let total_size = Item::shallow_size(code);
+            let idx = sub_idx.rem_euclid(total_size as i32);
+            let mut item_to_push = Item::empty_list();
+            if idx == 0 {
+                item_to_push = code.clone();
+            }
+            match code {
+                Item::List { items } => {
+                    if let Some(nth_item) = items.get(idx as usize - 1) {
+                        item_to_push = nth_item.clone();
+                    }
+                }
+                _ => (),
+            }
+            push_state.code_stack.push(item_to_push);
+        }
+    }
+}
+
+/// CODE.NTHCDR: Pushes the nth "CDR" (in the Lisp sense) of the expression on top of the CODE
+/// stack (which is coerced to a list first if necessary). If the expression is an empty list then
+/// the result is an empty list. N is taken from the INTEGER stack and is taken modulo the length
+/// of the expression into which it is indexing. A "CDR" of a list is the list without its first
+/// element.
+pub fn code_nth_cdr(_push_state: &mut PushState) {
+    //TODO
+}
+
+/// CODE.NULL: Pushes TRUE onto the BOOLEAN stack if the top item of the CODE stack is an empty
+/// list, or FALSE otherwise.
+pub fn code_null(push_state: &mut PushState) {
+    if let Some(code) = push_state.code_stack.get(0) {
+        let mut is_null = false;
+        match code {
+            Item::List { items } => {
+                if items.size() == 0 {
+                    is_null = true;
+                }
+            }
+            _ => (),
+        }
+        push_state.bool_stack.push(is_null);
+    }
+}
+
+/// CODE.POP: Pops the CODE stack.
+pub fn code_pop(push_state: &mut PushState) {
+    push_state.code_stack.pop();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -918,5 +977,46 @@ mod tests {
         test_state.code_stack.push(Item::int(2));
         code_list(&mut test_state);
         assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(2); 2:List: 1:Literal(2.3); 2:Literal(0);;; 2:Literal(2); 3:List: 1:Literal(2.3); 2:Literal(0);;");
+    }
+
+    #[test]
+    fn code_nth_ignores_nested_lists() {
+        let mut test_state = PushState::new();
+        let test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        // Shallow Size = 5 => 9 % 5 = 4
+        // Expected 4th element - Literal(4) - to be extracted
+        test_state.int_stack.push(9);
+        test_state.code_stack.push(test_item);
+        code_nth(&mut test_state);
+        assert_eq!(test_state.int_stack.to_string(), "");
+        assert_eq!(
+        test_state.code_stack.to_string(),
+        "1:Literal(4); 2:List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(3);; 4:Literal(4);;"
+    );
+    }
+
+    #[test]
+    fn code_null_pushes_true_for_empty_list() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::empty_list());
+        code_null(&mut test_state);
+        assert_eq!(*test_state.bool_stack.get(0).unwrap(), true);
+    }
+    #[test]
+    fn code_pop_removes_top_element() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(1));
+        test_state.code_stack.push(Item::int(2));
+        test_state.code_stack.push(Item::int(3));
+        code_pop(&mut test_state);
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(2); 2:Literal(1);"
+        );
     }
 }

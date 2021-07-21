@@ -1,5 +1,5 @@
 [package]
-name = "pustgp"
+name = "prush"
 version = "0.1.0"
 authors = ["johker <johannes.kern@zoho.com>"]
 edition = "2018"
