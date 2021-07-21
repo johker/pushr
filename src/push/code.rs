@@ -175,43 +175,10 @@ pub fn code_cons(push_state: &mut PushState) {
 /// second piece of code is "( A )" then this pushes ( C ( A ) ). Pushes an empty list if there is
 /// no such container.
 pub fn code_container(push_state: &mut PushState) {
-    if let Some(ov) = push_state.code_stack.copy_vec(2) {
-        let stack_str = push_state.code_stack.to_string();
-        let first_el = ov[1].to_string();
-        let code_str = ov[0].to_string();
-        if first_el.contains(&code_str) {
-            let split = stack_str.split(&code_str);
-            let vec: Vec<&str> = split.collect();
-            let split = vec[0].split(" ");
-            let vec: Vec<&str> = split.collect();
-            let mut index_vector = Vec::new();
-            for x in vec.iter() {
-                let k = x.chars().nth(0).unwrap();
-                index_vector.push(k.to_digit(10).unwrap());
-                if x.ends_with(";;") {
-                    // Remove sub list indices
-                    while index_vector.pop().unwrap() != 1 {}
-                }
-            }
-            let mut container = ov[1].clone();
-            for (i, x) in index_vector.iter().enumerate() {
-                // If the next index is 1 a new sublist begins
-                // This sublist is our new container
-                if i == 0 || i == index_vector.len() - 1 || index_vector[i + 1] != 1 {
-                    continue;
-                }
-                match container {
-                    Item::List { items: sublist } => {
-                        container = sublist.copy((*x as usize) - 1).unwrap();
-                    }
-                    _ => println!("Unexpected element - container: {}", container.to_string()),
-                }
-            }
-            // Push smallest container of fist item to the stack
-            push_state.code_stack.push(container);
-        } else {
-            // Push empty list if second item is not part of first
-            push_state.code_stack.push(Item::empty_list());
+    if let Some(code) = push_state.code_stack.copy_vec(2) {
+        match Item::container(&code[1], &code[0]) {
+            Ok(container) => push_state.code_stack.push(container),
+            Err(_) => push_state.code_stack.push(Item::empty_list()),
         }
     }
 }
@@ -578,6 +545,17 @@ pub fn code_null(push_state: &mut PushState) {
 /// CODE.POP: Pops the CODE stack.
 pub fn code_pop(push_state: &mut PushState) {
     push_state.code_stack.pop();
+}
+
+/// CODE.POSITION: Pushes onto the INTEGER stack the position of the second item on the CODE stack
+/// within the first item (which is coerced to a list if necessary). Pushes -1 if no match is found.
+pub fn code_position(push_state: &mut PushState) {
+    if let Some(code) = push_state.code_stack.copy_vec(2) {
+        match Item::contains(&code[1], &code[0], 0) {
+            Ok(pos) => push_state.int_stack.push(pos as i32),
+            Err(()) => push_state.int_stack.push(-1),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1007,6 +985,7 @@ mod tests {
         code_null(&mut test_state);
         assert_eq!(*test_state.bool_stack.get(0).unwrap(), true);
     }
+
     #[test]
     fn code_pop_removes_top_element() {
         let mut test_state = PushState::new();
@@ -1018,5 +997,19 @@ mod tests {
             test_state.code_stack.to_string(),
             "1:Literal(2); 2:Literal(1);"
         );
+    }
+
+    #[test]
+    fn code_position_pushes_value_when_contained() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(3));
+        test_state.code_stack.push(Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]));
+        code_position(&mut test_state);
+        assert_eq!(test_state.int_stack.get(0).unwrap(), &4);
     }
 }

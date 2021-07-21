@@ -131,6 +131,54 @@ impl<'a> Item<'a> {
         }
     }
 
+    /// Returns the position of pattern within item or Err if pattern is not
+    /// part of item
+    pub fn contains(item: &Item<'a>, pattern: &Item<'a>, mut depth: usize) -> Result<usize, ()> {
+        if Item::equals(item, pattern) {
+            Ok(depth)
+        } else {
+            match item {
+                Item::List { items } => {
+                    for i in 0..items.size() {
+                        depth += 1;
+                        let next = Item::contains(items.get(i).unwrap(), pattern, depth);
+                        match next {
+                            Ok(pattern_idx) => return Ok(pattern_idx),
+                            Err(()) => (),
+                        }
+                    }
+                }
+                _ => (),
+            }
+            Err(())
+        }
+    }
+    /// Returns the container of pattern within item, i.e. its smallest sublist that contains but
+    /// is not equal to pattern. It returns Err if pattern is not part of item
+    pub fn container(item: &Item<'a>, pattern: &Item<'a>) -> Result<Item<'a>, bool> {
+        if Item::equals(item, pattern) {
+            Err(true)
+        } else {
+            match item {
+                Item::List { items } => {
+                    for i in 0..items.size() {
+                        let next = Item::container(items.get(i).unwrap(), pattern);
+                        match next {
+                            Ok(container) => return Ok(container),
+                            Err(is_container) => {
+                                if is_container {
+                                    return Ok(item.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => (),
+            }
+            Err(false)
+        }
+    }
+
     /// Executes a deep comparison between two item. Returns true if
     /// the items and all their elements are equal.
     pub fn equals(item: &Item<'a>, pattern: &Item<'a>) -> bool {
@@ -351,5 +399,45 @@ mod tests {
             Item::int(1),
         ]);
         assert!(!Item::equals(&i1, &i2));
+    }
+
+    #[test]
+    fn contains_finds_index_of_sublist() {
+        let test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        let pattern = Item::list(vec![Item::int(3)]);
+        assert_eq!(Item::contains(&test_item, &pattern, 0), Ok(3));
+        assert_eq!(Item::contains(&test_item, &Item::int(1), 0), Ok(1));
+    }
+
+    #[test]
+    fn container_finds_sublist() {
+        let test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        let pattern = Item::int(3);
+        assert!(Item::equals(
+            &Item::container(&test_item, &pattern).unwrap(),
+            &Item::list(vec![Item::int(3)])
+        ));
+    }
+
+    #[test]
+    fn contains_returns_error_if_sublist_not_contained() {
+        let test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        let pattern = Item::list(vec![Item::int(5)]);
+        assert_eq!(Item::contains(&test_item, &pattern, 0), Err(()));
     }
 }

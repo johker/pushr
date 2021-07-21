@@ -161,7 +161,7 @@ where
 
     /// Returns a copy of the n top-most elements
     /// of the stack. The first element of the returned vector
-    /// is the nth element counted fromt the top of the stack.
+    /// is the nth element counted from the top of the stack.
     pub fn copy_vec(&self, n: usize) -> Option<Vec<T>> {
         if n > self.size() {
             None
