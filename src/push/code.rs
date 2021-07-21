@@ -558,6 +558,15 @@ pub fn code_position(push_state: &mut PushState) {
     }
 }
 
+/// CODE.QUOTE: Specifies that the next expression submitted for execution will instead be pushed
+/// literally onto the CODE stack. This can be implemented by moving the top item on the EXEC stack
+/// onto the CODE stack.
+pub fn code_quote(push_state: &mut PushState) {
+    if let Some(exec_code) = push_state.exec_stack.pop() {
+        push_state.code_stack.push(exec_code);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1011,5 +1020,13 @@ mod tests {
         ]));
         code_position(&mut test_state);
         assert_eq!(test_state.int_stack.get(0).unwrap(), &4);
+    }
+
+    #[test]
+    fn code_quote_moves_item_from_exec_to_code_stack() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(2));
+        code_quote(&mut test_state);
+        assert_eq!(test_state.code_stack.to_string(), "1:Literal(2);")
     }
 }
