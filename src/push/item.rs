@@ -138,11 +138,11 @@ impl<'a> Item<'a> {
             Item::List { items } => match &*pattern {
                 Item::List { items: pitems } => {
                     if items.size() != pitems.size() {
-                        false;
+                        return false;
                     }
                     for i in 0..items.size() {
                         if !Item::equals(items.get(i).unwrap(), pitems.get(i).unwrap()) {
-                            false;
+                            return false;
                         }
                     }
                     true
@@ -317,5 +317,39 @@ mod tests {
             Item::int(1),
         ]);
         assert_eq!(Item::shallow_size(&test_item), 5);
+    }
+
+    #[test]
+    fn equals_returns_true_for_deep_equality() {
+        let i1 = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        let i2 = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        assert!(Item::equals(&i1, &i2));
+    }
+
+    #[test]
+    fn equals_detects_non_matching_sub_lists() {
+        let i1 = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        let i2 = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(2)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        assert!(!Item::equals(&i1, &i2));
     }
 }
