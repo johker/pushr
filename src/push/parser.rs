@@ -1,5 +1,4 @@
 use crate::push::instructions::InstructionSet;
-use crate::push::interpreter::PushInterpreter;
 use crate::push::item::{Item, PushType};
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
@@ -137,6 +136,7 @@ impl<'a> PushParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::push::interpreter::PushInterpreter;
 
     #[test]
     pub fn parse_simple_program() {

@@ -37,14 +37,28 @@ impl InstructionSet {
         self.map
             .insert(String::from("FLOAT.+"), Instruction::new(float_add));
     }
+
+    pub fn cache(&mut self) -> InstructionCache {
+        InstructionCache::new(self.map.keys().cloned().collect())
+    }
+}
+
+pub struct InstructionCache {
+    pub list: Vec<String>,
+}
+
+impl InstructionCache {
+    pub fn new(arg_list: Vec<String>) -> Self {
+        Self { list: arg_list }
+    }
 }
 
 pub struct Instruction {
-    pub execute: Box<dyn FnMut(&mut PushState)>,
+    pub execute: Box<dyn FnMut(&mut PushState, &InstructionCache)>,
 }
 
 impl Instruction {
-    pub fn new(execute: impl FnMut(&mut PushState) + 'static) -> Self {
+    pub fn new(execute: impl FnMut(&mut PushState, &InstructionCache) + 'static) -> Self {
         Self {
             execute: Box::new(execute),
         }
@@ -55,15 +69,15 @@ impl Instruction {
 // ------------------ Type: INTEGER ---------------------
 //
 
-fn noop(_push_state: &mut PushState) {}
+fn noop(_push_state: &mut PushState, _instruction_cache: &InstructionCache) {}
 
-fn integer_add(push_state: &mut PushState) {
+fn integer_add(push_state: &mut PushState, _instruction_set: &InstructionCache) {
     if let Some(pv) = push_state.int_stack.pop_vec(2) {
         push_state.int_stack.push(pv[0] + pv[1]);
     }
 }
 
-fn integer_multiply(push_state: &mut PushState) {
+fn integer_multiply(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(pv) = push_state.int_stack.pop_vec(2) {
         push_state.int_stack.push(pv[0] * pv[1]);
     }
@@ -73,11 +87,8 @@ fn integer_multiply(push_state: &mut PushState) {
 // ------------------ Type: FLOAT ---------------------
 //
 
-fn float_add(push_state: &mut PushState) {
+fn float_add(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(pv) = push_state.float_stack.pop_vec(2) {
         push_state.float_stack.push(pv[0] + pv[1]);
     }
 }
-//pub trait Instruction {
-//    fn evaluate(&self) -> String;
-//}

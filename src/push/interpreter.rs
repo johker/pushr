@@ -1,6 +1,5 @@
 use crate::push::instructions::InstructionSet;
 use crate::push::item::{Item, PushType};
-use crate::push::parser::PushParser;
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
 
@@ -31,6 +30,7 @@ impl<'a> PushInterpreter<'a> {
 
     #[allow(dead_code)]
     pub fn run_stack(&mut self, stack: &mut PushStack<Item<'a>>) {
+        let icache = self.instruction_set.cache();
         loop {
             match stack.pop() {
                 None => break,
@@ -47,7 +47,7 @@ impl<'a> PushInterpreter<'a> {
                 }
                 Some(Item::InstructionMeta { name }) => {
                     if let Some(instruction) = self.instruction_set.map.get_mut(name) {
-                        (instruction.execute)(&mut self.push_state);
+                        (instruction.execute)(&mut self.push_state, &icache);
                     }
                 }
                 Some(Item::List { mut items }) => {
@@ -58,9 +58,11 @@ impl<'a> PushInterpreter<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn run(&mut self) {
         // TODO: Make static / Call run_stack
         self.copy_to_code_stack();
+        let icache = self.instruction_set.cache();
         // run_stack(push_state.exec_stack);
         loop {
             // TODO: Stop conditions here
@@ -81,7 +83,7 @@ impl<'a> PushInterpreter<'a> {
                 },
                 Some(Item::InstructionMeta { name }) => {
                     if let Some(instruction) = self.instruction_set.map.get_mut(name) {
-                        (instruction.execute)(&mut self.push_state);
+                        (instruction.execute)(&mut self.push_state, &icache);
                     }
                 }
                 Some(Item::List { items: _ }) => {
@@ -99,6 +101,7 @@ impl<'a> PushInterpreter<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::push::parser::PushParser;
 
     #[test]
     pub fn copy_simple_program_to_code_stack() {
