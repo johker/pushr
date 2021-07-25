@@ -36,6 +36,15 @@ impl<'a> Item<'a> {
             push_type: PushType::PushBoolType { val: arg },
         }
     }
+
+    pub fn instruction(arg: &'a str) -> Item<'a> {
+        Item::InstructionMeta { name: arg }
+    }
+
+    pub fn name(arg: &'a str) -> Item<'a> {
+        Item::Identifier { name: arg }
+    }
+
     pub fn noop() -> Item<'a> {
         Item::InstructionMeta { name: "NOOP" }
     }

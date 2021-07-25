@@ -575,6 +575,17 @@ pub fn code_quote(push_state: &mut PushState, _instruction_cache: &InstructionCa
     }
 }
 
+/// CODE.RAND: Pushes a newly-generated random program onto the CODE stack. The limit for the size
+/// of the expression is taken from the INTEGER stack; to ensure that it is in the appropriate
+/// range this is taken modulo the value of the MAX-POINTS-IN-RANDOM-EXPRESSIONS parameter and the
+/// absolute value of the result is used.
+pub fn code_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size_limit) = push_state.int_stack.pop() {
+        let limit =
+            size_limit.rem_euclid(push_state.configuration.max_points_in_random_expressions);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -786,7 +797,7 @@ mod tests {
         test_state
             .code_stack
             .push(Item::list(vec![Item::int(1), Item::int(2)]));
-        code_discrepancy(&mut test_state, icache());
+        code_discrepancy(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.to_string(), "1:1;");
     }
 
