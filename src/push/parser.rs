@@ -8,7 +8,7 @@ pub struct PushParser {}
 impl<'a> PushParser {
     /// Recursivley performs a front push to the stack. It keeps track of the open sublist by a depth
     /// parameter. Returns true if the operation was sucessful
-    pub fn rec_push(stack: &mut PushStack<Item<'a>>, item: Item<'a>, depth: usize) -> bool {
+    pub fn rec_push(stack: &mut PushStack<Item>, item: Item, depth: usize) -> bool {
         if depth == 0 {
             // Push at this level
             stack.push_front(item);
@@ -62,7 +62,9 @@ impl<'a> PushParser {
             // Check for instruction
             match instruction_set.map.get(token) {
                 Some(_instruction) => {
-                    let im = Item::InstructionMeta { name: token };
+                    let im = Item::InstructionMeta {
+                        name: token.to_string(),
+                    };
                     PushParser::rec_push(&mut push_state.exec_stack, im, depth);
                     continue;
                 }

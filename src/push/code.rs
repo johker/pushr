@@ -282,9 +282,9 @@ pub fn code_discrepancy(push_state: &mut PushState, _instruction_cache: &Instruc
 /// else.
 pub fn code_do(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(instruction) = push_state.code_stack.copy(0) {
-        push_state
-            .exec_stack
-            .push(Item::InstructionMeta { name: "CODE.POP" });
+        push_state.exec_stack.push(Item::InstructionMeta {
+            name: "CODE.POP".to_string(),
+        });
         push_state.exec_stack.push(instruction);
     }
 }
@@ -293,9 +293,9 @@ pub fn code_do(push_state: &mut PushState, _instruction_cache: &InstructionCache
 pub fn code_pop_and_do(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(instruction) = push_state.code_stack.copy(0) {
         push_state.exec_stack.push(instruction);
-        push_state
-            .exec_stack
-            .push(Item::InstructionMeta { name: "CODE.POP" });
+        push_state.exec_stack.push(Item::InstructionMeta {
+            name: "CODE.POP".to_string(),
+        });
     }
 }
 
@@ -337,7 +337,7 @@ pub fn code_do_range(push_state: &mut PushState, _instruction_cache: &Instructio
                 push_state.exec_stack.push(body);
             } else {
                 push_state.exec_stack.push(Item::InstructionMeta {
-                    name: "CODE.DO*RANGE",
+                    name: "CODE.DO*RANGE".to_string(),
                 });
                 push_state.exec_stack.push(body);
                 if current_idx < destination_idx {
@@ -418,7 +418,7 @@ pub fn code_from_int(push_state: &mut PushState, _instruction_cache: &Instructio
 /// CODE.FROMNAME: Pops the NAME stack and pushes the popped item onto the CODE stack.
 pub fn code_from_name(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(nval) = push_state.name_stack.pop() {
-        push_state.code_stack.push(Item::id(nval));
+        push_state.code_stack.push(Item::id(nval.to_string()));
     }
 }
 

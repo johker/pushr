@@ -1,4 +1,3 @@
-#![feature(map_into_keys_values)]
 extern crate names;
 
 use crate::push::instructions::InstructionCache;
@@ -32,12 +31,12 @@ impl Distribution<ItemType> for Standard {
 
 pub struct CodeGenerator {}
 
-impl<'a> CodeGenerator {
+impl CodeGenerator {
     pub fn random_code(
         push_state: &PushState,
         instructions: &InstructionCache,
         max_points: usize,
-    ) -> Item<'a> {
+    ) -> Item {
         let mut rng = rand::thread_rng();
         let actual_points = Uniform::from(1..max_points).sample(&mut rng);
         CodeGenerator::random_code_with_size(push_state, instructions, actual_points)
@@ -47,7 +46,7 @@ impl<'a> CodeGenerator {
         push_state: &PushState,
         instructions: &InstructionCache,
         points: usize,
-    ) -> Item<'a> {
+    ) -> Item {
         let number_instructions = instructions.list.len();
         let mut generator = Generator::default();
         if points == 1 {
@@ -60,7 +59,7 @@ impl<'a> CodeGenerator {
                     let instruction_idx = rng.gen_range(0..number_instructions);
                     let selected_instruction =
                         instructions.list.get(instruction_idx).unwrap().clone();
-                    Item::instruction(&selected_instruction)
+                    Item::instruction(selected_instruction)
                 }
                 ItemType::Integer => Item::int(rng.gen::<i32>()),
                 ItemType::List => Item::empty_list(),

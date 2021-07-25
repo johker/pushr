@@ -12,7 +12,7 @@ fn main() {
     let mut instruction_set = InstructionSet::new();
     instruction_set.load();
 
-    PushParser::parse_program(&instruction_set, &mut push_state, &input);
+    PushParser::parse_program(&instruction_set, &mut push_state, input);
     let _interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
 
     // Push P onto the EXEC stack

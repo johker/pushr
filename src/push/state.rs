@@ -1,18 +1,17 @@
-#![feature(map_into_keys_values)]
-
 use crate::push::configuration::PushConfiguration;
 use crate::push::item::Item;
 use crate::push::stack::PushStack;
 use std::collections::HashMap;
 
 pub struct PushState<'a> {
+    // TODO: Consider dynamic adding of stacks to enable SDR stack (bool)
     pub float_stack: PushStack<f32>,
-    pub exec_stack: PushStack<Item<'a>>,
-    pub code_stack: PushStack<Item<'a>>,
+    pub exec_stack: PushStack<Item>,
+    pub code_stack: PushStack<Item>,
     pub int_stack: PushStack<i32>,
     pub bool_stack: PushStack<bool>,
     pub name_stack: PushStack<&'a str>,
-    pub name_bindings: HashMap<&'a str, Item<'a>>,
+    pub name_bindings: HashMap<&'a str, Item>,
     pub configuration: PushConfiguration,
 }
 

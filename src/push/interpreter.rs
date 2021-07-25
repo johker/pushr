@@ -29,7 +29,7 @@ impl<'a> PushInterpreter<'a> {
     }
 
     #[allow(dead_code)]
-    pub fn run_stack(&mut self, stack: &mut PushStack<Item<'a>>) {
+    pub fn run_stack(&mut self, stack: &mut PushStack<Item>) {
         let icache = self.instruction_set.cache();
         loop {
             match stack.pop() {
@@ -40,13 +40,13 @@ impl<'a> PushInterpreter<'a> {
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
                 Some(Item::Identifier { name }) => {
-                    if let Some(item) = self.push_state.name_bindings.get(name) {
+                    if let Some(item) = self.push_state.name_bindings.get(&name[..]) {
                         // Evaluate item for this name in next iteration
                         stack.push(item.clone());
                     }
                 }
                 Some(Item::InstructionMeta { name }) => {
-                    if let Some(instruction) = self.instruction_set.map.get_mut(name) {
+                    if let Some(instruction) = self.instruction_set.map.get_mut(&name[..]) {
                         (instruction.execute)(&mut self.push_state, &icache);
                     }
                 }
@@ -82,7 +82,7 @@ impl<'a> PushInterpreter<'a> {
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
                 Some(Item::InstructionMeta { name }) => {
-                    if let Some(instruction) = self.instruction_set.map.get_mut(name) {
+                    if let Some(instruction) = self.instruction_set.map.get_mut(&name[..]) {
                         (instruction.execute)(&mut self.push_state, &icache);
                     }
                 }
@@ -123,7 +123,7 @@ mod tests {
 
         push_state
             .exec_stack
-            .push(Item::InstructionMeta { name: "BOOLEAN.OR" });
+            .push(Item::instruction("BOOLEAN.OR".to_string()));
         push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushBoolType { val: false },
         });
@@ -133,7 +133,7 @@ mod tests {
 
         push_state
             .exec_stack
-            .push(Item::InstructionMeta { name: "FLOAT.+" });
+            .push(Item::instruction("FLOAT.+".to_string()));
         push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushFloatType { val: 5.2 },
         });
@@ -143,7 +143,7 @@ mod tests {
 
         push_state
             .exec_stack
-            .push(Item::InstructionMeta { name: "INTEGER.*" });
+            .push(Item::instruction("INTEGER.*".to_string()));
         push_state.exec_stack.push(Item::Literal {
             push_type: PushType::PushIntType { val: 3 },
         });
