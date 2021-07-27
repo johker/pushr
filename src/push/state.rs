@@ -4,7 +4,7 @@ use crate::push::stack::PushStack;
 use std::collections::HashMap;
 
 pub struct PushState<'a> {
-    // TODO: Consider dynamic adding of stacks to enable SDR stack (bool)
+    // TODO: Add Sdr stack (bool)
     pub float_stack: PushStack<f32>,
     pub exec_stack: PushStack<Item>,
     pub code_stack: PushStack<Item>,

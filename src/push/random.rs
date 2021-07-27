@@ -1,18 +1,19 @@
 extern crate names;
 
 use crate::push::instructions::InstructionCache;
+use crate::push::instructions::InstructionSet;
 use crate::push::item::Item;
 use crate::push::state::PushState;
 use names::Generator;
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::Rng;
 
+/// Item types without list
 pub enum ItemType {
     Boolean,
     Float,
     Instruction,
     Integer,
-    List,
     Name,
 }
 
@@ -23,7 +24,6 @@ impl Distribution<ItemType> for Standard {
             1 => ItemType::Float,
             2 => ItemType::Instruction,
             3 => ItemType::Integer,
-            4 => ItemType::List,
             _ => ItemType::Name,
         }
     }
@@ -62,7 +62,6 @@ impl CodeGenerator {
                     Item::instruction(selected_instruction)
                 }
                 ItemType::Integer => Item::int(rng.gen::<i32>()),
-                ItemType::List => Item::empty_list(),
                 ItemType::Name => {
                     let rand_name;
                     let name_size = push_state.name_bindings.len();
@@ -80,7 +79,66 @@ impl CodeGenerator {
                 }
             }
         } else {
-            Item::noop()
+            let mut item_distribution: Vec<usize> = vec![];
+            CodeGenerator::decompose(&mut item_distribution, points - 1);
+            let mut items_this_level: Vec<Item> = Vec::with_capacity(item_distribution.len());
+            for i in 0..item_distribution.len() {
+                items_this_level.push(CodeGenerator::random_code_with_size(
+                    push_state,
+                    instructions,
+                    item_distribution[i],
+                ));
+            }
+            Item::list(items_this_level)
         }
+    }
+
+    /// Returns a vector of random size whose elements sum up to
+    /// remaining_item
+    pub fn decompose(elements: &mut Vec<usize>, remaining_items: usize) {
+        if remaining_items == 1 {
+            elements.push(1);
+            return;
+        }
+        let mut rng = rand::thread_rng();
+        let items_this_level = rng.gen_range(1..remaining_items) as usize;
+        elements.push(items_this_level);
+        CodeGenerator::decompose(elements, remaining_items - items_this_level);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn random_code_is_generated() {
+        let push_state = PushState::new();
+        let test_size = 1034;
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        let instructions = instruction_set.cache();
+        let random_item = CodeGenerator::random_code(&push_state, &instructions, test_size);
+        assert!(Item::size(&random_item) <= test_size);
+    }
+
+    #[test]
+    fn random_code_with_size_is_generated() {
+        let push_state = PushState::new();
+        let test_size = 235;
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        let instructions = instruction_set.cache();
+        let random_item =
+            CodeGenerator::random_code_with_size(&push_state, &instructions, test_size);
+        assert_eq!(Item::size(&random_item), test_size);
+    }
+
+    #[test]
+    fn decompose_generates_valid_distribution() {
+        let test_size = 11;
+        let mut test_distribution: Vec<usize> = vec![];
+        CodeGenerator::decompose(&mut test_distribution, test_size);
+        assert_eq!(test_distribution.iter().sum::<usize>(), test_size);
     }
 }

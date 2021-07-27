@@ -38,7 +38,7 @@ impl InstructionSet {
             .insert(String::from("FLOAT.+"), Instruction::new(float_add));
     }
 
-    pub fn cache(&mut self) -> InstructionCache {
+    pub fn cache(&self) -> InstructionCache {
         InstructionCache::new(self.map.keys().cloned().collect())
     }
 }
