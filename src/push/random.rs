@@ -36,10 +36,18 @@ impl CodeGenerator {
         push_state: &PushState,
         instructions: &InstructionCache,
         max_points: usize,
-    ) -> Item {
-        let mut rng = rand::thread_rng();
-        let actual_points = Uniform::from(1..max_points).sample(&mut rng);
-        CodeGenerator::random_code_with_size(push_state, instructions, actual_points)
+    ) -> Option<Item> {
+        if max_points > 0 {
+            let mut rng = rand::thread_rng();
+            let actual_points = Uniform::from(1..max_points).sample(&mut rng);
+            Some(CodeGenerator::random_code_with_size(
+                push_state,
+                instructions,
+                actual_points,
+            ))
+        } else {
+            None
+        }
     }
 
     pub fn random_code_with_size(
@@ -56,10 +64,14 @@ impl CodeGenerator {
                 ItemType::Boolean => Item::bool(rng.gen::<bool>()),
                 ItemType::Float => Item::float(rng.gen::<f32>()),
                 ItemType::Instruction => {
-                    let instruction_idx = rng.gen_range(0..number_instructions);
-                    let selected_instruction =
-                        instructions.list.get(instruction_idx).unwrap().clone();
-                    Item::instruction(selected_instruction)
+                    if number_instructions > 0 {
+                        let instruction_idx = rng.gen_range(0..number_instructions);
+                        let selected_instruction =
+                            instructions.list.get(instruction_idx).unwrap().clone();
+                        Item::instruction(selected_instruction)
+                    } else {
+                        Item::noop()
+                    }
                 }
                 ItemType::Integer => Item::int(rng.gen::<i32>()),
                 ItemType::Name => {
@@ -119,7 +131,7 @@ mod tests {
         instruction_set.load();
         let instructions = instruction_set.cache();
         let random_item = CodeGenerator::random_code(&push_state, &instructions, test_size);
-        assert!(Item::size(&random_item) <= test_size);
+        assert!(Item::size(&random_item.unwrap()) <= test_size);
     }
 
     #[test]

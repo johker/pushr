@@ -1,8 +1,10 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
+use crate::push::random::CodeGenerator;
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
+use std::cmp;
 use std::collections::HashMap;
 
 /// Maps the default code instructions to their identifiers
@@ -82,6 +84,7 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(code_position),
     );
     map.insert(String::from("CODE.QUOTE"), Instruction::new(code_quote));
+    map.insert(String::from("CODE.RAND"), Instruction::new(code_rand));
 }
 
 //
@@ -579,11 +582,24 @@ pub fn code_quote(push_state: &mut PushState, _instruction_cache: &InstructionCa
 /// of the expression is taken from the INTEGER stack; to ensure that it is in the appropriate
 /// range this is taken modulo the value of the MAX-POINTS-IN-RANDOM-EXPRESSIONS parameter and the
 /// absolute value of the result is used.
-pub fn code_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+pub fn code_rand(push_state: &mut PushState, instruction_cache: &InstructionCache) {
     if let Some(size_limit) = push_state.int_stack.pop() {
-        let limit =
-            size_limit.rem_euclid(push_state.configuration.max_points_in_random_expressions);
+        let limit = cmp::min(
+            i32::abs(size_limit),
+            i32::abs(push_state.configuration.max_points_in_random_expressions),
+        );
+        if let Some(rand_item) =
+            CodeGenerator::random_code(&push_state, &instruction_cache, limit as usize)
+        {
+            push_state.code_stack.push(rand_item);
+        }
     }
+}
+
+/// CODE.ROT: Rotates the top three items on the CODE stack, pulling the third item out and pushing
+/// it on top. This is equivalent to "2 CODE.YANK".
+pub fn code_rot(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.code_stack.yank(2);
 }
 
 #[cfg(test)]
@@ -1051,5 +1067,30 @@ mod tests {
         test_state.exec_stack.push(Item::int(2));
         code_quote(&mut test_state, &icache());
         assert_eq!(test_state.code_stack.to_string(), "1:Literal(2);")
+    }
+
+    #[test]
+    fn code_rand_pushes_random_code() {
+        let mut test_state = PushState::new();
+        test_state.int_stack.push(100);
+        code_rand(&mut test_state, &icache());
+        assert_eq!(test_state.code_stack.size(), 1);
+    }
+
+    #[test]
+    fn code_yank_shuffles_elements() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(3));
+        test_state.code_stack.push(Item::int(2));
+        test_state.code_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3);"
+        );
+        code_rot(&mut test_state, &icache());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(3); 2:Literal(1); 3:Literal(2);"
+        );
     }
 }

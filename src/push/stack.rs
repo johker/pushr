@@ -113,9 +113,10 @@ where
         self.elements.insert(0, value);
     }
 
-    /// Removes an indexed item from stack position i and pushes it on top of the stack.
+    /// Removes an indexed item from stack position i counting from the top and
+    /// pushes it on top of the stack.
     pub fn yank(&mut self, index: usize) {
-        if index < self.size() - 1 {
+        if index < self.size() {
             let el = self.elements.remove(self.size() - (index + 1));
             self.elements.push(el);
         }
