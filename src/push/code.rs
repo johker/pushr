@@ -85,6 +85,13 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     );
     map.insert(String::from("CODE.QUOTE"), Instruction::new(code_quote));
     map.insert(String::from("CODE.RAND"), Instruction::new(code_rand));
+    map.insert(String::from("CODE.ROT"), Instruction::new(code_rot));
+    map.insert(String::from("CODE.SHOVE"), Instruction::new(code_shove));
+    map.insert(String::from("CODE.SIZE"), Instruction::new(code_size));
+    map.insert(
+        String::from("CODE.STACKDEPTH"),
+        Instruction::new(code_stack_depth),
+    );
 }
 
 //
@@ -602,6 +609,42 @@ pub fn code_rot(push_state: &mut PushState, _instruction_cache: &InstructionCach
     push_state.code_stack.yank(2);
 }
 
+/// CODE.SHOVE: Inserts the top piece of CODE "deep" in the stack, at the position indexed by the
+/// top INTEGER.
+pub fn code_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(shove_index) = push_state.int_stack.pop() {
+        push_state.code_stack.shove(shove_index as usize);
+    }
+}
+
+/// CODE.SIZE: Pushes the number of "points" in the top piece of CODE onto the INTEGER stack. Each
+/// instruction, literal, and pair of parentheses counts as a point.
+pub fn code_size(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(code) = push_state.code_stack.get(0) {
+        push_state.int_stack.push(Item::size(&code) as i32);
+    }
+}
+
+/// CODE.STACKDEPTH: Pushes the stack depth onto the INTEGER stack.
+pub fn code_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state
+        .int_stack
+        .push(push_state.code_stack.size() as i32);
+}
+
+/// CODE.SUBST: Pushes the result of substituting the third item on the code stack for the second
+/// item in the first item. As of this writing this is implemented only in the Lisp implementation,
+/// within which it relies on the Lisp "subst" function. As such, there are several problematic
+/// possibilities; for example "dotted-lists" can result in certain cases with empty-list
+/// arguments. If any of these problematic possibilities occurs the stack is left unchanged.
+pub fn code_subst(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(first_item) = push_state.code_stack.get_mut(0) {
+        if let Some(second_item) = push_state.code_stack.get(1) {
+            if let Some(third_item) = push_state.code_stack.get(2) {}
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1092,5 +1135,38 @@ mod tests {
             test_state.code_stack.to_string(),
             "1:Literal(3); 2:Literal(1); 3:Literal(2);"
         );
+    }
+
+    #[test]
+    fn code_shove_inserts_at_right_position() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(4));
+        test_state.code_stack.push(Item::int(3));
+        test_state.code_stack.push(Item::int(2));
+        test_state.code_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4);"
+        );
+        test_state.int_stack.push(2);
+        code_shove(&mut test_state, &icache());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(2); 2:Literal(3); 3:Literal(1); 4:Literal(4);"
+        );
+    }
+
+    #[test]
+    fn code_size_calculates_top_element() {
+        let mut test_state = PushState::new();
+        let test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        test_state.code_stack.push(test_item);
+        code_size(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "1:6;");
     }
 }

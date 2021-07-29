@@ -68,13 +68,13 @@ where
         self.elements = Vec::new();
     }
 
-    /// Replace element at the given position. In case the index does not
+    /// Replace element at position i counting from the top. In case the index does not
     /// exist it returns the offset to the size of the stack wrapped in the Err enum.
-    pub fn replace(&mut self, idx: usize, new_el: T) -> Result<(), usize> {
-        match idx.checked_sub(self.size()) {
+    pub fn replace(&mut self, i: usize, new_el: T) -> Result<(), usize> {
+        let size = &mut self.size();
+        match i.checked_sub(*size) {
             None => {
-                let _ = std::mem::replace(&mut self.elements[idx], new_el);
-                println!("New el at {}: {}", idx, self.elements[idx].to_string());
+                let _ = std::mem::replace(&mut self.elements[*size - (i + 1)], new_el);
                 Ok(())
             }
             Some(diff) => Err(diff + 1),
@@ -122,6 +122,8 @@ where
         }
     }
 
+    /// Removes the top element from the stack and inserts it at
+    /// position index counting from the top.
     pub fn shove(&mut self, index: usize) {
         if index < self.size() {
             if let Some(el) = self.elements.pop() {
@@ -130,6 +132,7 @@ where
         }
     }
 
+    /// Removes the top element from the stack and returns it.
     pub fn pop(&mut self) -> Option<T> {
         self.elements.pop()
     }
@@ -298,11 +301,11 @@ mod tests {
         let mut test_stack = PushStack {
             elements: vec![1, 2, 3, 4, 5],
         };
-        assert_eq!(test_stack.replace(2, 19), Ok(()));
+        assert_eq!(test_stack.replace(1, 19), Ok(()));
         assert_eq!(test_stack.replace(5, 19), Err(1));
         assert_eq!(test_stack.replace(6, 19), Err(2));
         assert_eq!(test_stack.replace(4, 19), Ok(()));
         assert_eq!(test_stack.replace(0, 19), Ok(()));
-        assert_eq!(test_stack.to_string(), "1:19; 2:4; 3:19; 4:2; 5:19;");
+        assert_eq!(test_stack.to_string(), "1:19; 2:19; 3:3; 4:2; 5:19;");
     }
 }

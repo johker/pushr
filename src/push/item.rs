@@ -142,6 +142,27 @@ impl<'a> Item {
         }
     }
 
+    /// Replaces a nested element of a list using depth first traversal.
+    pub fn substitute(item: &mut Item, pattern: &Item, substitute: &Item) -> bool {
+        println!("Compare {} with {}", item.to_string(), pattern.to_string());
+        if Item::equals(item, pattern) {
+            return true;
+        } else {
+            match &mut *item {
+                Item::List { items } => {
+                    for i in 0..items.size() {
+                        if Item::substitute(items.get_mut(i).unwrap(), pattern, substitute) {
+                            println!("Elements: {}", items.to_string());
+                            let _ = items.replace(i, substitute.clone());
+                        }
+                    }
+                }
+                _ => (),
+            }
+            return false;
+        }
+    }
+
     /// Returns the position of pattern within item or Err if pattern is not
     /// part of item
     pub fn contains(item: &Item, pattern: &Item, mut depth: usize) -> Result<usize, ()> {
@@ -350,7 +371,7 @@ mod tests {
     }
 
     #[test]
-    fn insert_returns_error_for_too_code_containers() {
+    fn insert_returns_error_for_index_out_of_bounds() {
         let mut test_item = Item::int(1);
         let item_to_insert = Item::int(99);
         assert_eq!(Item::insert(&mut test_item, &item_to_insert, 4), Err(4));
@@ -450,5 +471,38 @@ mod tests {
         ]);
         let pattern = Item::list(vec![Item::int(5)]);
         assert_eq!(Item::contains(&test_item, &pattern, 0), Err(()));
+    }
+
+    #[test]
+    fn substitute_with_literal_pattern() {
+        let mut test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        let pattern = Item::int(3);
+        let substitute = Item::int(9);
+        Item::substitute(&mut test_item, &pattern, &substitute);
+        assert_eq!(
+            test_item.to_string(),
+            "List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(9);; 4:Literal(4);"
+        );
+    }
+    #[test]
+    fn substitute_with_list_pattern() {
+        let mut test_item = Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        let pattern = Item::list(vec![Item::int(3)]);
+        let substitute = Item::int(9);
+        Item::substitute(&mut test_item, &pattern, &substitute);
+        assert_eq!(
+            test_item.to_string(),
+            "List: 1:Literal(1); 2:Literal(2); 3:Literal(9); 4:Literal(4);"
+        );
     }
 }
