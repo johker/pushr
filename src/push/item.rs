@@ -142,9 +142,9 @@ impl<'a> Item {
         }
     }
 
-    /// Replaces a nested element of a list using depth first traversal.
+    /// Substitute all occurrences of 'pattern' with 'substitute' in 'item' using depth first
+    /// traversal.
     pub fn substitute(item: &mut Item, pattern: &Item, substitute: &Item) -> bool {
-        println!("Compare {} with {}", item.to_string(), pattern.to_string());
         if Item::equals(item, pattern) {
             return true;
         } else {
@@ -152,7 +152,6 @@ impl<'a> Item {
                 Item::List { items } => {
                     for i in 0..items.size() {
                         if Item::substitute(items.get_mut(i).unwrap(), pattern, substitute) {
-                            println!("Elements: {}", items.to_string());
                             let _ = items.replace(i, substitute.clone());
                         }
                     }

@@ -638,9 +638,17 @@ pub fn code_stack_depth(push_state: &mut PushState, _instruction_cache: &Instruc
 /// possibilities; for example "dotted-lists" can result in certain cases with empty-list
 /// arguments. If any of these problematic possibilities occurs the stack is left unchanged.
 pub fn code_subst(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(first_item) = push_state.code_stack.get_mut(0) {
-        if let Some(second_item) = push_state.code_stack.get(1) {
-            if let Some(third_item) = push_state.code_stack.get(2) {}
+    if let Some(code) = push_state.code_stack.pop_vec(3) {
+        // code[2]: first item => item to be modified (target)
+        // code[1]: second item => substitute
+        // code[0]: third item => replace pattern
+        let mut target = code[2].clone();
+        if Item::substitute(&mut target, &code[0], &code[1]) {
+            // Target and pattern are the same => push substitute
+            push_state.code_stack.push(code[1].clone());
+        } else {
+            // Push target with substitute
+            push_state.code_stack.push(target);
         }
     }
 }
