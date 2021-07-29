@@ -1,7 +1,6 @@
 extern crate names;
 
 use crate::push::instructions::InstructionCache;
-use crate::push::instructions::InstructionSet;
 use crate::push::item::Item;
 use crate::push::state::PushState;
 use names::Generator;

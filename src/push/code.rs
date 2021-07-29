@@ -92,6 +92,13 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("CODE.STACKDEPTH"),
         Instruction::new(code_stack_depth),
     );
+    map.insert(String::from("CODE.SUBST"), Instruction::new(code_subst));
+    map.insert(String::from("CODE.SWAP"), Instruction::new(code_swap));
+    map.insert(String::from("CODE.YANK"), Instruction::new(code_yank));
+    map.insert(
+        String::from("CODE.YANKDUP"),
+        Instruction::new(code_yank_dup),
+    );
 }
 
 //
@@ -653,6 +660,29 @@ pub fn code_subst(push_state: &mut PushState, _instruction_cache: &InstructionCa
     }
 }
 
+/// CODE.SWAP: Swaps the top two pieces of CODE.
+pub fn code_swap(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.code_stack.shove(1);
+}
+
+/// CODE.YANK: Removes an indexed item from "deep" in the stack and pushes it on top of the stack.
+/// The index is taken from the INTEGER stack.
+pub fn code_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(idx) = push_state.int_stack.pop() {
+        push_state.code_stack.yank(idx as usize);
+    }
+}
+
+/// CODE.YANKDUP: Pushes a copy of an indexed item "deep" in the stack onto the top of the stack,
+/// without removing the deep item. The index is taken from the INTEGER stack.
+pub fn code_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(idx) = push_state.int_stack.pop() {
+        if let Some(deep_item) = push_state.code_stack.copy(idx as usize) {
+            push_state.code_stack.push(deep_item);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1176,5 +1206,81 @@ mod tests {
         test_state.code_stack.push(test_item);
         code_size(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.to_string(), "1:6;");
+    }
+
+    #[test]
+    fn code_substitute_code_elements() {
+        let mut test_state = PushState::new();
+        let target_item = Item::list(vec![
+            Item::list(vec![]),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]);
+        let substitute = Item::int(4);
+        let pattern = Item::list(vec![]);
+        test_state.code_stack.push(pattern);
+        test_state.code_stack.push(substitute);
+        test_state.code_stack.push(target_item);
+        code_subst(&mut test_state, &icache());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(3);; 4:Literal(4);;"
+        );
+    }
+
+    #[test]
+    fn code_swaps_top_elements() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(0));
+        test_state.code_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(1); 2:Literal(0);"
+        );
+        code_swap(&mut test_state, &icache());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(0); 2:Literal(1);"
+        );
+    }
+
+    #[test]
+    fn code_yank_brings_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(5));
+        test_state.code_stack.push(Item::int(4));
+        test_state.code_stack.push(Item::int(3));
+        test_state.code_stack.push(Item::int(2));
+        test_state.code_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4); 5:Literal(5);"
+        );
+        test_state.int_stack.push(3);
+        code_yank(&mut test_state, &icache());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(4); 2:Literal(1); 3:Literal(2); 4:Literal(3); 5:Literal(5);"
+        );
+    }
+    #[test]
+    fn code_yank_dup_copies_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(5));
+        test_state.code_stack.push(Item::int(4));
+        test_state.code_stack.push(Item::int(3));
+        test_state.code_stack.push(Item::int(2));
+        test_state.code_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4); 5:Literal(5);"
+        );
+        test_state.int_stack.push(3);
+        code_yank_dup(&mut test_state, &icache());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(4); 2:Literal(1); 3:Literal(2); 4:Literal(3); 5:Literal(4); 6:Literal(5);"
+        );
     }
 }
