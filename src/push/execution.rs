@@ -1,0 +1,215 @@
+use crate::push::instructions::Instruction;
+use crate::push::instructions::InstructionCache;
+use crate::push::item::Item;
+use crate::push::random::CodeGenerator;
+use crate::push::stack::PushStack;
+use crate::push::state::PushState;
+use std::collections::HashMap;
+
+/// Code queued for execution. The EXEC stack maintains the execution state of the Push
+/// interpreter. Instructions that specifically manipulate the EXEC stack can be used to implement
+/// various kinds of control structures. The CODE stack can also be used in this way, but
+/// manipulations to the EXEC stack are "live" in the sense that they are manipulating the actual
+/// execution state of the interpreter, not just code that might later be executed.
+pub fn load_exec_instructions(map: &mut HashMap<String, Instruction>) {
+    map.insert(String::from("EXEC.="), Instruction::new(exec_eq));
+}
+
+
+
+
+/// EXEC.=: Pushes TRUE if the top two items on the EXEC stack are equal, or FALSE otherwise.
+pub fn exec_eq(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(pv) = push_state.exec_stack.copy_vec(2) {
+        push_state
+            .bool_stack
+            .push(pv[0].to_string() == pv[1].to_string());
+    }
+}
+
+
+/// EXEC.DEFINE: Defines the name on top of the NAME stack as an instruction that will push the top
+/// item of the EXEC stack back onto the EXEC stack.
+pub fn exec_define(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(name) = push_state.name_stack.pop() {
+        if let Some(instruction) = push_state.exec_stack.pop() {
+            push_state.name_bindings.insert(name, instruction);
+        }
+    }
+}
+
+/// EXEC.DO*COUNT: An iteration instruction that performs a loop (the body of which is taken from
+/// the EXEC stack) the number of times indicated by the INTEGER argument, pushing an index (which
+/// runs from zero to one less than the number of iterations) onto the INTEGER stack prior to each
+/// execution of the loop body. This is similar to CODE.DO*COUNT except that it takes its code
+/// argument from the EXEC stack. This should be implemented as a macro that expands into a call to
+/// EXEC.DO*RANGE. EXEC.DO*COUNT takes a single INTEGER argument (the number of times that the loop
+/// will be executed) and a single EXEC argument (the body of the loop). If the provided INTEGER
+/// argument is negative or zero then this becomes a NOOP. Otherwise it expands into:
+/// ( 0 <1 - IntegerArg> EXEC.DO*RANGE <ExecArg> )
+pub fn exec_do_count(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(int_arg) = push_state.int_stack.pop() {
+        if let Some(exec_code) = push_state.exec_stack.pop() {
+            if int_arg < 0 {
+                return;
+            } else {
+                let macro_item = Item::list(vec![
+                    exec_code,
+                    Item::instruction("EXEC.DO*RANGE".to_string()),
+                    Item::int(1 - int_arg),
+                    Item::int(0),
+                ]);
+                push_state.exec_stack.push(macro_item);
+            }
+        }
+    }
+}
+
+/// EXEC.DO*RANGE: An iteration instruction that executes the top item on the EXEC stack a number
+/// of times that depends on the top two integers, while also pushing the loop counter onto the
+/// INTEGER stack for possible access during the execution of the body of the loop. This is similar
+/// to CODE.DO*COUNT except that it takes its code argument from the EXEC stack. The top integer is
+/// the "destination index" and the second integer is the "current index." First the code and the
+/// integer arguments are saved locally and popped. Then the integers are compared. If the integers
+/// are equal then the current index is pushed onto the INTEGER stack and the code (which is the
+/// "body" of the loop) is pushed onto the EXEC stack for subsequent execution. If the integers are
+/// not equal then the current index will still be pushed onto the INTEGER stack but two items will
+/// be pushed onto the EXEC stack -- first a recursive call to EXEC.DO*RANGE (with the same code
+/// and destination index, but with a current index that has been either incremented or decremented
+/// by 1 to be closer to the destination index) and then the body code. Note that the range is
+/// inclusive of both endpoints; a call with integer arguments 3 and 5 will cause its body to be
+/// executed 3 times, with the loop counter having the values 3, 4, and 5. Note also that one can
+/// specify a loop that "counts down" by providing a destination index that is less than the
+/// specified current index.
+pub fn exec_do_range(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(body) = push_state.exec_stack.pop() {
+        if let Some(indices) = push_state.int_stack.pop_vec(2) {
+            let destination_idx = indices[1];
+            let mut current_idx = indices[0];
+            if current_idx == destination_idx {
+                push_state.int_stack.push(current_idx);
+                push_state.exec_stack.push(body);
+            } else {
+                push_state.int_stack.push(current_idx);
+                if current_idx < destination_idx {
+                    current_idx += 1;
+                } else {
+                    current_idx -= 1;
+                }
+                let updated_loop = Item::list(vec![body.clone(), Item::instruction("EXEC.DO*RANGE".to_string()), Item::int(destination_idx), Item::int(current_idx)]);
+                push_state.exec_stack.push(updated_loop);
+                push_state.exec_stack.push(body);
+            }
+        }
+    }
+}
+
+/// EXEC.DO*TIMES: Like EXEC.DO*COUNT but does not push the loop counter. This should be
+/// implemented as a macro that expands into EXEC.DO*RANGE, similarly to the implementation of
+/// EXEC.DO*COUNT, except that a call to INTEGER.POP should be tacked on to the front of the loop
+/// body code in the call to EXEC.DO*RANGE. This call to INTEGER.POP will remove the loop counter,
+/// which will have been pushed by EXEC.DO*RANGE, prior to the execution of the loop body.
+pub fn exec_code_times(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(int_arg) = push_state.int_stack.pop() {
+        if let Some(exec_code) = push_state.exec_stack.pop() {
+            if int_arg < 0 {
+                return;
+            } else {
+                let macro_item = Item::list(vec![
+                    exec_code,
+                    Item::instruction("INTEGER.POP".to_string()),
+                    Item::instruction("EXEC.DO*RANGE".to_string()),
+                    Item::int(1 - int_arg),
+                    Item::int(0),
+                ]);
+                push_state.exec_stack.push(macro_item);
+            }
+        }
+    }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    pub fn icache() -> InstructionCache {
+        InstructionCache::new(vec![])
+    }
+
+    #[test]
+    fn exec_eq_pushes_true_when_elements_equal() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(1));
+        test_state.exec_stack.push(Item::int(1));
+        exec_eq(&mut test_state, &icache());
+        assert_eq!(test_state.exec_stack.size(), 2);
+        assert_eq!(test_state.bool_stack.to_string(), "1:true;");
+    }
+
+    #[test]
+    fn exec_eq_pushes_false_when_elements_unequal() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(1));
+        test_state.exec_stack.push(Item::int(2));
+        exec_eq(&mut test_state, &icache());
+        assert_eq!(test_state.exec_stack.size(), 2);
+        assert_eq!(test_state.bool_stack.to_string(), "1:false;");
+    }
+
+    #[test]
+    fn exec_define_creates_name_binding() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(2));
+        test_state.name_stack.push(&"TEST");
+        exec_define(&mut test_state, &icache());
+        assert_eq!(
+            *test_state.name_bindings.get("TEST").unwrap().to_string(),
+            Item::int(2).to_string()
+        );
+    }
+
+
+    #[test]
+    fn exec_do_count_unfolds_to_macro() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::noop());
+        test_state.int_stack.push(3);
+        exec_do_count(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:List: 1:Literal(0); 2:Literal(-2); 3:InstructionMeta(EXEC.DO*RANGE); 4:InstructionMeta(NOOP);;"
+        );
+    }
+
+    #[test]
+    fn exec_do_range_counts_upwards() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::noop());
+        test_state.int_stack.push(3); // Current index
+        test_state.int_stack.push(5); // Destination index
+        exec_do_range(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:InstructionMeta(NOOP); 2:List: 1:Literal(4); 2:Literal(5); 3:InstructionMeta(EXEC.DO*RANGE); 4:InstructionMeta(NOOP);;"
+        );
+        assert_eq!(test_state.int_stack.to_string(), "1:3;");
+    }
+
+    #[test]
+    fn exec_do_range_counts_downwards() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::noop());
+        test_state.int_stack.push(6); // Current index
+        test_state.int_stack.push(1); // Destination index
+        exec_do_range(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:InstructionMeta(NOOP); 2:List: 1:Literal(5); 2:Literal(1); 3:InstructionMeta(EXEC.DO*RANGE); 4:InstructionMeta(NOOP);;"
+        );
+        assert_eq!(test_state.int_stack.to_string(), "1:6;");
+    }
+
+
+}

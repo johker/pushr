@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use crate::push::boolean::*;
 use crate::push::code::*;
+use crate::push::execution::*;
 
 // Instructions
 //
@@ -23,11 +24,14 @@ impl InstructionSet {
         }
     }
 
+    /// Load the default instrcution set for the stack types
+    /// bool, int, float, code, exec, name and sdr
     pub fn load(&mut self) {
         self.map
             .insert(String::from("NOOP"), Instruction::new(noop));
         load_boolean_instructions(&mut self.map);
         load_code_instructions(&mut self.map);
+        load_exec_instructions(&mut self.map);
         self.map
             .insert(String::from("INTEGER.+"), Instruction::new(integer_add));
         self.map.insert(

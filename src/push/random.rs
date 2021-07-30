@@ -121,6 +121,7 @@ impl CodeGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::push::instructions::InstructionSet;
 
     #[test]
     fn random_code_is_generated() {

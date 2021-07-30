@@ -7,7 +7,10 @@ use crate::push::state::PushState;
 use std::cmp;
 use std::collections::HashMap;
 
-/// Maps the default code instructions to their identifiers
+/// For explicit code manipulation and execution. May also be used as a general list data type.
+/// This type must always be present, as the top level interpreter will push any code to be
+/// executed on the CODE stack prior to execution. However, one may turn off all CODE instructions
+/// if code manipulation is not needed.
 pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("CODE.="), Instruction::new(code_eq));
     map.insert(String::from("CODE.APPEND"), Instruction::new(code_append));
@@ -100,10 +103,6 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(code_yank_dup),
     );
 }
-
-//
-// ------------------ Type: BOOLEAN ---------------------
-//
 
 /// CODE.=: Pushes TRUE if the top two pieces of CODE are equal,
 /// or FALSE otherwise.
@@ -325,8 +324,23 @@ pub fn code_pop_and_do(push_state: &mut PushState, _instruction_cache: &Instruct
 /// executed) and a single CODE argument (the body of the loop). If the provided INTEGER argument
 /// is negative or zero then this becomes a NOOP. Otherwise it expands into:
 /// ( 0 <1 - IntegerArg> CODE.QUOTE <CodeArg> CODE.DO*RANGE )
-pub fn code_do_count(_push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    // TODO
+pub fn code_do_count(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(int_arg) = push_state.int_stack.pop() {
+        if let Some(code) = push_state.code_stack.pop() {
+            if int_arg < 0 {
+                return;
+            } else {
+                let macro_item = Item::list(vec![
+                    Item::instruction("CODE.DO*RANGE".to_string()),
+                    code,
+                    Item::instruction("CODE.QUOTE".to_string()),
+                    Item::int(1 - int_arg),
+                    Item::int(0),
+                ]);
+                push_state.exec_stack.push(macro_item);
+            }
+        }
+    }
 }
 
 /// CODE.DO*RANGE: An iteration instruction that executes the top item on the CODE stack a number
@@ -353,17 +367,20 @@ pub fn code_do_range(push_state: &mut PushState, _instruction_cache: &Instructio
                 push_state.int_stack.push(current_idx);
                 push_state.exec_stack.push(body);
             } else {
-                push_state.exec_stack.push(Item::InstructionMeta {
-                    name: "CODE.DO*RANGE".to_string(),
-                });
-                push_state.exec_stack.push(body);
+                push_state.int_stack.push(current_idx);
                 if current_idx < destination_idx {
                     current_idx += 1;
                 } else {
                     current_idx -= 1;
                 }
-                push_state.int_stack.push(current_idx);
-                push_state.int_stack.push(destination_idx);
+                let updated_loop = Item::list(vec![
+                    body.clone(),
+                    Item::instruction("CODE.DO*RANGE".to_string()),
+                    Item::int(destination_idx),
+                    Item::int(current_idx),
+                ]);
+                push_state.exec_stack.push(updated_loop);
+                push_state.exec_stack.push(body);
             }
         }
     }
@@ -921,6 +938,18 @@ mod tests {
     }
 
     #[test]
+    fn code_do_count_unfolds_to_macro() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::noop());
+        test_state.int_stack.push(3);
+        code_do_count(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:List: 1:Literal(0); 2:Literal(-2); 3:InstructionMeta(CODE.QUOTE); 4:InstructionMeta(NOOP); 5:InstructionMeta(CODE.DO*RANGE);;"
+        );
+    }
+
+    #[test]
     fn code_do_range_counts_upwards() {
         let mut test_state = PushState::new();
         test_state.code_stack.push(Item::noop());
@@ -929,9 +958,9 @@ mod tests {
         code_do_range(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:InstructionMeta(NOOP); 2:InstructionMeta(CODE.DO*RANGE);"
+            "1:InstructionMeta(NOOP); 2:List: 1:Literal(4); 2:Literal(5); 3:InstructionMeta(CODE.DO*RANGE); 4:InstructionMeta(NOOP);;"
         );
-        assert_eq!(test_state.int_stack.to_string(), "1:5; 2:4;");
+        assert_eq!(test_state.int_stack.to_string(), "1:3;");
     }
 
     #[test]
@@ -943,9 +972,9 @@ mod tests {
         code_do_range(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:InstructionMeta(NOOP); 2:InstructionMeta(CODE.DO*RANGE);"
+            "1:InstructionMeta(NOOP); 2:List: 1:Literal(5); 2:Literal(1); 3:InstructionMeta(CODE.DO*RANGE); 4:InstructionMeta(NOOP);;"
         );
-        assert_eq!(test_state.int_stack.to_string(), "1:1; 2:5;");
+        assert_eq!(test_state.int_stack.to_string(), "1:6;");
     }
 
     #[test]
