@@ -109,25 +109,51 @@ pub fn exec_do_range(push_state: &mut PushState, _instruction_cache: &Instructio
 /// EXEC.DO*COUNT, except that a call to INTEGER.POP should be tacked on to the front of the loop
 /// body code in the call to EXEC.DO*RANGE. This call to INTEGER.POP will remove the loop counter,
 /// which will have been pushed by EXEC.DO*RANGE, prior to the execution of the loop body.
-pub fn exec_code_times(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(int_arg) = push_state.int_stack.pop() {
+pub fn exec_do_times(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(int_arg) = push_state.int_stack.pop_vec(2) {
         if let Some(exec_code) = push_state.exec_stack.pop() {
-            if int_arg < 0 {
-                return;
-            } else {
                 let macro_item = Item::list(vec![
-                    exec_code,
-                    Item::instruction("INTEGER.POP".to_string()),
+                    Item::list(vec![exec_code, Item::instruction("INTEGER.POP".to_string())]),
                     Item::instruction("EXEC.DO*RANGE".to_string()),
-                    Item::int(1 - int_arg),
-                    Item::int(0),
+                    Item::int(int_arg[1]),  // destination_idx
+                    Item::int(int_arg[0]),  // current_idx
                 ]);
                 push_state.exec_stack.push(macro_item);
-            }
         }
     }
 }
 
+/// EXEC.DUP: Duplicates the top item on the EXEC stack. Does not pop its argument (which, if it
+/// did, would negate the effect of the duplication!). This may be thought of as a "DO TWICE"
+/// instruction.
+pub fn exec_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(instruction) = push_state.exec_stack.copy(0) {
+        push_state.exec_stack.push(instruction);
+    }
+}
+
+
+/// EXEC.FLUSH: Empties the EXEC stack. This may be thought of as a "HALT" instruction.
+pub fn exec_flush(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.exec_stack.flush();
+}
+
+/// EXEC.IF: If the top item of the BOOLEAN stack is TRUE then this removes the second item on the
+/// EXEC stack, leaving the first item to be executed. If it is false then it removes the first
+/// item, leaving the second to be executed. This is similar to CODE.IF except that it operates on
+/// the EXEC stack. This acts as a NOOP unless there are at least two items on the EXEC stack and
+/// one item on the BOOLEAN stack.
+pub fn exec_if(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(code) = push_state.exec_stack.pop_vec(2) {
+        if let Some(exec_second) = push_state.bool_stack.pop() {
+            if exec_second {
+                push_state.exec_stack.push(code[0].clone());
+            } else {
+                push_state.exec_stack.push(code[1].clone());
+            }
+        }
+    }
+}
 
 
 #[cfg(test)]
@@ -211,5 +237,42 @@ mod tests {
         assert_eq!(test_state.int_stack.to_string(), "1:6;");
     }
 
+    #[test]
+    fn exec_do_times_pops_loop_counter() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::noop());
+        test_state.int_stack.push(6); // Current index
+        test_state.int_stack.push(1); // Destination index
+        exec_do_times(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:List: 1:Literal(6); 2:Literal(1); 3:InstructionMeta(EXEC.DO*RANGE); 4:List: 1:InstructionMeta(INTEGER.POP); 2:InstructionMeta(NOOP);;;"
+        );
+        assert_eq!(test_state.int_stack.to_string(), "");
+    }
 
+    #[test]
+    fn exec_dup_duplicates_top_element() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::noop());
+        exec_dup(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:InstructionMeta(NOOP); 2:InstructionMeta(NOOP);"
+        );
+    }
+
+    #[test]
+    fn exec_flush_empties_stack() {
+        let mut test_state = PushState::new();
+        // Test element is (1 2)'
+        test_state
+            .exec_stack
+            .push(Item::list(vec![Item::int(0), Item::int(2)]));
+        test_state
+            .exec_stack
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
+        exec_flush(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "");
+    }
 }

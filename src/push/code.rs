@@ -391,8 +391,18 @@ pub fn code_do_range(push_state: &mut PushState, _instruction_cache: &Instructio
 /// CODE.DO*COUNT, except that a call to INTEGER.POP should be tacked on to the front of the loop
 /// body code in the call to CODE.DO*RANGE. This call to INTEGER.POP will remove the loop counter,
 /// which will have been pushed by CODE.DO*RANGE, prior to the execution of the loop body.
-pub fn code_do_times(_push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    // TODO
+pub fn code_do_times(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(int_arg) = push_state.int_stack.pop_vec(2) {
+        if let Some(code) = push_state.code_stack.pop() {
+            let macro_item = Item::list(vec![
+                Item::list(vec![code, Item::instruction("INTEGER.POP".to_string())]),
+                Item::instruction("EXEC.DO*RANGE".to_string()),
+                Item::int(int_arg[1]), // destination_idx
+                Item::int(int_arg[0]), // current_idx
+            ]);
+            push_state.exec_stack.push(macro_item);
+        }
+    }
 }
 
 /// CODE.DUP: Duplicates the top item on the CODE stack. Does not pop its argument (which, if it
@@ -975,6 +985,20 @@ mod tests {
             "1:InstructionMeta(NOOP); 2:List: 1:Literal(5); 2:Literal(1); 3:InstructionMeta(CODE.DO*RANGE); 4:InstructionMeta(NOOP);;"
         );
         assert_eq!(test_state.int_stack.to_string(), "1:6;");
+    }
+
+    #[test]
+    fn code_do_times_pops_loop_counter() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::noop());
+        test_state.int_stack.push(6); // Current index
+        test_state.int_stack.push(1); // Destination index
+        code_do_times(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:List: 1:Literal(6); 2:Literal(1); 3:InstructionMeta(EXEC.DO*RANGE); 4:List: 1:InstructionMeta(INTEGER.POP); 2:InstructionMeta(NOOP);;;"
+        );
+        assert_eq!(test_state.int_stack.to_string(), "");
     }
 
     #[test]
