@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use crate::push::boolean::*;
 use crate::push::code::*;
 use crate::push::execution::*;
+use crate::push::float::*;
+use crate::push::integer::*;
 
 // Instructions
 //
@@ -32,14 +34,8 @@ impl InstructionSet {
         load_boolean_instructions(&mut self.map);
         load_code_instructions(&mut self.map);
         load_exec_instructions(&mut self.map);
-        self.map
-            .insert(String::from("INTEGER.+"), Instruction::new(integer_add));
-        self.map.insert(
-            String::from("INTEGER.*"),
-            Instruction::new(integer_multiply),
-        );
-        self.map
-            .insert(String::from("FLOAT.+"), Instruction::new(float_add));
+        load_int_instructions(&mut self.map);
+        load_float_instructions(&mut self.map);
     }
 
     pub fn cache(&self) -> InstructionCache {
@@ -69,30 +65,5 @@ impl Instruction {
     }
 }
 
-//
-// ------------------ Type: INTEGER ---------------------
-//
-
+/// NOOP: No operation.
 fn noop(_push_state: &mut PushState, _instruction_cache: &InstructionCache) {}
-
-fn integer_add(push_state: &mut PushState, _instruction_set: &InstructionCache) {
-    if let Some(pv) = push_state.int_stack.pop_vec(2) {
-        push_state.int_stack.push(pv[0] + pv[1]);
-    }
-}
-
-fn integer_multiply(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(pv) = push_state.int_stack.pop_vec(2) {
-        push_state.int_stack.push(pv[0] * pv[1]);
-    }
-}
-
-//
-// ------------------ Type: FLOAT ---------------------
-//
-
-fn float_add(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(pv) = push_state.float_stack.pop_vec(2) {
-        push_state.float_stack.push(pv[0] + pv[1]);
-    }
-}

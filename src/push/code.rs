@@ -1317,6 +1317,7 @@ mod tests {
             "1:Literal(4); 2:Literal(1); 3:Literal(2); 4:Literal(3); 5:Literal(5);"
         );
     }
+
     #[test]
     fn code_yank_dup_copies_item_to_top() {
         let mut test_state = PushState::new();

@@ -1,7 +1,6 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
-use crate::push::stack::PushStack;
 use crate::push::state::PushState;
 use std::collections::HashMap;
 
