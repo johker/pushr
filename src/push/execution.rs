@@ -1,7 +1,6 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
-use crate::push::random::CodeGenerator;
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
 use std::collections::HashMap;
@@ -13,10 +12,39 @@ use std::collections::HashMap;
 /// execution state of the interpreter, not just code that might later be executed.
 pub fn load_exec_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("EXEC.="), Instruction::new(exec_eq));
+    map.insert(String::from("EXEC.DEFINE"), Instruction::new(exec_define));
+    map.insert(
+        String::from("EXEC.DO*COUNT"),
+        Instruction::new(exec_do_count),
+    );
+    map.insert(
+        String::from("EXEC.DO*RANGE"),
+        Instruction::new(exec_do_range),
+    );
+    map.insert(
+        String::from("EXEC.DO*TIMES"),
+        Instruction::new(exec_do_times),
+    );
+    map.insert(String::from("EXEC.DUP"), Instruction::new(exec_dup));
+    map.insert(String::from("EXEC.FLUSH"), Instruction::new(exec_flush));
+    map.insert(String::from("EXEC.IF"), Instruction::new(exec_if));
+    map.insert(String::from("EXEC.K"), Instruction::new(exec_k));
+    map.insert(String::from("EXEC.POP"), Instruction::new(exec_pop));
+    map.insert(String::from("EXEC.ROT"), Instruction::new(exec_rot));
+    map.insert(String::from("EXEC.S"), Instruction::new(exec_s));
+    map.insert(String::from("EXEC.SHOVE"), Instruction::new(exec_shove));
+    map.insert(
+        String::from("EXEC.STACKDEPTH"),
+        Instruction::new(exec_stack_depth),
+    );
+    map.insert(String::from("EXEC.SWAP"), Instruction::new(exec_swap));
+    map.insert(String::from("EXEC.Y"), Instruction::new(exec_y));
+    map.insert(String::from("EXEC.YANK"), Instruction::new(exec_yank));
+    map.insert(
+        String::from("EXEC.YANKDUP"),
+        Instruction::new(exec_yank_dup),
+    );
 }
-
-
-
 
 /// EXEC.=: Pushes TRUE if the top two items on the EXEC stack are equal, or FALSE otherwise.
 pub fn exec_eq(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -26,7 +54,6 @@ pub fn exec_eq(push_state: &mut PushState, _instruction_cache: &InstructionCache
             .push(pv[0].to_string() == pv[1].to_string());
     }
 }
-
 
 /// EXEC.DEFINE: Defines the name on top of the NAME stack as an instruction that will push the top
 /// item of the EXEC stack back onto the EXEC stack.
@@ -96,7 +123,12 @@ pub fn exec_do_range(push_state: &mut PushState, _instruction_cache: &Instructio
                 } else {
                     current_idx -= 1;
                 }
-                let updated_loop = Item::list(vec![body.clone(), Item::instruction("EXEC.DO*RANGE".to_string()), Item::int(destination_idx), Item::int(current_idx)]);
+                let updated_loop = Item::list(vec![
+                    body.clone(),
+                    Item::instruction("EXEC.DO*RANGE".to_string()),
+                    Item::int(destination_idx),
+                    Item::int(current_idx),
+                ]);
                 push_state.exec_stack.push(updated_loop);
                 push_state.exec_stack.push(body);
             }
@@ -112,13 +144,16 @@ pub fn exec_do_range(push_state: &mut PushState, _instruction_cache: &Instructio
 pub fn exec_do_times(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(int_arg) = push_state.int_stack.pop_vec(2) {
         if let Some(exec_code) = push_state.exec_stack.pop() {
-                let macro_item = Item::list(vec![
-                    Item::list(vec![exec_code, Item::instruction("INTEGER.POP".to_string())]),
-                    Item::instruction("EXEC.DO*RANGE".to_string()),
-                    Item::int(int_arg[1]),  // destination_idx
-                    Item::int(int_arg[0]),  // current_idx
-                ]);
-                push_state.exec_stack.push(macro_item);
+            let macro_item = Item::list(vec![
+                Item::list(vec![
+                    exec_code,
+                    Item::instruction("INTEGER.POP".to_string()),
+                ]),
+                Item::instruction("EXEC.DO*RANGE".to_string()),
+                Item::int(int_arg[1]), // destination_idx
+                Item::int(int_arg[0]), // current_idx
+            ]);
+            push_state.exec_stack.push(macro_item);
         }
     }
 }
@@ -131,7 +166,6 @@ pub fn exec_dup(push_state: &mut PushState, _instruction_cache: &InstructionCach
         push_state.exec_stack.push(instruction);
     }
 }
-
 
 /// EXEC.FLUSH: Empties the EXEC stack. This may be thought of as a "HALT" instruction.
 pub fn exec_flush(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -155,6 +189,90 @@ pub fn exec_if(push_state: &mut PushState, _instruction_cache: &InstructionCache
     }
 }
 
+/// EXEC.K: The Push implementation of the "K combinator". Removes the second item on the EXEC
+/// stack.
+pub fn exec_k(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(code) = push_state.exec_stack.pop_vec(2) {
+        push_state.exec_stack.push(code[1].clone());
+    }
+}
+
+/// EXEC.POP: Pops the EXEC stack. This may be thought of as a "DONT" instruction.
+pub fn exec_pop(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.exec_stack.pop();
+}
+
+/// EXEC.ROT: Rotates the top three items on the EXEC stack, pulling the third item out and pushing
+/// it on top. This is equivalent to "2 EXEC.YANK".
+pub fn exec_rot(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.exec_stack.yank(2);
+}
+
+/// EXEC.S: The Push implementation of the "S combinator". Pops 3 items from the EXEC stack, which
+/// we will call A, B, and C (with A being the first one popped). Then pushes a list containing B
+/// and C back onto the EXEC stack, followed by another instance of C, followed by another instance
+/// of A.
+pub fn exec_s(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(code) = push_state.exec_stack.pop_vec(3) {
+        let a = &code[2];
+        let b = &code[1];
+        let c = &code[0];
+        let bc = Item::list(vec![c.clone(), b.clone()]);
+        push_state.exec_stack.push(bc);
+        push_state.exec_stack.push(c.clone());
+        push_state.exec_stack.push(a.clone());
+    }
+}
+
+/// EXEC.SHOVE: Inserts the top EXEC item "deep" in the stack, at the position indexed by the top
+/// INTEGER. This may be thought of as a "DO LATER" instruction.
+pub fn exec_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(new_pos) = push_state.int_stack.pop() {
+        push_state.exec_stack.shove(new_pos as usize);
+    }
+}
+
+/// EXEC.STACKDEPTH: Pushes the stack depth onto the INTEGER stack.
+pub fn exec_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state
+        .int_stack
+        .push(push_state.exec_stack.size() as i32);
+}
+
+/// EXEC.SWAP: Swaps the top two items on the EXEC stack.
+pub fn exec_swap(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.exec_stack.shove(1);
+}
+
+/// EXEC.Y: The Push implementation of the "Y combinator". Inserts beneath the top item of the EXEC
+/// stack a new item of the form "( EXEC.Y <TopItem> )".
+pub fn exec_y(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(top_item) = push_state.exec_stack.copy(0) {
+        push_state.exec_stack.push(Item::list(vec![
+            top_item,
+            Item::instruction("EXEC.Y".to_string()),
+        ]));
+        push_state.exec_stack.shove(1);
+    }
+}
+
+/// EXEC.YANK: Removes an indexed item from "deep" in the stack and pushes it on top of the stack.
+/// The index is taken from the INTEGER stack. This may be thought of as a "DO SOONER" instruction.
+pub fn exec_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(idx) = push_state.int_stack.pop() {
+        push_state.exec_stack.yank(idx as usize);
+    }
+}
+
+/// EXEC.YANKDUP: Pushes a copy of an indexed item "deep" in the stack onto the top of the stack,
+/// without removing the deep item. The index is taken from the INTEGER stack.
+pub fn exec_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(idx) = push_state.int_stack.pop() {
+        if let Some(deep_item) = push_state.exec_stack.copy(idx as usize) {
+            push_state.exec_stack.push(deep_item);
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -195,7 +313,6 @@ mod tests {
             Item::int(2).to_string()
         );
     }
-
 
     #[test]
     fn exec_do_count_unfolds_to_macro() {
@@ -274,5 +391,177 @@ mod tests {
             .push(Item::list(vec![Item::int(1), Item::int(2)]));
         exec_flush(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.to_string(), "");
+    }
+
+    #[test]
+    fn exec_if_pushes_second_item_when_true() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(true);
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        exec_if(&mut test_state, &icache());
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
+        assert_eq!(test_state.bool_stack.to_string(), "");
+    }
+
+    #[test]
+    fn exec_if_pushes_first_item_when_false() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(false);
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        exec_if(&mut test_state, &icache());
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
+        assert_eq!(test_state.bool_stack.to_string(), "");
+    }
+
+    #[test]
+    fn exec_k_removes_second_item() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(false);
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        exec_k(&mut test_state, &icache());
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
+    }
+
+    #[test]
+    fn exec_pop_removes_first_item() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(false);
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        exec_pop(&mut test_state, &icache());
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
+    }
+
+    #[test]
+    fn exec_rot_shuffles_elements() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(3));
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3);"
+        );
+        exec_rot(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(3); 2:Literal(1); 3:Literal(2);"
+        );
+    }
+
+    #[test]
+    fn exec_s_pushes_elements_in_right_order() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(3));
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3);"
+        );
+        exec_s(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(1); 2:Literal(3); 3:List: 1:Literal(2); 2:Literal(3);;"
+        );
+    }
+
+    #[test]
+    fn exec_shove_inserts_at_right_position() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(4));
+        test_state.exec_stack.push(Item::int(3));
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4);"
+        );
+        test_state.int_stack.push(2);
+        exec_shove(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(2); 2:Literal(3); 3:Literal(1); 4:Literal(4);"
+        );
+    }
+
+    #[test]
+    fn exec_stack_depth_pushes_size() {
+        let mut test_state = PushState::new();
+        // Test element is (1 2)'
+        test_state
+            .exec_stack
+            .push(Item::list(vec![Item::int(0), Item::int(2)]));
+        test_state
+            .exec_stack
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
+        exec_stack_depth(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "1:2;");
+    }
+
+    #[test]
+    fn exec_swaps_top_elements() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(0));
+        test_state.exec_stack.push(Item::int(1));
+        exec_swap(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(0); 2:Literal(1);"
+        );
+    }
+
+    #[test]
+    fn exec_y_inserts_y_copy_beneath_top_element() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(0));
+        exec_y(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(0); 2:List: 1:InstructionMeta(EXEC.Y); 2:Literal(0);;"
+        );
+    }
+
+    #[test]
+    fn exec_yank_brings_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(5));
+        test_state.exec_stack.push(Item::int(4));
+        test_state.exec_stack.push(Item::int(3));
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4); 5:Literal(5);"
+        );
+        test_state.int_stack.push(3);
+        exec_yank(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(4); 2:Literal(1); 3:Literal(2); 4:Literal(3); 5:Literal(5);"
+        );
+    }
+
+    #[test]
+    fn exec_yank_dup_copies_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state.exec_stack.push(Item::int(5));
+        test_state.exec_stack.push(Item::int(4));
+        test_state.exec_stack.push(Item::int(3));
+        test_state.exec_stack.push(Item::int(2));
+        test_state.exec_stack.push(Item::int(1));
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4); 5:Literal(5);"
+        );
+        test_state.int_stack.push(3);
+        exec_yank_dup(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:Literal(4); 2:Literal(1); 3:Literal(2); 4:Literal(3); 5:Literal(4); 6:Literal(5);"
+        );
     }
 }

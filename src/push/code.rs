@@ -1212,7 +1212,7 @@ mod tests {
     }
 
     #[test]
-    fn code_yank_shuffles_elements() {
+    fn code_rot_shuffles_elements() {
         let mut test_state = PushState::new();
         test_state.code_stack.push(Item::int(3));
         test_state.code_stack.push(Item::int(2));
