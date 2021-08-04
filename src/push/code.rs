@@ -1023,7 +1023,7 @@ mod tests {
             .code_stack
             .push(Item::list(vec![Item::int(1), Item::int(2)]));
         code_flush(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "");
+        assert_eq!(test_state.code_stack.to_string(), "");
     }
 
     #[test]

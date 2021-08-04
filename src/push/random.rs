@@ -31,6 +31,7 @@ impl Distribution<ItemType> for Standard {
 pub struct CodeGenerator {}
 
 impl CodeGenerator {
+    /// Returns random code of random size but smaller than max_points
     pub fn random_code(
         push_state: &PushState,
         instructions: &InstructionCache,
@@ -49,6 +50,20 @@ impl CodeGenerator {
         }
     }
 
+    /// Returns random within the bounds given by configuration
+    pub fn random_float(push_state: &PushState) -> Option<f32> {
+        let mut rng = rand::thread_rng();
+        if push_state.configuration.min_random_float < push_state.configuration.max_random_float {
+            Some(rng.gen_range(
+                push_state.configuration.min_random_float
+                    ..push_state.configuration.max_random_float,
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Return random code of size points
     pub fn random_code_with_size(
         push_state: &PushState,
         instructions: &InstructionCache,
