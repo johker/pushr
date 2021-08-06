@@ -50,13 +50,27 @@ impl CodeGenerator {
         }
     }
 
-    /// Returns random within the bounds given by configuration
+    /// Returns random float value within the bounds given by configuration
     pub fn random_float(push_state: &PushState) -> Option<f32> {
         let mut rng = rand::thread_rng();
         if push_state.configuration.min_random_float < push_state.configuration.max_random_float {
             Some(rng.gen_range(
                 push_state.configuration.min_random_float
                     ..push_state.configuration.max_random_float,
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Returns random integer value within the bounds given by configuration
+    pub fn random_integer(push_state: &PushState) -> Option<i32> {
+        let mut rng = rand::thread_rng();
+        if push_state.configuration.min_random_integer < push_state.configuration.max_random_integer
+        {
+            Some(rng.gen_range(
+                push_state.configuration.min_random_integer
+                    ..push_state.configuration.max_random_integer,
             ))
         } else {
             None

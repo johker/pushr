@@ -7,7 +7,44 @@ use std::collections::HashMap;
 
 /// Floating-point numbers (that is, numbers with decimal points).
 pub fn load_float_instructions(map: &mut HashMap<String, Instruction>) {
+    map.insert(String::from("FLOAT.%"), Instruction::new(float_modulus));
+    map.insert(String::from("FLOAT.*"), Instruction::new(float_mult));
     map.insert(String::from("FLOAT.+"), Instruction::new(float_add));
+    map.insert(String::from("FLOAT.-"), Instruction::new(float_subtract));
+    map.insert(String::from("FLOAT./"), Instruction::new(float_divide));
+    map.insert(String::from("FLOAT.<"), Instruction::new(float_smaller));
+    map.insert(String::from("FLOAT.="), Instruction::new(float_equal));
+    map.insert(String::from("FLOAT.>"), Instruction::new(float_greater));
+    map.insert(String::from("FLOAT.COS"), Instruction::new(float_cosine));
+    map.insert(String::from("FLOAT.DEFINE"), Instruction::new(float_define));
+    map.insert(String::from("FLOAT.DUP"), Instruction::new(float_dup));
+    map.insert(String::from("FLOAT.FLUSH"), Instruction::new(float_flush));
+    map.insert(
+        String::from("FLOAT.FROMBOOLEAN"),
+        Instruction::new(float_from_boolean),
+    );
+    map.insert(
+        String::from("FLOAT.FROMINTEGER"),
+        Instruction::new(float_from_integer),
+    );
+    map.insert(String::from("FLOAT.MAX"), Instruction::new(float_max));
+    map.insert(String::from("FLOAT.MIN"), Instruction::new(float_min));
+    map.insert(String::from("FLOAT.POP"), Instruction::new(float_pop));
+    map.insert(String::from("FLOAT.RAND"), Instruction::new(float_rand));
+    map.insert(String::from("FLOAT.ROT"), Instruction::new(float_rot));
+    map.insert(String::from("FLOAT.SHOVE"), Instruction::new(float_shove));
+    map.insert(String::from("FLOAT.SIN"), Instruction::new(float_sine));
+    map.insert(
+        String::from("FLOAT.STACKDEPTH"),
+        Instruction::new(float_stack_depth),
+    );
+    map.insert(String::from("FLOAT.SWAP"), Instruction::new(float_swap));
+    map.insert(String::from("FLOAT.TAN"), Instruction::new(float_tan));
+    map.insert(String::from("FLOAT.YANK"), Instruction::new(float_yank));
+    map.insert(
+        String::from("FLOAT.YANKDUP"),
+        Instruction::new(float_yank_dup),
+    );
 }
 
 /// FLOAT.%: Pushes the second stack item modulo the top stack item. If the top item is zero this
@@ -48,7 +85,7 @@ fn float_subtract(push_state: &mut PushState, _instruction_cache: &InstructionCa
 fn float_divide(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(fvals) = push_state.float_stack.pop_vec(2) {
         if fvals[1] != 0f32 {
-            push_state.float_stack.push(fvals[0] % fvals[1]);
+            push_state.float_stack.push(fvals[0] / fvals[1]);
         }
     }
 }
@@ -180,7 +217,7 @@ fn float_sine(push_state: &mut PushState, _instruction_cache: &InstructionCache)
     }
 }
 
-/// CODE.STACKDEPTH: Pushes the stack depth onto the INTEGER stack.
+/// FLOAT.STACKDEPTH: Pushes the stack depth onto the INTEGER stack.
 pub fn float_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state
         .int_stack
@@ -247,9 +284,9 @@ mod tests {
     fn float_add_pushes_result() {
         let mut test_state = PushState::new();
         test_state.float_stack.push(-0.4);
-        test_state.float_stack.push(1.0);
-        float_mult(&mut test_state, &icache());
-        assert!(f32::abs(test_state.float_stack.pop().unwrap() + 0.4) < 0.001f32);
+        test_state.float_stack.push(0.4);
+        float_add(&mut test_state, &icache());
+        assert!(f32::abs(test_state.float_stack.pop().unwrap()) < 0.001f32);
     }
 
     #[test]
