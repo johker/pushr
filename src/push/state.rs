@@ -13,6 +13,7 @@ pub struct PushState<'a> {
     pub name_stack: PushStack<&'a str>,
     pub name_bindings: HashMap<&'a str, Item>,
     pub configuration: PushConfiguration,
+    pub quote_name: bool,
 }
 
 impl<'a> PushState<'a> {
@@ -26,6 +27,7 @@ impl<'a> PushState<'a> {
             name_stack: PushStack::new(),
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
+            quote_name: false,
         }
     }
 }

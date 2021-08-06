@@ -334,6 +334,7 @@ mod tests {
             Item::int(2).to_string()
         );
     }
+
     #[test]
     fn integer_dup_copies_top_element() {
         let mut test_state = PushState::new();

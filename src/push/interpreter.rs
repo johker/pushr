@@ -40,9 +40,16 @@ impl<'a> PushInterpreter<'a> {
                     PushType::PushFloatType { val } => self.push_state.float_stack.push(val),
                 },
                 Some(Item::Identifier { name }) => {
-                    if let Some(item) = self.push_state.name_bindings.get(&name[..]) {
-                        // Evaluate item for this name in next iteration
-                        stack.push(item.clone());
+                    if self.push_state.quote_name {
+                        self.push_state.name_stack.push(&name);
+                        self.push_state.quote_name = false;
+                    } else {
+                        if let Some(item) = self.push_state.name_bindings.get(&name[..]) {
+                            // Evaluate item for this name in next iteration
+                            stack.push(item.clone());
+                        } else {
+                            self.push_state.name_stack.push(&name);
+                        }
                     }
                 }
                 Some(Item::InstructionMeta { name }) => {

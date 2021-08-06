@@ -62,10 +62,11 @@ impl<'a> PushParser {
             // Check for instruction
             match instruction_set.map.get(token) {
                 Some(_instruction) => {
-                    let im = Item::InstructionMeta {
-                        name: token.to_string(),
-                    };
-                    PushParser::rec_push(&mut push_state.exec_stack, im, depth);
+                    PushParser::rec_push(
+                        &mut push_state.exec_stack,
+                        Item::instruction(token.to_string()),
+                        depth,
+                    );
                     continue;
                 }
                 None => (),
@@ -73,63 +74,33 @@ impl<'a> PushParser {
             // Check for Literal
             match token.to_string().parse::<i32>() {
                 Ok(ival) => {
-                    PushParser::rec_push(
-                        &mut push_state.exec_stack,
-                        Item::Literal {
-                            push_type: PushType::PushIntType { val: ival },
-                        },
-                        depth,
-                    );
+                    PushParser::rec_push(&mut push_state.exec_stack, Item::int(ival), depth);
                     continue;
                 }
                 Err(_) => (),
             }
             match token.to_string().parse::<f32>() {
                 Ok(fval) => {
-                    PushParser::rec_push(
-                        &mut push_state.exec_stack,
-                        Item::Literal {
-                            push_type: PushType::PushFloatType { val: fval },
-                        },
-                        depth,
-                    );
+                    PushParser::rec_push(&mut push_state.exec_stack, Item::float(fval), depth);
                     continue;
                 }
                 Err(_) => (),
             }
             match token {
                 "TRUE" => {
-                    PushParser::rec_push(
-                        &mut push_state.exec_stack,
-                        Item::Literal {
-                            push_type: PushType::PushBoolType { val: true },
-                        },
-                        depth,
-                    );
+                    PushParser::rec_push(&mut push_state.exec_stack, Item::bool(true), depth);
                     continue;
                 }
                 "FALSE" => {
-                    PushParser::rec_push(
-                        &mut push_state.exec_stack,
-                        Item::Literal {
-                            push_type: PushType::PushBoolType { val: false },
-                        },
-                        depth,
-                    );
+                    PushParser::rec_push(&mut push_state.exec_stack, Item::bool(false), depth);
                     continue;
                 }
                 &_ => {
-                    if let Some(instruction) = push_state.name_bindings.get(token) {
-                        // Existing name binding -> Push to execution stack
-                        PushParser::rec_push(
-                            &mut push_state.exec_stack,
-                            instruction.clone(),
-                            depth,
-                        );
-                    } else {
-                        // Unknown identifier -> Push onto name stack
-                        push_state.name_stack.push(token.clone());
-                    }
+                    PushParser::rec_push(
+                        &mut push_state.exec_stack,
+                        Item::name(token.to_string()),
+                        depth,
+                    );
                 }
             }
         }
