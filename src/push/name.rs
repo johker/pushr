@@ -57,8 +57,8 @@ mod tests {
     #[test]
     fn name_equal_pushes_result() {
         let mut test_state = PushState::new();
-        test_state.name_stack.push(&"Test");
-        test_state.name_stack.push(&"Test");
+        test_state.name_stack.push(String::from("Test"));
+        test_state.name_stack.push(String::from("Test"));
         name_equal(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
     }
@@ -66,7 +66,7 @@ mod tests {
     #[test]
     fn name_dup_copies_top_element() {
         let mut test_state = PushState::new();
-        test_state.name_stack.push(&"Test");
+        test_state.name_stack.push(String::from("Test"));
         name_dup(&mut test_state, &icache());
         assert_eq!(test_state.name_stack.to_string(), "1:Test; 2:Test;");
     }
@@ -74,8 +74,8 @@ mod tests {
     #[test]
     fn name_flush_empties_stack() {
         let mut test_state = PushState::new();
-        test_state.name_stack.push(&"I1");
-        test_state.name_stack.push(&"I2");
+        test_state.name_stack.push(String::from("I1"));
+        test_state.name_stack.push(String::from("I2"));
         name_flush(&mut test_state, &icache());
         assert_eq!(test_state.name_stack.to_string(), "");
     }

@@ -5,11 +5,11 @@ use crate::push::state::PushState;
 
 pub struct PushInterpreter<'a> {
     pub instruction_set: &'a mut InstructionSet,
-    pub push_state: &'a mut PushState<'a>,
+    pub push_state: &'a mut PushState,
 }
 
 impl<'a> PushInterpreter<'a> {
-    pub fn new(instruction_set: &'a mut InstructionSet, push_state: &'a mut PushState<'a>) -> Self {
+    pub fn new(instruction_set: &'a mut InstructionSet, push_state: &'a mut PushState) -> Self {
         Self {
             instruction_set: instruction_set,
             push_state: push_state,
@@ -41,14 +41,14 @@ impl<'a> PushInterpreter<'a> {
                 },
                 Some(Item::Identifier { name }) => {
                     if self.push_state.quote_name {
-                        self.push_state.name_stack.push(&name);
+                        self.push_state.name_stack.push(name);
                         self.push_state.quote_name = false;
                     } else {
-                        if let Some(item) = self.push_state.name_bindings.get(&name[..]) {
+                        if let Some(item) = self.push_state.name_bindings.get(&*name) {
                             // Evaluate item for this name in next iteration
                             stack.push(item.clone());
                         } else {
-                            self.push_state.name_stack.push(&name);
+                            self.push_state.name_stack.push(name);
                         }
                     }
                 }

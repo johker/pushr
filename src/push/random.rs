@@ -112,7 +112,7 @@ impl CodeGenerator {
                         rand_name = generator.next().unwrap();
                     } else {
                         let name_idx = rng.gen_range(0..name_size);
-                        let names: Vec<&str> = push_state.name_bindings.keys().cloned().collect();
+                        let names: Vec<String> = push_state.name_bindings.keys().cloned().collect();
                         rand_name = names[name_idx].to_string();
                     }
                     Item::name(rand_name)

@@ -237,7 +237,7 @@ pub fn code_define(push_state: &mut PushState, _instruction_cache: &InstructionC
 /// instruction).
 pub fn code_definition(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(name) = push_state.name_stack.pop() {
-        if let Some(instruction) = push_state.name_bindings.get(name) {
+        if let Some(instruction) = push_state.name_bindings.get(&*name) {
             push_state.code_stack.push(instruction.clone());
         }
     }
@@ -877,7 +877,7 @@ mod tests {
     fn code_define_creates_name_binding() {
         let mut test_state = PushState::new();
         test_state.code_stack.push(Item::int(2));
-        test_state.name_stack.push(&"TEST");
+        test_state.name_stack.push(String::from("TEST"));
         code_define(&mut test_state, &icache());
         assert_eq!(
             *test_state.name_bindings.get("TEST").unwrap().to_string(),
@@ -888,8 +888,10 @@ mod tests {
     #[test]
     fn code_definition_pushes_to_code_stack() {
         let mut test_state = PushState::new();
-        test_state.name_bindings.insert("TEST", Item::int(2));
-        test_state.name_stack.push("TEST");
+        test_state
+            .name_bindings
+            .insert(String::from("TEST"), Item::int(2));
+        test_state.name_stack.push(String::from("TEST"));
         code_definition(&mut test_state, &icache());
         assert_eq!(
             test_state.code_stack.pop().unwrap().to_string(),

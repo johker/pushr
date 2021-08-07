@@ -346,7 +346,7 @@ mod tests {
     fn float_define_creates_name_binding() {
         let mut test_state = PushState::new();
         test_state.float_stack.push(2.0);
-        test_state.name_stack.push(&"TEST");
+        test_state.name_stack.push(String::from("TEST"));
         float_define(&mut test_state, &icache());
         assert_eq!(
             *test_state.name_bindings.get("TEST").unwrap().to_string(),

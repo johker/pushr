@@ -3,20 +3,20 @@ use crate::push::item::Item;
 use crate::push::stack::PushStack;
 use std::collections::HashMap;
 
-pub struct PushState<'a> {
+pub struct PushState {
     // TODO: Add Sdr stack (bool)
     pub float_stack: PushStack<f32>,
     pub exec_stack: PushStack<Item>,
     pub code_stack: PushStack<Item>,
     pub int_stack: PushStack<i32>,
     pub bool_stack: PushStack<bool>,
-    pub name_stack: PushStack<&'a str>,
-    pub name_bindings: HashMap<&'a str, Item>,
+    pub name_stack: PushStack<String>,
+    pub name_bindings: HashMap<String, Item>,
     pub configuration: PushConfiguration,
     pub quote_name: bool,
 }
 
-impl<'a> PushState<'a> {
+impl PushState {
     pub fn new() -> Self {
         Self {
             float_stack: PushStack::new(),

@@ -36,7 +36,7 @@ impl<'a> PushParser {
     /// end of the string ends up at the top of the stack.
     pub fn parse_program(
         instruction_set: &InstructionSet,
-        push_state: &mut PushState<'a>,
+        push_state: &mut PushState,
         code: &'a str,
     ) {
         let mut depth = 0;
