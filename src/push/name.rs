@@ -45,7 +45,65 @@ pub fn name_pop(push_state: &mut PushState, _instruction_cache: &InstructionCach
 /// stack (and not have its associated value pushed onto the EXEC stack), regardless of whether or
 /// not it has a definition. Upon encountering such a name and pushing it onto the NAME stack the
 /// flag will be cleared (whether or not the pushed name had a definition).
-pub fn name_quote(push_state: &mut PushState, _instruction_cache: &InstructionCache) {}
+pub fn name_quote(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.quote_name = true;
+}
+
+/// NAME.RAND: Pushes a newly generated random NAME.
+pub fn name_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.name_stack.push(CodeGenerator::new_random_name());
+}
+
+/// NAME.RANDBOUNDNAME: Pushes a randomly selected NAME that already has a definition.
+pub fn name_rand_bound(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state
+        .name_stack
+        .push(CodeGenerator::existing_random_name(push_state));
+}
+
+/// NAME.ROT: Rotates the top three items on the NAME stack, pulling the third item out and pushing
+/// it on top. This is equivalent to "2 NAME.YANK".
+pub fn name_rot(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.name_stack.yank(2);
+}
+
+/// NAME.SHOVE: Inserts the top NAME "deep" in the stack, at the position indexed by the top
+/// INTEGER.
+pub fn name_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(shove_index) = push_state.int_stack.pop() {
+        push_state.name_stack.shove(shove_index as usize);
+    }
+}
+
+/// NAME.STACKDEPTH: Pushes the stack depth onto the INTEGER stack.
+pub fn name_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state
+        .int_stack
+        .push(push_state.name_stack.size() as i32);
+}
+
+/// NAME.SWAP: Swaps the top two NAMEs.
+pub fn name_swap(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.name_stack.shove(1);
+}
+
+/// NAME.YANK: Removes an indexed item from "deep" in the stack and pushes it on top of the stack.
+/// The index is taken from the INTEGER stack.
+pub fn name_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(idx) = push_state.int_stack.pop() {
+        push_state.name_stack.yank(idx as usize);
+    }
+}
+
+/// NAME.YANKDUP: Pushes a copy of an indexed item "deep" in the stack onto the top of the stack,
+/// without removing the deep item. The index is taken from the INTEGER stack.
+pub fn name_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(idx) = push_state.int_stack.pop() {
+        if let Some(deep_item) = push_state.name_stack.copy(idx as usize) {
+            push_state.name_stack.push(deep_item);
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -78,5 +136,117 @@ mod tests {
         test_state.name_stack.push(String::from("I2"));
         name_flush(&mut test_state, &icache());
         assert_eq!(test_state.name_stack.to_string(), "");
+    }
+    #[test]
+    fn name_rand_generates_value() {
+        let mut test_state = PushState::new();
+        name_rand(&mut test_state, &icache());
+        assert_eq!(test_state.name_stack.size(), 1);
+    }
+    #[test]
+    fn name_rand_bound_generates_value() {
+        let mut test_state = PushState::new();
+        test_state
+            .name_bindings
+            .insert(CodeGenerator::new_random_name(), Item::int(1));
+        name_rand_bound(&mut test_state, &icache());
+        assert_eq!(test_state.name_stack.size(), 1);
+    }
+
+    #[test]
+    fn name_rot_shuffles_elements() {
+        let mut test_state = PushState::new();
+        test_state.name_stack.push(String::from("Test3"));
+        test_state.name_stack.push(String::from("Test2"));
+        test_state.name_stack.push(String::from("Test1"));
+        assert_eq!(
+            test_state.name_stack.to_string(),
+            "1:Test1; 2:Test2; 3:Test3;"
+        );
+        name_rot(&mut test_state, &icache());
+        assert_eq!(
+            test_state.name_stack.to_string(),
+            "1:Test3; 2:Test1; 3:Test2;"
+        );
+    }
+
+    #[test]
+    fn name_shove_inserts_at_right_position() {
+        let mut test_state = PushState::new();
+        test_state.name_stack.push(String::from("Test4"));
+        test_state.name_stack.push(String::from("Test3"));
+        test_state.name_stack.push(String::from("Test2"));
+        test_state.name_stack.push(String::from("Test1"));
+        assert_eq!(
+            test_state.name_stack.to_string(),
+            "1:Test1; 2:Test2; 3:Test3; 4:Test4;"
+        );
+        test_state.int_stack.push(2);
+        name_shove(&mut test_state, &icache());
+        assert_eq!(
+            test_state.name_stack.to_string(),
+            "1:Test2; 2:Test3; 3:Test1; 4:Test4;"
+        );
+    }
+
+    #[test]
+    fn name_stack_depth_returns_size() {
+        let mut test_state = PushState::new();
+        test_state.name_stack.push(String::from("Test4"));
+        test_state.name_stack.push(String::from("Test3"));
+        test_state.name_stack.push(String::from("Test2"));
+        test_state.name_stack.push(String::from("Test1"));
+        name_stack_depth(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+    }
+
+    #[test]
+    fn name_swaps_top_elements() {
+        let mut test_state = PushState::new();
+        test_state.name_stack.push(String::from("Test2"));
+        test_state.name_stack.push(String::from("Test1"));
+        assert_eq!(test_state.name_stack.to_string(), "1:Test1; 2:Test2;");
+        name_swap(&mut test_state, &icache());
+        assert_eq!(test_state.name_stack.to_string(), "1:Test2; 2:Test1;");
+    }
+
+    #[test]
+    fn name_yank_brings_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state.name_stack.push(String::from("Test5"));
+        test_state.name_stack.push(String::from("Test4"));
+        test_state.name_stack.push(String::from("Test3"));
+        test_state.name_stack.push(String::from("Test2"));
+        test_state.name_stack.push(String::from("Test1"));
+        assert_eq!(
+            test_state.name_stack.to_string(),
+            "1:Test1; 2:Test2; 3:Test3; 4:Test4; 5:Test5;"
+        );
+        test_state.int_stack.push(3);
+        name_yank(&mut test_state, &icache());
+        assert_eq!(
+            test_state.name_stack.to_string(),
+            "1:Test4; 2:Test1; 3:Test2; 4:Test3; 5:Test5;"
+        );
+    }
+
+    #[test]
+    fn name_yank_dup_copies_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state.name_stack.push(String::from("Test5"));
+        test_state.name_stack.push(String::from("Test4"));
+        test_state.name_stack.push(String::from("Test3"));
+        test_state.name_stack.push(String::from("Test2"));
+        test_state.name_stack.push(String::from("Test1"));
+        assert_eq!(
+            test_state.name_stack.to_string(),
+            "1:Test1; 2:Test2; 3:Test3; 4:Test4; 5:Test5;"
+        );
+        test_state.int_stack.push(3);
+        name_yank_dup(&mut test_state, &icache());
+        assert_eq!(
+            test_state.name_stack.to_string(),
+            "1:Test4; 2:Test1; 3:Test2; 4:Test3; 5:Test4; 6:Test5;"
+        );
     }
 }

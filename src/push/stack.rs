@@ -156,7 +156,7 @@ where
     /// Returns a copy of the element at stack position i counting
     /// from top to bottom.
     pub fn copy(&self, i: usize) -> Option<T> {
-        if i > self.size() - 1 {
+        if self.size() == 0 || i > self.size() - 1 {
             None
         } else {
             Some(self.elements[self.size() - (i + 1)].clone())

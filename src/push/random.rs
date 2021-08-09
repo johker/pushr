@@ -77,6 +77,28 @@ impl CodeGenerator {
         }
     }
 
+    /// Returns a random name that is not being used yet
+    pub fn new_random_name() -> String {
+        let mut generator = Generator::default();
+        let rand_name = generator.next().unwrap();
+        // TODO: Check for collisions?
+        return rand_name;
+    }
+
+    /// Selects a random item from the name bindings or a new
+    /// name if there is not name binding yet.
+    pub fn existing_random_name(push_state: &PushState) -> String {
+        let name_size = push_state.name_bindings.len();
+        if name_size == 0 {
+            CodeGenerator::new_random_name()
+        } else {
+            let mut rng = rand::thread_rng();
+            let name_idx = rng.gen_range(0..name_size);
+            let names: Vec<String> = push_state.name_bindings.keys().cloned().collect();
+            names[name_idx].to_string()
+        }
+    }
+
     /// Return random code of size points
     pub fn random_code_with_size(
         push_state: &PushState,
@@ -84,7 +106,6 @@ impl CodeGenerator {
         points: usize,
     ) -> Item {
         let number_instructions = instructions.list.len();
-        let mut generator = Generator::default();
         if points == 1 {
             let mut rng = rand::thread_rng();
             let item_type: ItemType = rand::random();
@@ -104,16 +125,13 @@ impl CodeGenerator {
                 ItemType::Integer => Item::int(rng.gen::<i32>()),
                 ItemType::Name => {
                     let rand_name;
-                    let name_size = push_state.name_bindings.len();
                     let pnew_name = push_state.configuration.new_erc_name_probability;
                     let n_total = 10000;
                     let n_event_new_name = (pnew_name * n_total as f32) as u32;
-                    if name_size == 0 || rng.gen_range(0..n_total) < n_event_new_name {
-                        rand_name = generator.next().unwrap();
+                    if rng.gen_range(0..n_total) < n_event_new_name {
+                        rand_name = CodeGenerator::new_random_name();
                     } else {
-                        let name_idx = rng.gen_range(0..name_size);
-                        let names: Vec<String> = push_state.name_bindings.keys().cloned().collect();
-                        rand_name = names[name_idx].to_string();
+                        rand_name = CodeGenerator::existing_random_name(push_state);
                     }
                     Item::name(rand_name)
                 }
