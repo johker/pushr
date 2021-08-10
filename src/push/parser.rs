@@ -35,8 +35,8 @@ impl<'a> PushParser {
     /// Splits a string into tokens and front pushes it to the stack s.t. the
     /// end of the string ends up at the top of the stack.
     pub fn parse_program(
-        instruction_set: &InstructionSet,
         push_state: &mut PushState,
+        instruction_set: &InstructionSet,
         code: &'a str,
     ) {
         let mut depth = 0;
@@ -109,7 +109,6 @@ impl<'a> PushParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::push::interpreter::PushInterpreter;
 
     #[test]
     pub fn parse_simple_program() {
@@ -117,9 +116,20 @@ mod tests {
         let mut push_state = PushState::new();
         let mut instruction_set = InstructionSet::new();
         instruction_set.load();
-        PushParser::parse_program(&instruction_set, &mut push_state, &input);
-        let interpreter = PushInterpreter::new(&mut instruction_set, &mut push_state);
+        PushParser::parse_program(&mut push_state, &instruction_set, &input);
+        assert_eq!(push_state.exec_stack.to_string(), "1:List: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1f); 5:Literal(5.2f); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);;")
+    }
 
-        assert_eq!(interpreter.push_state.exec_stack.to_string(), "1:List: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1); 5:Literal(5.2); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);;")
+    #[test]
+    pub fn parse_potentiation_program() {
+        let input = "( ARG FLOAT.DEFINE EXEC.Y ( ARG FLOAT.* 1 INTEGER.- INTEGER.DUP 0 INTEGER.> EXEC.IF ( ) EXEC.POP ) ) ";
+        let mut push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        PushParser::parse_program(&mut push_state, &instruction_set, &input);
+        assert_eq!(
+            push_state.exec_stack.to_string(),
+            "1:List: 1:Identifier(ARG); 2:InstructionMeta(FLOAT.DEFINE); 3:InstructionMeta(EXEC.Y); 4:List: 1:Identifier(ARG); 2:InstructionMeta(FLOAT.*); 3:Literal(1); 4:InstructionMeta(INTEGER.-); 5:InstructionMeta(INTEGER.DUP); 6:Literal(0); 7:InstructionMeta(INTEGER.>); 8:InstructionMeta(EXEC.IF); 9:List: ; 10:InstructionMeta(EXEC.POP);;;"
+        );
     }
 }

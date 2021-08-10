@@ -2,14 +2,15 @@ use crate::push::configuration::PushConfiguration;
 use crate::push::item::Item;
 use crate::push::stack::PushStack;
 use std::collections::HashMap;
+use std::fmt;
 
 pub struct PushState {
     // TODO: Add Sdr stack (bool)
-    pub float_stack: PushStack<f32>,
-    pub exec_stack: PushStack<Item>,
-    pub code_stack: PushStack<Item>,
-    pub int_stack: PushStack<i32>,
     pub bool_stack: PushStack<bool>,
+    pub code_stack: PushStack<Item>,
+    pub exec_stack: PushStack<Item>,
+    pub float_stack: PushStack<f32>,
+    pub int_stack: PushStack<i32>,
     pub name_stack: PushStack<String>,
     pub name_bindings: HashMap<String, Item>,
     pub configuration: PushConfiguration,
@@ -29,5 +30,20 @@ impl PushState {
             configuration: PushConfiguration::new(),
             quote_name: false,
         }
+    }
+}
+
+impl fmt::Display for PushState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "> BOOL  : {}\n> CODE  : {}\n> EXEC  : {}\n> FLOAT : {}\n> INT   : {}\n> NAME  : {}\n",
+            self.bool_stack.to_string(),
+            self.code_stack.to_string(),
+            self.exec_stack.to_string(),
+            self.float_stack.to_string(),
+            self.int_stack.to_string(),
+            self.name_stack.to_string()
+        )
     }
 }

@@ -281,7 +281,7 @@ impl<'a> fmt::Display for Item {
                 match push_type {
                     PushType::PushBoolType { val } => info = val.to_string(),
                     PushType::PushIntType { val } => info = val.to_string(),
-                    PushType::PushFloatType { val } => info = val.to_string(),
+                    PushType::PushFloatType { val } => info = val.to_string() + "f",
                 }
                 write!(f, "{}({})", at, info)
             }

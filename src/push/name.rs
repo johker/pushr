@@ -1,6 +1,5 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
-use crate::push::item::Item;
 use crate::push::random::CodeGenerator;
 use crate::push::state::PushState;
 use std::collections::HashMap;
@@ -14,6 +13,27 @@ use std::collections::HashMap;
 /// name that already has a definition onto the NAME stack.
 pub fn load_name_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("NAME.="), Instruction::new(name_equal));
+    map.insert(String::from("NAME.DUP"), Instruction::new(name_dup));
+    map.insert(String::from("NAME.FLUSH"), Instruction::new(name_flush));
+    map.insert(String::from("NAME.POP"), Instruction::new(name_pop));
+    map.insert(String::from("NAME.QUOTE"), Instruction::new(name_quote));
+    map.insert(String::from("NAME.RAND"), Instruction::new(name_rand));
+    map.insert(
+        String::from("NAME.RANDBOUNDNAME"),
+        Instruction::new(name_rand_bound),
+    );
+    map.insert(String::from("NAME.ROT"), Instruction::new(name_rot));
+    map.insert(String::from("NAME.SHOVE"), Instruction::new(name_shove));
+    map.insert(
+        String::from("NAME.STACKDEPTH"),
+        Instruction::new(name_stack_depth),
+    );
+    map.insert(String::from("NAME.SWAP"), Instruction::new(name_swap));
+    map.insert(String::from("NAME.YANK"), Instruction::new(name_yank));
+    map.insert(
+        String::from("NAME.YANKDUP"),
+        Instruction::new(name_yank_dup),
+    );
 }
 
 /// NAME.=: Pushes TRUE if the top two NAMEs are equal, or FALSE otherwise.
@@ -108,6 +128,7 @@ pub fn name_yank_dup(push_state: &mut PushState, _instruction_cache: &Instructio
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::push::item::Item;
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])

@@ -6,6 +6,7 @@ use crate::push::code::*;
 use crate::push::execution::*;
 use crate::push::float::*;
 use crate::push::integer::*;
+use crate::push::name::*;
 
 // Instructions
 //
@@ -34,8 +35,9 @@ impl InstructionSet {
         load_boolean_instructions(&mut self.map);
         load_code_instructions(&mut self.map);
         load_exec_instructions(&mut self.map);
-        load_int_instructions(&mut self.map);
         load_float_instructions(&mut self.map);
+        load_int_instructions(&mut self.map);
+        load_name_instructions(&mut self.map);
     }
 
     pub fn cache(&self) -> InstructionCache {

@@ -178,11 +178,13 @@ pub fn exec_flush(push_state: &mut PushState, _instruction_cache: &InstructionCa
 /// one item on the BOOLEAN stack.
 pub fn exec_if(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(code) = push_state.exec_stack.pop_vec(2) {
-        if let Some(exec_second) = push_state.bool_stack.pop() {
-            if exec_second {
-                push_state.exec_stack.push(code[0].clone());
-            } else {
+        if let Some(exec_first) = push_state.bool_stack.pop() {
+            if exec_first {
+                // Push top element for execution
                 push_state.exec_stack.push(code[1].clone());
+            } else {
+                // Push second element for execution
+                push_state.exec_stack.push(code[0].clone());
             }
         }
     }
@@ -393,24 +395,24 @@ mod tests {
     }
 
     #[test]
-    fn exec_if_pushes_second_item_when_true() {
+    fn exec_if_pushes_first_item_when_true() {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(true);
         test_state.exec_stack.push(Item::int(2));
         test_state.exec_stack.push(Item::int(1));
         exec_if(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
         assert_eq!(test_state.bool_stack.to_string(), "");
     }
 
     #[test]
-    fn exec_if_pushes_first_item_when_false() {
+    fn exec_if_pushes_second_item_when_false() {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(false);
         test_state.exec_stack.push(Item::int(2));
         test_state.exec_stack.push(Item::int(1));
         exec_if(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
         assert_eq!(test_state.bool_stack.to_string(), "");
     }
 

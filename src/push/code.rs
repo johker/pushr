@@ -466,17 +466,19 @@ pub fn code_from_name(push_state: &mut PushState, _instruction_cache: &Instructi
     }
 }
 
-/// CODE.IF: If the top item of the BOOLEAN stack is TRUE this recursively executes the second item
-/// of the CODE stack; otherwise it recursively executes the first item of the CODE stack. Either
+/// CODE.IF: If the top item of the BOOLEAN stack is TRUE this recursively executes the first item
+/// of the CODE stack; otherwise it recursively executes the second item of the CODE stack. Either
 /// way both elements of the CODE stack (and the BOOLEAN value upon which the decision was made)
 /// are popped.
 pub fn code_if(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(code) = push_state.code_stack.pop_vec(2) {
-        if let Some(exec_second) = push_state.bool_stack.pop() {
-            if exec_second {
-                push_state.exec_stack.push(code[0].clone());
-            } else {
+        if let Some(exec_first) = push_state.bool_stack.pop() {
+            if exec_first {
+                // Push top element for execution
                 push_state.exec_stack.push(code[1].clone());
+            } else {
+                // Push second element for execution
+                push_state.exec_stack.push(code[0].clone());
             }
         }
     }
@@ -1037,25 +1039,25 @@ mod tests {
     }
 
     #[test]
-    fn code_if_pushes_second_item_when_true() {
+    fn code_if_pushes_first_item_when_true() {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(true);
         test_state.code_stack.push(Item::int(2));
         test_state.code_stack.push(Item::int(1));
         code_if(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
         assert_eq!(test_state.code_stack.to_string(), "");
         assert_eq!(test_state.bool_stack.to_string(), "");
     }
 
     #[test]
-    fn code_if_pushes_first_item_when_false() {
+    fn code_if_pushes_second_item_when_false() {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(false);
         test_state.code_stack.push(Item::int(2));
         test_state.code_stack.push(Item::int(1));
         code_if(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
+        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
         assert_eq!(test_state.code_stack.to_string(), "");
         assert_eq!(test_state.bool_stack.to_string(), "");
     }
@@ -1138,7 +1140,7 @@ mod tests {
             .push(Item::list(vec![Item::int(0), Item::float(2.3)]));
         test_state.code_stack.push(Item::int(2));
         code_list(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(2); 2:List: 1:Literal(2.3); 2:Literal(0);;; 2:Literal(2); 3:List: 1:Literal(2.3); 2:Literal(0);;");
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(2); 2:List: 1:Literal(2.3f); 2:Literal(0);;; 2:Literal(2); 3:List: 1:Literal(2.3f); 2:Literal(0);;");
     }
 
     #[test]
