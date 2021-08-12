@@ -118,4 +118,18 @@ mod tests {
         PushInterpreter::run(&mut push_state, &mut instruction_set);
         assert_eq!(push_state.float_stack.to_string(), "1:16;");
     }
+
+    #[test]
+    pub fn run_factorial_program() {
+        let input = "( CODE.QUOTE ( CODE.DUP INTEGER.DUP 1 INTEGER.- CODE.DO INTEGER.* )
+                       CODE.QUOTE ( INTEGER.POP 1 )
+                                      INTEGER.DUP 2 INTEGER.< CODE.IF )";
+        let mut push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        PushParser::parse_program(&mut push_state, &instruction_set, &input);
+        push_state.int_stack.push(4);
+        PushInterpreter::run(&mut push_state, &mut instruction_set);
+        assert_eq!(push_state.int_stack.to_string(), "1:24;");
+    }
 }

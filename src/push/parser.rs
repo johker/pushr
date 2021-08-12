@@ -132,4 +132,18 @@ mod tests {
             "1:List: 1:Identifier(ARG); 2:InstructionMeta(FLOAT.DEFINE); 3:InstructionMeta(EXEC.Y); 4:List: 1:Identifier(ARG); 2:InstructionMeta(FLOAT.*); 3:Literal(1); 4:InstructionMeta(INTEGER.-); 5:InstructionMeta(INTEGER.DUP); 6:Literal(0); 7:InstructionMeta(INTEGER.>); 8:InstructionMeta(EXEC.IF); 9:List: ; 10:InstructionMeta(EXEC.POP);;;"
         );
     }
+
+    #[test]
+    pub fn parse_factorial_program() {
+        let input = "( CODE.QUOTE ( CODE.DUP INTEGER.DUP 1 INTEGER.- CODE.DO INTEGER.* )
+                       CODE.QUOTE ( INTEGER.POP 1 )
+                                      INTEGER.DUP 2 INTEGER.< CODE.IF )";
+        let mut push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        PushParser::parse_program(&mut push_state, &instruction_set, &input);
+        assert_eq!(
+            push_state.exec_stack.to_string(),
+            "1:List: 1:InstructionMeta(CODE.QUOTE); 2:List: 1:InstructionMeta(CODE.DUP); 2:InstructionMeta(INTEGER.DUP); 3:Literal(1); 4:InstructionMeta(INTEGER.-); 5:InstructionMeta(CODE.DO); 6:InstructionMeta(INTEGER.*);; 3:InstructionMeta(CODE.QUOTE); 4:List: 1:InstructionMeta(INTEGER.POP); 2:Literal(1);; 5:InstructionMeta(INTEGER.DUP); 6:Literal(2); 7:InstructionMeta(INTEGER.<); 8:InstructionMeta(CODE.IF);;");
+    }
 }
