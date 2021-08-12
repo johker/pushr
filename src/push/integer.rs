@@ -232,6 +232,7 @@ pub fn integer_yank(push_state: &mut PushState, _instruction_cache: &Instruction
         push_state.int_stack.yank(idx as usize);
     }
 }
+
 /// INTEGER.YANKDUP: Pushes a copy of an indexed item "deep" in the stack onto the top of the
 /// stack, without removing the deep item. The index is taken from the INTEGER stack, and the
 /// indexing is done after the index is removed.
