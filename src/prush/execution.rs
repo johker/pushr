@@ -1,7 +1,7 @@
-use crate::push::instructions::Instruction;
-use crate::push::instructions::InstructionCache;
-use crate::push::item::Item;
-use crate::push::state::PushState;
+use crate::prush::instructions::Instruction;
+use crate::prush::instructions::InstructionCache;
+use crate::prush::item::Item;
+use crate::prush::state::PushState;
 use std::collections::HashMap;
 
 /// Code queued for execution. The EXEC stack maintains the execution state of the Push

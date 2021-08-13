@@ -1,8 +1,8 @@
 extern crate names;
 
-use crate::push::instructions::InstructionCache;
-use crate::push::item::Item;
-use crate::push::state::PushState;
+use crate::prush::instructions::InstructionCache;
+use crate::prush::item::Item;
+use crate::prush::state::PushState;
 use names::Generator;
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::Rng;
@@ -168,7 +168,7 @@ impl CodeGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::push::instructions::InstructionSet;
+    use crate::prush::instructions::InstructionSet;
 
     #[test]
     fn random_code_is_generated() {

@@ -1,7 +1,7 @@
-use crate::push::configuration::PushConfiguration;
-use crate::push::item::Item;
-use crate::push::stack::PushStack;
-use crate::push::vector::{BoolVector, FloatVector, IntVector};
+use crate::prush::configuration::PushConfiguration;
+use crate::prush::item::Item;
+use crate::prush::stack::PushStack;
+use crate::prush::vector::{BoolVector, FloatVector, IntVector};
 use std::collections::HashMap;
 use std::fmt;
 

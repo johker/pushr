@@ -1,12 +1,12 @@
-use crate::push::state::PushState;
+use crate::prush::state::PushState;
 use std::collections::HashMap;
 
-use crate::push::boolean::*;
-use crate::push::code::*;
-use crate::push::execution::*;
-use crate::push::float::*;
-use crate::push::integer::*;
-use crate::push::name::*;
+use crate::prush::boolean::*;
+use crate::prush::code::*;
+use crate::prush::execution::*;
+use crate::prush::float::*;
+use crate::prush::integer::*;
+use crate::prush::name::*;
 
 // Instructions
 //
