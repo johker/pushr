@@ -25,9 +25,12 @@ impl PushInterpreter {
             match push_state.exec_stack.pop() {
                 None => break,
                 Some(Item::Literal { push_type }) => match push_type {
-                    PushType::PushBoolType { val } => push_state.bool_stack.push(val),
-                    PushType::PushIntType { val } => push_state.int_stack.push(val),
-                    PushType::PushFloatType { val } => push_state.float_stack.push(val),
+                    PushType::Bool { val } => push_state.bool_stack.push(val),
+                    PushType::Int { val } => push_state.int_stack.push(val),
+                    PushType::Float { val } => push_state.float_stack.push(val),
+                    PushType::BoolVector { val } => push_state.bool_vector_stack.push(val),
+                    PushType::FloatVector { val } => push_state.float_vector_stack.push(val),
+                    PushType::IntVector { val } => push_state.int_vector_stack.push(val),
                 },
                 Some(Item::Identifier { name }) => {
                     if push_state.quote_name {

@@ -6,7 +6,7 @@ use crate::prush::state::PushState;
 use std::collections::HashMap;
 use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BoolVector {
     values: Vec<bool>,
 }
@@ -37,7 +37,7 @@ impl PartialEq for BoolVector {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct IntVector {
     values: Vec<i32>,
 }
@@ -66,7 +66,7 @@ impl PartialEq for IntVector {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FloatVector {
     values: Vec<f32>,
 }
@@ -114,6 +114,16 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
 
 /////////////////////////////////////// BOOLVECTOR //////////////////////////////////////////
 
+/// BOOLVECTOR.DEFINE: Defines the name on top of the NAME stack as an instruction that will
+/// push the top item of the BOOLVECTOR stack onto the EXEC stack.
+pub fn bool_vector_define(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(name) = push_state.name_stack.pop() {
+        if let Some(bvval) = push_state.bool_vector_stack.pop() {
+            push_state.name_bindings.insert(name, Item::boolvec(bvval));
+        }
+    }
+}
+
 /// BOOLVECTOR.DUP: Duplicates the top item on the  stack. Does not pop its argument (which, if
 /// it did, would negate the effect of the duplication!).
 pub fn bool_vector_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -147,7 +157,7 @@ pub fn bool_vector_shove(push_state: &mut PushState, _instruction_cache: &Instru
 pub fn bool_vector_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state
         .int_stack
-        .push(push_state.bool_vector_stack.size() as i32 + 1);
+        .push(push_state.bool_vector_stack.size() as i32);
 }
 
 /// BOOLVECTOR.SWAP: Swaps the top two BOOLVECTORs.
@@ -175,6 +185,16 @@ pub fn bool_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Ins
     }
 }
 /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
+
+/// INTVECTOR.DEFINE: Defines the name on top of the NAME stack as an instruction that will
+/// push the top item of the INTVECTOR stack onto the EXEC stack.
+pub fn int_vector_define(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(name) = push_state.name_stack.pop() {
+        if let Some(ivval) = push_state.int_vector_stack.pop() {
+            push_state.name_bindings.insert(name, Item::intvec(ivval));
+        }
+    }
+}
 
 /// INTVECTOR.DUP: Duplicates the top item on the  stack. Does not pop its argument (which, if
 /// it did, would negate the effect of the duplication!).
@@ -209,7 +229,7 @@ pub fn int_vector_shove(push_state: &mut PushState, _instruction_cache: &Instruc
 pub fn int_vector_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state
         .int_stack
-        .push(push_state.int_vector_stack.size() as i32 + 1);
+        .push(push_state.int_vector_stack.size() as i32);
 }
 
 /// INTVECTOR.SWAP: Swaps the top two INTVECTORs.
@@ -238,6 +258,16 @@ pub fn int_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Inst
 }
 
 ////////////////////////////////////// FLOATVECTOR //////////////////////////////////////////
+
+/// FLOATVECTOR.DEFINE: Defines the name on top of the NAME stack as an instruction that will
+/// push the top item of the FLOATVECTOR stack onto the EXEC stack.
+pub fn float_vector_define(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(name) = push_state.name_stack.pop() {
+        if let Some(fvval) = push_state.float_vector_stack.pop() {
+            push_state.name_bindings.insert(name, Item::floatvec(fvval));
+        }
+    }
+}
 
 /// FLOATVECTOR.DUP: Duplicates the top item on the  stack. Does not pop its argument (which, if
 /// it did, would negate the effect of the duplication!).
@@ -272,7 +302,7 @@ pub fn float_vector_shove(push_state: &mut PushState, _instruction_cache: &Instr
 pub fn float_vector_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state
         .int_stack
-        .push(push_state.float_vector_stack.size() as i32 + 1);
+        .push(push_state.float_vector_stack.size() as i32);
 }
 
 /// FLOATVECTOR.SWAP: Swaps the top two FLOATVECTORs.
@@ -304,10 +334,161 @@ pub fn float_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &In
 mod tests {
     use super::*;
 
+    pub fn icache() -> InstructionCache {
+        InstructionCache::new(vec![])
+    }
+
     #[test]
     fn bool_vector_prints_values() {
         let bv = BoolVector::new(vec![true, false, true]);
         assert_eq!(bv.to_string(), "[1,0,1]");
+    }
+
+    #[test]
+    fn bool_vector_define_creates_name_binding() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true, false]));
+        test_state.name_stack.push(String::from("TEST"));
+        bool_vector_define(&mut test_state, &icache());
+        assert_eq!(
+            *test_state.name_bindings.get("TEST").unwrap().to_string(),
+            Item::boolvec(BoolVector::new(vec![true, false])).to_string()
+        );
+    }
+
+    #[test]
+    fn bool_vector_equal_pushes_result() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        bool_vector_equal(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+    }
+
+    #[test]
+    fn bool_vector_shove_inserts_at_right_position() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![false]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![false]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![false]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        assert_eq!(
+            test_state.bool_vector_stack.to_string(),
+            "1:[1]; 2:[0]; 3:[0]; 4:[0];"
+        );
+        test_state.int_stack.push(2);
+        bool_vector_shove(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.to_string(),
+            "1:[0]; 2:[0]; 3:[1]; 4:[0];"
+        );
+    }
+
+    #[test]
+    fn bool_vector_stack_depth_returns_size() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![false]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![false]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        bool_vector_stack_depth(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+    }
+
+    #[test]
+    fn bool_vector_swaps_top_elements() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![false]));
+        assert_eq!(test_state.bool_vector_stack.to_string(), "1:[0]; 2:[1];");
+        bool_vector_swap(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.to_string(), "1:[1]; 2:[0];");
+    }
+
+    #[test]
+    fn bool_vector_yank_brings_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![false]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        assert_eq!(
+            test_state.bool_vector_stack.to_string(),
+            "1:[1]; 2:[1]; 3:[1]; 4:[0]; 5:[1];"
+        );
+        test_state.int_stack.push(3);
+        bool_vector_yank(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.to_string(),
+            "1:[0]; 2:[1]; 3:[1]; 4:[1]; 5:[1];"
+        );
+    }
+
+    #[test]
+    fn bool_vector_yank_dup_copies_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![false]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        assert_eq!(
+            test_state.bool_vector_stack.to_string(),
+            "1:[1]; 2:[1]; 3:[1]; 4:[0]; 5:[1];"
+        );
+        test_state.int_stack.push(3);
+        bool_vector_yank_dup(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.to_string(),
+            "1:[0]; 2:[1]; 3:[1]; 4:[1]; 5:[0]; 6:[1];"
+        );
     }
 
     #[test]
@@ -317,8 +498,256 @@ mod tests {
     }
 
     #[test]
+    fn int_vector_define_creates_name_binding() {
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(IntVector::new(vec![1, 2]));
+        test_state.name_stack.push(String::from("TEST"));
+        int_vector_define(&mut test_state, &icache());
+        assert_eq!(
+            *test_state.name_bindings.get("TEST").unwrap().to_string(),
+            Item::intvec(IntVector::new(vec![1, 2])).to_string()
+        );
+    }
+
+    #[test]
+    fn int_vector_equal_pushes_result() {
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(IntVector::new(vec![4]));
+        test_state.int_vector_stack.push(IntVector::new(vec![4]));
+        int_vector_equal(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+    }
+
+    #[test]
+    fn int_vector_shove_inserts_at_right_position() {
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(IntVector::new(vec![4]));
+        test_state.int_vector_stack.push(IntVector::new(vec![3]));
+        test_state.int_vector_stack.push(IntVector::new(vec![2]));
+        test_state.int_vector_stack.push(IntVector::new(vec![1]));
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            "1:[1]; 2:[2]; 3:[3]; 4:[4];"
+        );
+        test_state.int_stack.push(2);
+        int_vector_shove(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            "1:[2]; 2:[3]; 3:[1]; 4:[4];"
+        );
+    }
+
+    #[test]
+    fn int_vector_stack_depth_returns_size() {
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(IntVector::new(vec![4]));
+        test_state.int_vector_stack.push(IntVector::new(vec![3]));
+        test_state.int_vector_stack.push(IntVector::new(vec![2]));
+        test_state.int_vector_stack.push(IntVector::new(vec![1]));
+        int_vector_stack_depth(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+    }
+
+    #[test]
+    fn int_vector_swaps_top_elements() {
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(IntVector::new(vec![0]));
+        test_state.int_vector_stack.push(IntVector::new(vec![1]));
+        assert_eq!(test_state.int_vector_stack.to_string(), "1:[1]; 2:[0];");
+        int_vector_swap(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.to_string(), "1:[0]; 2:[1];");
+    }
+
+    #[test]
+    fn int_vector_yank_brings_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(IntVector::new(vec![5]));
+        test_state.int_vector_stack.push(IntVector::new(vec![4]));
+        test_state.int_vector_stack.push(IntVector::new(vec![3]));
+        test_state.int_vector_stack.push(IntVector::new(vec![2]));
+        test_state.int_vector_stack.push(IntVector::new(vec![1]));
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            "1:[1]; 2:[2]; 3:[3]; 4:[4]; 5:[5];"
+        );
+        test_state.int_stack.push(3);
+        int_vector_yank(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[5];"
+        );
+    }
+
+    #[test]
+    fn int_vector_yank_dup_copies_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(IntVector::new(vec![5]));
+        test_state.int_vector_stack.push(IntVector::new(vec![4]));
+        test_state.int_vector_stack.push(IntVector::new(vec![3]));
+        test_state.int_vector_stack.push(IntVector::new(vec![2]));
+        test_state.int_vector_stack.push(IntVector::new(vec![1]));
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            "1:[1]; 2:[2]; 3:[3]; 4:[4]; 5:[5];"
+        );
+        test_state.int_stack.push(3);
+        int_vector_yank_dup(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[4]; 6:[5];"
+        );
+    }
+
+    #[test]
     fn float_vector_prints_values() {
         let fv = FloatVector::new(vec![1.2, 3.4, -4.5]);
         assert_eq!(fv.to_string(), "[1.2,3.4,-4.5]");
+    }
+
+    #[test]
+    fn float_vector_define_creates_name_binding() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![1.0, 2.0]));
+        test_state.name_stack.push(String::from("TEST"));
+        float_vector_define(&mut test_state, &icache());
+        assert_eq!(
+            *test_state.name_bindings.get("TEST").unwrap().to_string(),
+            Item::floatvec(FloatVector::new(vec![1.0, 2.0])).to_string()
+        );
+    }
+
+    #[test]
+    fn float_vector_equal_pushes_result() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![4.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![4.0]));
+        float_vector_equal(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+    }
+
+    #[test]
+    fn float_vector_shove_inserts_at_right_position() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![4.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![3.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![2.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![1.0]));
+        assert_eq!(
+            test_state.float_vector_stack.to_string(),
+            "1:[1]; 2:[2]; 3:[3]; 4:[4];"
+        );
+        test_state.int_stack.push(2);
+        float_vector_shove(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.to_string(),
+            "1:[2]; 2:[3]; 3:[1]; 4:[4];"
+        );
+    }
+
+    #[test]
+    fn float_vector_stack_depth_returns_size() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![4.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![3.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![2.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![1.0]));
+        float_vector_stack_depth(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+    }
+
+    #[test]
+    fn float_vector_swaps_top_elements() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![0.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![1.0]));
+        assert_eq!(test_state.float_vector_stack.to_string(), "1:[1]; 2:[0];");
+        float_vector_swap(&mut test_state, &icache());
+        assert_eq!(test_state.float_vector_stack.to_string(), "1:[0]; 2:[1];");
+    }
+
+    #[test]
+    fn float_vector_yank_brings_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![5.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![4.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![3.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![2.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![1.0]));
+        assert_eq!(
+            test_state.float_vector_stack.to_string(),
+            "1:[1]; 2:[2]; 3:[3]; 4:[4]; 5:[5];"
+        );
+        test_state.int_stack.push(3);
+        float_vector_yank(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.to_string(),
+            "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[5];"
+        );
+    }
+
+    #[test]
+    fn float_vector_yank_dup_copies_item_to_top() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![5.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![4.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![3.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![2.0]));
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![1.0]));
+        assert_eq!(
+            test_state.float_vector_stack.to_string(),
+            "1:[1]; 2:[2]; 3:[3]; 4:[4]; 5:[5];"
+        );
+        test_state.int_stack.push(3);
+        float_vector_yank_dup(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.to_string(),
+            "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[4]; 6:[5];"
+        );
     }
 }

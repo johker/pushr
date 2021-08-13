@@ -75,7 +75,7 @@ pub fn boolean_def(push_state: &mut PushState, _instruction_cache: &InstructionC
             push_state.name_bindings.insert(
                 name,
                 Item::Literal {
-                    push_type: PushType::PushBoolType { val: bval },
+                    push_type: PushType::Bool { val: bval },
                 },
             );
         }

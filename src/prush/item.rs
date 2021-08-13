@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::prush::stack::PushStack;
+use crate::prush::vector::{BoolVector, FloatVector, IntVector};
 
 // Items
 #[allow(dead_code)]
@@ -14,26 +15,47 @@ pub enum Item {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum PushType {
-    PushBoolType { val: bool },
-    PushIntType { val: i32 },
-    PushFloatType { val: f32 },
+    Bool { val: bool },
+    Int { val: i32 },
+    Float { val: f32 },
+    BoolVector { val: BoolVector },
+    IntVector { val: IntVector },
+    FloatVector { val: FloatVector },
 }
 
 #[allow(dead_code)]
 impl<'a> Item {
     pub fn int(arg: i32) -> Item {
         Item::Literal {
-            push_type: PushType::PushIntType { val: arg },
+            push_type: PushType::Int { val: arg },
         }
     }
     pub fn float(arg: f32) -> Item {
         Item::Literal {
-            push_type: PushType::PushFloatType { val: arg },
+            push_type: PushType::Float { val: arg },
         }
     }
     pub fn bool(arg: bool) -> Item {
         Item::Literal {
-            push_type: PushType::PushBoolType { val: arg },
+            push_type: PushType::Bool { val: arg },
+        }
+    }
+
+    pub fn boolvec(arg: BoolVector) -> Item {
+        Item::Literal {
+            push_type: PushType::BoolVector { val: arg },
+        }
+    }
+
+    pub fn floatvec(arg: FloatVector) -> Item {
+        Item::Literal {
+            push_type: PushType::FloatVector { val: arg },
+        }
+    }
+
+    pub fn intvec(arg: IntVector) -> Item {
+        Item::Literal {
+            push_type: PushType::IntVector { val: arg },
         }
     }
 
@@ -279,9 +301,12 @@ impl<'a> fmt::Display for Item {
                 let at = "Literal".to_string();
                 let info;
                 match push_type {
-                    PushType::PushBoolType { val } => info = val.to_string(),
-                    PushType::PushIntType { val } => info = val.to_string(),
-                    PushType::PushFloatType { val } => info = val.to_string() + "f",
+                    PushType::Bool { val } => info = val.to_string(),
+                    PushType::Int { val } => info = val.to_string(),
+                    PushType::Float { val } => info = val.to_string() + "f",
+                    PushType::BoolVector { val } => info = val.to_string(),
+                    PushType::FloatVector { val } => info = val.to_string(),
+                    PushType::IntVector { val } => info = val.to_string(),
                 }
                 write!(f, "{}({})", at, info)
             }
@@ -297,16 +322,28 @@ impl PushType {
     /// Returns true if type and value are equal
     pub fn equals(&self, other: &PushType) -> bool {
         match &*self {
-            PushType::PushBoolType { val } => match &*other {
-                PushType::PushBoolType { val: other_val } => return val == other_val,
+            PushType::Bool { val } => match &*other {
+                PushType::Bool { val: other_val } => return val == other_val,
                 _ => false,
             },
-            PushType::PushIntType { val } => match &*other {
-                PushType::PushIntType { val: other_val } => return val == other_val,
+            PushType::Int { val } => match &*other {
+                PushType::Int { val: other_val } => return val == other_val,
                 _ => false,
             },
-            PushType::PushFloatType { val } => match &*other {
-                PushType::PushFloatType { val: other_val } => return val == other_val,
+            PushType::Float { val } => match &*other {
+                PushType::Float { val: other_val } => return val == other_val,
+                _ => false,
+            },
+            PushType::BoolVector { val } => match &*other {
+                PushType::BoolVector { val: other_val } => return val == other_val,
+                _ => false,
+            },
+            PushType::FloatVector { val } => match &*other {
+                PushType::FloatVector { val: other_val } => return val == other_val,
+                _ => false,
+            },
+            PushType::IntVector { val } => match &*other {
+                PushType::IntVector { val: other_val } => return val == other_val,
                 _ => false,
             },
         }
