@@ -60,16 +60,13 @@ impl<'a> PushParser {
             }
 
             // Check for instruction
-            match instruction_set.map.get(token) {
-                Some(_instruction) => {
-                    PushParser::rec_push(
-                        &mut push_state.exec_stack,
-                        Item::instruction(token.to_string()),
-                        depth,
-                    );
-                    continue;
-                }
-                None => (),
+            if instruction_set.is_instruction(token) {
+                PushParser::rec_push(
+                    &mut push_state.exec_stack,
+                    Item::instruction(token.to_string()),
+                    depth,
+                );
+                continue;
             }
             // Check for Literal
             match token.to_string().parse::<i32>() {

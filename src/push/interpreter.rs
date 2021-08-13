@@ -43,7 +43,7 @@ impl PushInterpreter {
                     }
                 }
                 Some(Item::InstructionMeta { name }) => {
-                    if let Some(instruction) = instruction_set.map.get_mut(&name[..]) {
+                    if let Some(instruction) = instruction_set.get_instruction(&name) {
                         println!(">> {}", name);
                         (instruction.execute)(push_state, &icache);
                     }

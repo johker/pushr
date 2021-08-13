@@ -17,7 +17,7 @@ use crate::push::name::*;
 // Instruction Set is a hashmap with string key and struct as value
 
 pub struct InstructionSet {
-    pub map: HashMap<String, Instruction>,
+    map: HashMap<String, Instruction>,
 }
 
 impl InstructionSet {
@@ -40,8 +40,28 @@ impl InstructionSet {
         load_name_instructions(&mut self.map);
     }
 
+    /// Create a snapshot of the current instruction names
     pub fn cache(&self) -> InstructionCache {
         InstructionCache::new(self.map.keys().cloned().collect())
+    }
+
+    /// Add a new instruction
+    pub fn add(&mut self, name: String, instruction: Instruction) -> Option<Instruction> {
+        self.map.insert(name, instruction)
+    }
+
+    /// Returns true if there exists an instruction
+    /// under the given name.
+    pub fn is_instruction(&self, name: &str) -> bool {
+        match self.map.get(name) {
+            Some(i) => true,
+            None => false,
+        }
+    }
+
+    /// Get a mutable reference of an instruction by name
+    pub fn get_instruction(&mut self, name: &str) -> Option<&mut Instruction> {
+        self.map.get_mut(name)
     }
 }
 
