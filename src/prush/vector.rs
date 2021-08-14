@@ -145,6 +145,19 @@ pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &Instru
     push_state.bool_vector_stack.flush();
 }
 
+/// BOOLVECTOR.RAND: Pushes a newly generated random BOOLVECTOR. The size is taken from the INTEGER
+/// stack, the sparcity from the FLOAT stack. If the size is <0 or the sparcity not in [0,1] this
+/// acts as a NOOP.
+pub fn bool_vector_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size) = push_state.int_stack.pop() {
+        if let Some(sparcity) = push_state.float_stack.pop() {
+            if let Some(rbvval) = CodeGenerator::random_bool_vector(size, sparcity) {
+                push_state.bool_vector_stack.push(rbvval);
+            }
+        }
+    }
+}
+
 /// BOOLVECTOR.SHOVE: Inserts the second INTEGER "deep" in the stack, at the position indexed by the
 /// top INTEGER. The index position is calculated after the index is removed.
 pub fn bool_vector_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {

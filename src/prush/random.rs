@@ -3,11 +3,13 @@ extern crate names;
 use crate::prush::instructions::InstructionCache;
 use crate::prush::item::Item;
 use crate::prush::state::PushState;
+use crate::prush::vector::{BoolVector, FloatVector, IntVector};
 use names::Generator;
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::Rng;
 
 /// Item types without list
+// TODO: Add item types
 pub enum ItemType {
     Boolean,
     Float,
@@ -46,6 +48,17 @@ impl CodeGenerator {
                 actual_points,
             ))
         } else {
+            None
+        }
+    }
+
+    /// Returns a random boolean vector of given size and sparcity
+    pub fn random_bool_vector(size: i32, sparcity: f32) -> Option<BoolVector> {
+        if size < 0 || sparcity < 0.0 || sparcity > 1.0 {
+            None
+        } else {
+            // n is the number of 1s for the given sparcity / size
+            // Generate n (unique) random indices in [0,size) by repeating in case of collision
             None
         }
     }
