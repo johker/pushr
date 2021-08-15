@@ -26,6 +26,7 @@ Additionally, it provides the vector types for boolean, float and integer:
 
 The default instructions for vector types are dup, equal, flush, shove, stackdepth, swap, yank and yankdup. 
 
+
 ## Usage
 
 The following example shows how to intepret Push program with Prush.

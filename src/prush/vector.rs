@@ -8,7 +8,7 @@ use std::fmt;
 
 #[derive(Clone, Debug)]
 pub struct BoolVector {
-    values: Vec<bool>,
+    pub values: Vec<bool>,
 }
 
 impl BoolVector {
@@ -382,6 +382,25 @@ mod tests {
             .push(BoolVector::new(vec![true]));
         bool_vector_equal(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+    }
+
+    #[test]
+    fn bool_vector_rand_pushes_new_item() {
+        let mut test_state = PushState::new();
+        let test_size = 92;
+        let test_sparsity = 0.07;
+        test_state.int_stack.push(test_size);
+        test_state.float_stack.push(test_sparsity);
+        bool_vector_rand(&mut test_state, &icache());
+        if let Some(rbv) = test_state.bool_vector_stack.pop() {
+            assert_eq!(rbv.values.len(), test_size as usize);
+            assert_eq!(
+                rbv.values.iter().filter(|&n| *n == true).count(),
+                (test_sparsity * test_size as f32) as usize
+            );
+        } else {
+            assert!(false, "Expected to find bool vector");
+        }
     }
 
     #[test]

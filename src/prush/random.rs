@@ -53,14 +53,34 @@ impl CodeGenerator {
     }
 
     /// Returns a random boolean vector of given size and sparcity
-    pub fn random_bool_vector(size: i32, sparcity: f32) -> Option<BoolVector> {
-        if size < 0 || sparcity < 0.0 || sparcity > 1.0 {
+    pub fn random_bool_vector(size: i32, sparsity: f32) -> Option<BoolVector> {
+        if size < 0 || sparsity < 0.0 || sparsity > 1.0 {
             None
         } else {
-            // n is the number of 1s for the given sparcity / size
-            // Generate n (unique) random indices in [0,size) by repeating in case of collision
-            None
+            let mut rng = rand::thread_rng();
+            // default = false when less than half of the bits should be active
+            let default = sparsity > 0.5;
+            let mut bool_vector = vec![default; size as usize];
+            let num_active_bits = (sparsity * size as f32) as i32;
+            for _i in 1..num_active_bits + 1 {
+                loop {
+                    let rand_idx = rng.gen_range(0..size - 1) as usize;
+                    // Flip bit if it is still default, select other index otherwise
+                    if bool_vector[rand_idx] == default {
+                        bool_vector[rand_idx] = !default;
+                        break;
+                    }
+                }
+            }
+            Some(BoolVector::new(bool_vector))
         }
+    }
+
+    /// Returns a random float vector. Its elements are independent and identically distributed
+    /// random variables drawn from the normal distribution with given mean and standard
+    /// deviation.
+    pub fn random_float_vector(mean: f32, std: f32) -> Option<FloatVector> {
+        None
     }
 
     /// Returns random float value within the bounds given by configuration
@@ -182,6 +202,26 @@ impl CodeGenerator {
 mod tests {
     use super::*;
     use crate::prush::instructions::InstructionSet;
+
+    #[test]
+    fn random_bool_vector_is_generated() {
+        let test_size = 100;
+        let test_sparsity = 0.12;
+        if let Some(rand_bool_vector) = CodeGenerator::random_bool_vector(test_size, test_sparsity)
+        {
+            assert_eq!(rand_bool_vector.values.len(), test_size as usize);
+            assert_eq!(
+                rand_bool_vector
+                    .values
+                    .iter()
+                    .filter(|&n| *n == true)
+                    .count(),
+                (test_sparsity * test_size as f32) as usize
+            );
+        } else {
+            assert!(false, "Expected to get bool vector");
+        }
+    }
 
     #[test]
     fn random_code_is_generated() {
