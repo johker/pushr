@@ -166,7 +166,7 @@ pub fn bool_vector_or(push_state: &mut PushState, _instruction_cache: &Instructi
     }
 }
 
-/// BOOLVECTOR. Applies the negation operator for the elements of the top item. It only considers
+/// BOOLVECTOR.NOT Applies the negation operator for the elements of the top item. It only considers
 /// indices larger than the offset. The offset is taken from the INTEGER stack.
 pub fn bool_vector_not(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(mut bvval) = push_state.bool_vector_stack.pop() {
@@ -268,6 +268,102 @@ pub fn bool_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Ins
 }
 
 /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
+
+/// INTVECTOR.ADD: Pushes the result of applying element-wise ADD of the top item to the
+/// second item on the INTVECTOR stack. It applies an offset to the indices of the top
+/// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
+/// range of the second item are ignored. If there is no overlap of indices the second item of
+/// the stack is pushed as a result.
+pub fn int_vector_add(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut iv) = push_state.int_vector_stack.pop_vec(2) {
+        if let Some(offset) = push_state.int_stack.pop() {
+            // Loop through indices of second item
+            let scd_size = iv[0].values.len();
+            for i in 0..scd_size {
+                let ofs_idx = (i as i32 + offset) as usize;
+                if ofs_idx > scd_size - 1 {
+                    continue; // Out of bounds
+                }
+                iv[0].values[ofs_idx] += iv[1].values[i];
+            }
+            push_state.int_vector_stack.push(iv[0].clone());
+        }
+    }
+}
+
+/// INTVECTOR.SUBTRACT: Pushes the result of element-wise SUBTRACT of the top item from the
+/// second item on the INTVECTOR stack. It applies an offset to the indices of the top
+/// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
+/// range of the second item are ignored. If there is no overlap of indices the second item of
+/// the stack is pushed as a result.
+pub fn int_vector_subtract(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut iv) = push_state.int_vector_stack.pop_vec(2) {
+        if let Some(offset) = push_state.int_stack.pop() {
+            // Loop through indices of second item
+            let scd_size = iv[0].values.len();
+            for i in 0..scd_size {
+                let ofs_idx = (i as i32 + offset) as usize;
+                if ofs_idx > scd_size - 1 {
+                    continue; // Out of bounds
+                }
+                iv[0].values[ofs_idx] -= iv[1].values[i];
+            }
+            push_state.int_vector_stack.push(iv[0].clone());
+        }
+    }
+}
+
+/// INTVECTOR.MULTIPLY: Pushes the result of element-wise MULTIPLY of the top item to the
+/// second item on the INTVECTOR stack. It applies an offset to the indices of the top
+/// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
+/// range of the second item are ignored. If there is no overlap of indices the second item of
+/// the stack is pushed as a result.
+pub fn int_vector_multiply(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut iv) = push_state.int_vector_stack.pop_vec(2) {
+        if let Some(offset) = push_state.int_stack.pop() {
+            // Loop through indices of second item
+            let scd_size = iv[0].values.len();
+            for i in 0..scd_size {
+                let ofs_idx = (i as i32 + offset) as usize;
+                if ofs_idx > scd_size - 1 {
+                    continue; // Out of bounds
+                }
+                iv[0].values[ofs_idx] *= iv[1].values[i];
+            }
+            push_state.int_vector_stack.push(iv[0].clone());
+        }
+    }
+}
+
+/// INTVECTOR.DIVIDE: Pushes the result of element-wise DIVIDE of the second item by the
+/// top item on the INTVECTOR stack. It applies an offset to the indices of the top
+/// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
+/// range of the second item are ignored. If there is no overlap of indices the second item of
+/// the stack is pushed as a result. If at least one divisor is zero the instruction acts
+/// as NOOP.
+pub fn int_vector_divide(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut iv) = push_state.int_vector_stack.pop_vec(2) {
+        if let Some(offset) = push_state.int_stack.pop() {
+            let mut invalid = false;
+            // Loop through indices of second item
+            let scd_size = iv[0].values.len();
+            for i in 0..scd_size {
+                let ofs_idx = (i as i32 + offset) as usize;
+                if ofs_idx > scd_size - 1 {
+                    continue; // Out of bounds
+                }
+                if iv[1].values[i] == 0 {
+                    invalid = true;
+                } else {
+                    iv[0].values[ofs_idx] /= iv[1].values[i];
+                }
+            }
+            if !invalid {
+                push_state.int_vector_stack.push(iv[0].clone());
+            }
+        }
+    }
+}
 
 /// INTVECTOR.DEFINE: Defines the name on top of the NAME stack as an instruction that will
 /// push the top item of the INTVECTOR stack onto the EXEC stack.
@@ -723,6 +819,102 @@ mod tests {
     fn int_vector_prints_values() {
         let iv = IntVector::new(vec![1, 2, -3]);
         assert_eq!(iv.to_string(), "[1,2,-3]");
+    }
+
+    #[test]
+    fn int_vector_add_with_different_overlaps() {
+        let test_vec1 = IntVector::new(vec![1, 1, 1, 1, 0, 0, 0, 0]);
+        let test_vec2 = IntVector::new(vec![1, 0, 1, 0, 1, 0, 1, 0]);
+
+        // Full overlap
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(test_vec2.clone());
+        test_state.int_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(0);
+        int_vector_add(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![2, 1, 2, 1, 1, 0, 1, 0])
+        );
+
+        // Positive overlap
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(test_vec2.clone());
+        test_state.int_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(-4);
+        int_vector_add(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![1, 0, 1, 0, 1, 0, 1, 0])
+        );
+
+        // No overlap
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(test_vec2.clone());
+        test_state.int_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(8);
+        int_vector_add(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![1, 0, 1, 0, 1, 0, 1, 0])
+        );
+    }
+
+    #[test]
+    fn int_vector_subtract_with_partial_overlap() {
+        let test_vec1 = IntVector::new(vec![1, 1, 1, 1, 0, 0, 0, 0]);
+        let test_vec2 = IntVector::new(vec![1, 0, 1, 0, 1, 0, 1, 0]);
+
+        // Full overlap
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(test_vec2.clone());
+        test_state.int_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(4);
+        int_vector_subtract(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![1, 0, 1, 0, 0, -1, 0, -1])
+        );
+    }
+
+    #[test]
+    fn int_vector_multiply_with_partial_overlap() {
+        let test_vec1 = IntVector::new(vec![-1, -1, -1, -1, 1, 1, 1, 1]);
+        let test_vec2 = IntVector::new(vec![1, 2, 1, 2, 1, 2, 1, 2]);
+
+        // Full overlap
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(test_vec2.clone());
+        test_state.int_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(4);
+        int_vector_multiply(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![1, 2, 1, 2, -1, -2, -1, -2])
+        );
+    }
+
+    #[test]
+    fn int_vector_divide_with_partial_overlap() {
+        let test_vec1 = IntVector::new(vec![1, 2, 1, 2, 1, 2, 1, 2]);
+        let test_vec2 = IntVector::new(vec![2, 2, 2, 2, 1, 1, 1, 1]);
+
+        // Full overlap
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(test_vec2.clone());
+        test_state.int_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(4);
+        int_vector_divide(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![2, 2, 2, 2, 1, 0, 1, 0])
+        );
     }
 
     #[test]
