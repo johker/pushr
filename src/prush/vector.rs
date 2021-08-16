@@ -15,6 +15,14 @@ impl BoolVector {
     pub fn new(arg: Vec<bool>) -> Self {
         Self { values: arg }
     }
+
+    pub fn from_int_array(arg: Vec<usize>) -> Self {
+        let mut bv = vec![false; arg.len()];
+        for (i, ival) in arg.iter().enumerate() {
+            bv[i] = ival == &1;
+        }
+        Self { values: bv }
+    }
 }
 
 impl fmt::Display for BoolVector {
@@ -39,7 +47,7 @@ impl PartialEq for BoolVector {
 
 #[derive(Clone, Debug)]
 pub struct IntVector {
-    values: Vec<i32>,
+    pub values: Vec<i32>,
 }
 
 impl IntVector {
@@ -68,7 +76,7 @@ impl PartialEq for IntVector {
 
 #[derive(Clone, Debug)]
 pub struct FloatVector {
-    values: Vec<f32>,
+    pub values: Vec<f32>,
 }
 
 impl FloatVector {
@@ -113,6 +121,28 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
 }
 
 /////////////////////////////////////// BOOLVECTOR //////////////////////////////////////////
+
+/// BOOLVECTOR.AND: Pushes the result of applying element-wise AND of the top item to the
+/// second item on the BOOLVECTOR stack. It applies an offset to the indices of the top
+/// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
+/// range of the second item are ignored. If there is no overlap of indices the second item of
+/// the stack is pushed as a result.
+pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut bv) = push_state.bool_vector_stack.pop_vec(2) {
+        if let Some(offset) = push_state.int_stack.pop() {
+            // Loop through indices of second item
+            let scd_size = bv[0].values.len();
+            for i in 0..scd_size {
+                let top_idx = (i as i32 + offset) as usize;
+                if top_idx > scd_size - 1 {
+                    continue; // Out of bounds
+                }
+                bv[0].values[top_idx] &= bv[1].values[i];
+            }
+            push_state.bool_vector_stack.push(bv[0].clone());
+        }
+    }
+}
 
 /// BOOLVECTOR.DEFINE: Defines the name on top of the NAME stack as an instruction that will
 /// push the top item of the BOOLVECTOR stack onto the EXEC stack.
@@ -355,6 +385,48 @@ mod tests {
     fn bool_vector_prints_values() {
         let bv = BoolVector::new(vec![true, false, true]);
         assert_eq!(bv.to_string(), "[1,0,1]");
+    }
+
+    #[test]
+    fn bool_vector_and_with_different_overlaps() {
+        let test_vec1 = BoolVector::from_int_array(vec![1, 1, 1, 1, 0, 0, 0, 0]);
+        let test_vec2 = BoolVector::from_int_array(vec![1, 0, 1, 0, 1, 0, 1, 0]);
+
+        // Full overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec2.clone());
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(0);
+        bool_vector_and(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1, 0, 1, 0, 0, 0, 0, 0])
+        );
+
+        // Positive overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec2.clone());
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(-4);
+        bool_vector_and(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![0, 0, 0, 0, 1, 0, 1, 0])
+        );
+
+        // No overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec2.clone());
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(8);
+        bool_vector_and(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1, 0, 1, 0, 1, 0, 1, 0])
+        );
     }
 
     #[test]

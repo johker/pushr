@@ -7,6 +7,7 @@ use crate::prush::vector::{BoolVector, FloatVector, IntVector};
 use names::Generator;
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::Rng;
+use rand_distr::Normal;
 
 /// Item types without list
 // TODO: Add item types
@@ -79,8 +80,19 @@ impl CodeGenerator {
     /// Returns a random float vector. Its elements are independent and identically distributed
     /// random variables drawn from the normal distribution with given mean and standard
     /// deviation.
-    pub fn random_float_vector(mean: f32, std: f32) -> Option<FloatVector> {
-        None
+    pub fn random_float_vector(size: i32, mean: f32, stddev: f32) -> Option<FloatVector> {
+        if size < 0 || stddev < 0.0 {
+            None
+        } else {
+            let mut float_vector = Vec::with_capacity(size as usize);
+            // mean 2, standard deviation 3
+            let mut r = rand::thread_rng();
+            let n = Normal::new(mean, stddev).unwrap();
+            for _i in 0..size {
+                float_vector.push(n.sample(&mut r));
+            }
+            Some(FloatVector::new(float_vector))
+        }
     }
 
     /// Returns random float value within the bounds given by configuration
@@ -218,6 +230,21 @@ mod tests {
                     .count(),
                 (test_sparsity * test_size as f32) as usize
             );
+        } else {
+            assert!(false, "Expected to get bool vector");
+        }
+    }
+
+    #[test]
+    fn random_float_vector_is_generated() {
+        let test_size = 100;
+        let test_mean = 0.5;
+        let test_stddev = 0.01;
+        if let Some(rand_vector) =
+            CodeGenerator::random_float_vector(test_size, test_mean, test_stddev)
+        {
+            println!("Rand Vector = {}", rand_vector);
+            assert_eq!(rand_vector.values.len(), test_size as usize);
         } else {
             assert!(false, "Expected to get bool vector");
         }

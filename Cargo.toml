@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 rand = "0.8.0"
+rand_distr = "0.4.1"
 names = "0.10.0"
