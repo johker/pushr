@@ -133,13 +133,52 @@ pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &Instruct
             // Loop through indices of second item
             let scd_size = bv[0].values.len();
             for i in 0..scd_size {
-                let top_idx = (i as i32 + offset) as usize;
-                if top_idx > scd_size - 1 {
+                let ofs_idx = (i as i32 + offset) as usize;
+                if ofs_idx > scd_size - 1 {
                     continue; // Out of bounds
                 }
-                bv[0].values[top_idx] &= bv[1].values[i];
+                bv[0].values[ofs_idx] &= bv[1].values[i];
             }
             push_state.bool_vector_stack.push(bv[0].clone());
+        }
+    }
+}
+
+/// BOOLVECTOR.OR: Pushes the result of applying element-wise OR of the top item to the
+/// second item on the BOOLVECTOR stack. It applies an offset to the indices of the top
+/// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
+/// range of the second item are ignored. If there is no overlap of indices the second item of
+/// the stack is pushed as a result.
+pub fn bool_vector_or(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut bv) = push_state.bool_vector_stack.pop_vec(2) {
+        if let Some(offset) = push_state.int_stack.pop() {
+            // Loop through indices of second item
+            let scd_size = bv[0].values.len();
+            for i in 0..scd_size {
+                let ofs_idx = (i as i32 + offset) as usize;
+                if ofs_idx > scd_size - 1 {
+                    continue; // Out of bounds
+                }
+                bv[0].values[ofs_idx] |= bv[1].values[i];
+            }
+            push_state.bool_vector_stack.push(bv[0].clone());
+        }
+    }
+}
+
+/// BOOLVECTOR. Applies the negation operator for the elements of the top item. It only considers
+/// indices larger than the offset. The offset is taken from the INTEGER stack.
+pub fn bool_vector_not(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut bvval) = push_state.bool_vector_stack.pop() {
+        if let Some(offset) = push_state.int_stack.pop() {
+            for i in 0..bvval.values.len() {
+                let ofs_idx = (i as i32 + offset) as usize;
+                if ofs_idx > bvval.values.len() - 1 {
+                    continue; // Out of bounds
+                }
+                bvval.values[ofs_idx] = !bvval.values[ofs_idx];
+            }
+            push_state.bool_vector_stack.push(bvval.clone());
         }
     }
 }
@@ -227,6 +266,7 @@ pub fn bool_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Ins
         }
     }
 }
+
 /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
 
 /// INTVECTOR.DEFINE: Defines the name on top of the NAME stack as an instruction that will
@@ -381,6 +421,8 @@ mod tests {
         InstructionCache::new(vec![])
     }
 
+    /////////////////////////////////////// BOOLVECTOR //////////////////////////////////////////
+
     #[test]
     fn bool_vector_prints_values() {
         let bv = BoolVector::new(vec![true, false, true]);
@@ -426,6 +468,86 @@ mod tests {
         assert_eq!(
             test_state.bool_vector_stack.pop().unwrap(),
             BoolVector::from_int_array(vec![1, 0, 1, 0, 1, 0, 1, 0])
+        );
+    }
+
+    #[test]
+    fn bool_vector_or_with_different_overlaps() {
+        let test_vec1 = BoolVector::from_int_array(vec![1, 1, 1, 1, 0, 0, 0, 0]);
+        let test_vec2 = BoolVector::from_int_array(vec![1, 0, 1, 0, 1, 0, 1, 0]);
+
+        // Full overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec2.clone());
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(0);
+        bool_vector_or(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1, 1, 1, 1, 1, 0, 1, 0])
+        );
+
+        // Positive overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec2.clone());
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(-4);
+        bool_vector_or(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1, 0, 1, 0, 1, 0, 1, 0])
+        );
+
+        // No overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec2.clone());
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(8);
+        bool_vector_or(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1, 0, 1, 0, 1, 0, 1, 0])
+        );
+    }
+
+    #[test]
+    fn bool_vector_not_with_different_overlaps() {
+        let test_vec1 = BoolVector::from_int_array(vec![1, 1, 1, 1, 0, 0, 0, 0]);
+
+        // Full overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(0);
+        bool_vector_not(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![0, 0, 0, 0, 1, 1, 1, 1])
+        );
+
+        // Positive overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(-4);
+        bool_vector_not(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![0, 0, 0, 0, 0, 0, 0, 0])
+        );
+
+        // No overlap
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec1.clone());
+        test_state.int_stack.push(8);
+        bool_vector_not(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 1);
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1, 1, 1, 1, 0, 0, 0, 0])
         );
     }
 
@@ -595,6 +717,8 @@ mod tests {
         );
     }
 
+    /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
+
     #[test]
     fn int_vector_prints_values() {
         let iv = IntVector::new(vec![1, 2, -3]);
@@ -701,6 +825,8 @@ mod tests {
             "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[4]; 6:[5];"
         );
     }
+
+    ////////////////////////////////////// FLOATVECTOR //////////////////////////////////////////
 
     #[test]
     fn float_vector_prints_values() {
