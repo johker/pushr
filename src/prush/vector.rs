@@ -144,6 +144,36 @@ pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &Instruct
     }
 }
 
+/// BOOLVECTOR.GET: Copies the element at index i of the top BOOLVECTOR item to the BOOLEAN stack
+/// where i taken from the INTEGER stack.
+pub fn bool_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        if let Some(element) = push_state.bool_vector_stack.get(0) {
+            let i = index as usize;
+            if i > 0 && i < element.values.len() {
+                push_state.bool_stack.push(element.values[i].clone());
+            }
+        }
+    }
+}
+
+/// BOOLVECTOR.SET: Replaces the ith element of the top BOOLVECTOR item by the top item of the
+/// BOOLEAN stack. The index i is taken from the INTEGER stack.
+pub fn bool_vector_set(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        if let Some(new_element) = push_state.bool_stack.pop() {
+            if let Some(item_to_change) = push_state.bool_vector_stack.get_mut(0) {
+                let i = index as usize;
+                if i > 0 && i < item_to_change.values.len() {
+                    item_to_change.values[i] = new_element;
+                    println!("new element = {}", new_element);
+                    println!("item_to_change = {}", item_to_change);
+                }
+            }
+        }
+    }
+}
+
 /// BOOLVECTOR.OR: Pushes the result of applying element-wise OR of the top item to the
 /// second item on the BOOLVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
@@ -660,6 +690,34 @@ mod tests {
         assert_eq!(
             test_state.bool_vector_stack.pop().unwrap(),
             BoolVector::from_int_array(vec![1, 0, 1, 0, 1, 0, 1, 0])
+        );
+    }
+
+    #[test]
+    fn bool_vector_get_pushes_vector_element() {
+        let test_vec1 = BoolVector::from_int_array(vec![1, 1, 1, 0, 1, 1, 1, 1]);
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec1);
+        test_state.int_stack.push(3);
+        bool_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.pop().unwrap(), false);
+        // Invalid index results in noop
+        test_state.int_stack.push(15);
+        bool_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.size(), 0);
+    }
+
+    #[test]
+    fn bool_vector_set_modifies_vector() {
+        let test_vec1 = BoolVector::from_int_array(vec![1, 1, 1, 1, 1, 1, 1, 1]);
+        let mut test_state = PushState::new();
+        test_state.bool_vector_stack.push(test_vec1);
+        test_state.int_stack.push(5);
+        test_state.bool_stack.push(false);
+        bool_vector_set(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1, 1, 1, 1, 1, 0, 1, 1])
         );
     }
 
