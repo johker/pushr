@@ -2,8 +2,15 @@ use crate::prush::instructions::InstructionSet;
 use crate::prush::item::Item;
 use crate::prush::stack::PushStack;
 use crate::prush::state::PushState;
+use crate::prush::vector::{BoolVector, FloatVector, IntVector};
 
 pub struct PushParser {}
+
+pub enum VectorType {
+    Bool,
+    Int,
+    Float,
+}
 
 impl<'a> PushParser {
     /// Recursivley performs a front push to the stack. It keeps track of the open sublist by a depth
@@ -32,6 +39,63 @@ impl<'a> PushParser {
         }
     }
 
+    /// Determines vector type and pushes corresponding item to stack. Ignores
+    /// token if elements are not consistent.
+    pub fn parse_vector(
+        push_state: &mut PushState,
+        depth: usize,
+        vector_type: &VectorType,
+        vector_token: &'a str,
+    ) {
+        match vector_type {
+            VectorType::Bool => {
+                let mut bv = vec![];
+                for el in vector_token.split(",") {
+                    if "1" == el || "true" == el {
+                        bv.push(true);
+                    } else if "0" == el || "false" == el {
+                        bv.push(false);
+                    } else {
+                        return;
+                    }
+                }
+                PushParser::rec_push(
+                    &mut push_state.exec_stack,
+                    Item::boolvec(BoolVector::new(bv)),
+                    depth,
+                );
+            }
+            VectorType::Int => {
+                let mut iv = vec![];
+                for el in vector_token.split(",") {
+                    match el.to_string().parse::<i32>() {
+                        Ok(ival) => iv.push(ival),
+                        Err(_) => return,
+                    }
+                }
+                PushParser::rec_push(
+                    &mut push_state.exec_stack,
+                    Item::intvec(IntVector::new(iv)),
+                    depth,
+                );
+            }
+            VectorType::Float => {
+                let mut fv = vec![];
+                for el in vector_token.split(",") {
+                    match el.to_string().parse::<f32>() {
+                        Ok(fval) => fv.push(fval),
+                        Err(_) => return,
+                    }
+                }
+                PushParser::rec_push(
+                    &mut push_state.exec_stack,
+                    Item::floatvec(FloatVector::new(fv)),
+                    depth,
+                );
+            }
+        }
+    }
+
     /// Splits a string into tokens and front pushes it to the stack s.t. the
     /// end of the string ends up at the top of the stack.
     pub fn parse_program(
@@ -41,6 +105,33 @@ impl<'a> PushParser {
     ) {
         let mut depth = 0;
         for token in code.split_whitespace() {
+            if token.starts_with("INT[") {
+                PushParser::parse_vector(
+                    push_state,
+                    depth,
+                    &VectorType::Int,
+                    &token[4..token.len() - 1],
+                );
+                continue;
+            }
+            if token.starts_with("FLOAT[") {
+                PushParser::parse_vector(
+                    push_state,
+                    depth,
+                    &VectorType::Int,
+                    &token[6..token.len() - 1],
+                );
+                continue;
+            }
+            if token.starts_with("BOOL[") {
+                PushParser::parse_vector(
+                    push_state,
+                    depth,
+                    &VectorType::Int,
+                    &token[5..token.len() - 1],
+                );
+                continue;
+            }
             if "(" == token {
                 PushParser::rec_push(
                     &mut push_state.exec_stack,
@@ -83,6 +174,7 @@ impl<'a> PushParser {
                 }
                 Err(_) => (),
             }
+
             match token {
                 "TRUE" => {
                     PushParser::rec_push(&mut push_state.exec_stack, Item::bool(true), depth);

@@ -26,6 +26,8 @@ Additionally, it provides the vector types for boolean, float and integer:
 
 The default instructions for vector types are dup, equal, flush, shove, stackdepth, swap, yank and yankdup. 
 
+In a Push program the vectors are defined as BOOL[..], FLOAT[..] and INT[..]. For example, BOOL[1,0] defines a BOOLVECTOR with two elements. 
+
 
 ## Usage
 
