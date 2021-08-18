@@ -122,28 +122,6 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
 
 /////////////////////////////////////// BOOLVECTOR //////////////////////////////////////////
 
-/// BOOLVECTOR.AND: Pushes the result of applying element-wise AND of the top item to the
-/// second item on the BOOLVECTOR stack. It applies an offset to the indices of the top
-/// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
-/// range of the second item are ignored. If there is no overlap of indices the second item of
-/// the stack is pushed as a result.
-pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(mut bv) = push_state.bool_vector_stack.pop_vec(2) {
-        if let Some(offset) = push_state.int_stack.pop() {
-            // Loop through indices of second item
-            let scd_size = bv[0].values.len();
-            for i in 0..scd_size {
-                let ofs_idx = (i as i32 + offset) as usize;
-                if ofs_idx > scd_size - 1 {
-                    continue; // Out of bounds
-                }
-                bv[0].values[ofs_idx] &= bv[1].values[i];
-            }
-            push_state.bool_vector_stack.push(bv[0].clone());
-        }
-    }
-}
-
 /// BOOLVECTOR.GET: Copies the element at index i of the top BOOLVECTOR item to the BOOLEAN stack
 /// where i taken from the INTEGER stack.
 pub fn bool_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -166,10 +144,30 @@ pub fn bool_vector_set(push_state: &mut PushState, _instruction_cache: &Instruct
                 let i = index as usize;
                 if i > 0 && i < item_to_change.values.len() {
                     item_to_change.values[i] = new_element;
-                    println!("new element = {}", new_element);
-                    println!("item_to_change = {}", item_to_change);
                 }
             }
+        }
+    }
+}
+
+/// BOOLVECTOR.AND: Pushes the result of applying element-wise AND of the top item to the
+/// second item on the BOOLVECTOR stack. It applies an offset to the indices of the top
+/// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
+/// range of the second item are ignored. If there is no overlap of indices the second item of
+/// the stack is pushed as a result.
+pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut bv) = push_state.bool_vector_stack.pop_vec(2) {
+        if let Some(offset) = push_state.int_stack.pop() {
+            // Loop through indices of second item
+            let scd_size = bv[0].values.len();
+            for i in 0..scd_size {
+                let ofs_idx = (i as i32 + offset) as usize;
+                if ofs_idx > scd_size - 1 {
+                    continue; // Out of bounds
+                }
+                bv[0].values[ofs_idx] &= bv[1].values[i];
+            }
+            push_state.bool_vector_stack.push(bv[0].clone());
         }
     }
 }
@@ -298,6 +296,34 @@ pub fn bool_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Ins
 }
 
 /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
+
+/// INTVECTOR.GET: Copies the element at index i of the top INTVECTOR item to the INTEGER stack
+/// where i taken from the INTEGER stack.
+pub fn int_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        if let Some(element) = push_state.int_vector_stack.get(0) {
+            let i = index as usize;
+            if i > 0 && i < element.values.len() {
+                push_state.int_stack.push(element.values[i].clone());
+            }
+        }
+    }
+}
+
+/// INTVECTOR.SET: Replaces the ith element of the top INTVECTOR item by the second item of the
+/// INTVECTOR stack. The top item of the INTEGER stack is the index i.
+pub fn int_vector_set(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        if let Some(new_element) = push_state.int_stack.pop() {
+            if let Some(item_to_change) = push_state.int_vector_stack.get_mut(0) {
+                let i = index as usize;
+                if i > 0 && i < item_to_change.values.len() {
+                    item_to_change.values[i] = new_element;
+                }
+            }
+        }
+    }
+}
 
 /// INTVECTOR.ADD: Pushes the result of applying element-wise ADD of the top item to the
 /// second item on the INTVECTOR stack. It applies an offset to the indices of the top
@@ -467,6 +493,34 @@ pub fn int_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Inst
 }
 
 ////////////////////////////////////// FLOATVECTOR //////////////////////////////////////////
+
+/// FLOATVECTOR.GET: Copies the element at index i of the top FLOATVECTOR item to the FLOAT stack
+/// where i taken from the FLOAT stack.
+pub fn float_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        if let Some(element) = push_state.float_vector_stack.get(0) {
+            let i = index as usize;
+            if i > 0 && i < element.values.len() {
+                push_state.float_stack.push(element.values[i].clone());
+            }
+        }
+    }
+}
+
+/// FLOATVECTOR.SET: Replaces the ith element of the top FLOATVECTOR item by the second item of the
+/// INTVECTOR stack. The top item of the INTEGER stack is the index i.
+pub fn float_vector_set(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        if let Some(new_element) = push_state.float_stack.pop() {
+            if let Some(item_to_change) = push_state.float_vector_stack.get_mut(0) {
+                let i = index as usize;
+                if i > 0 && i < item_to_change.values.len() {
+                    item_to_change.values[i] = new_element;
+                }
+            }
+        }
+    }
+}
 
 /// FLOATVECTOR.ADD: Pushes the result of applying element-wise ADD of the top item to the
 /// second item on the FLOATVECTOR stack. It applies an offset to the indices of the top
@@ -976,6 +1030,34 @@ mod tests {
     }
 
     #[test]
+    fn int_vector_get_pushes_vector_element() {
+        let test_vec1 = IntVector::new(vec![1, 1, 1, 0, 1, 1, 1, 1]);
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(test_vec1);
+        test_state.int_stack.push(3);
+        int_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.pop().unwrap(), 0);
+        // Invalid index results in noop
+        test_state.int_stack.push(15);
+        bool_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.size(), 0);
+    }
+
+    #[test]
+    fn int_vector_set_modifies_vector() {
+        let test_vec1 = IntVector::new(vec![1, 1, 1, 1, 1, 1, 1, 1]);
+        let mut test_state = PushState::new();
+        test_state.int_vector_stack.push(test_vec1);
+        test_state.int_stack.push(12); // Second item: new element
+        test_state.int_stack.push(5); // Top item: index
+        int_vector_set(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![1, 1, 1, 1, 1, 12, 1, 1])
+        );
+    }
+
+    #[test]
     fn int_vector_add_with_different_overlaps() {
         let test_vec1 = IntVector::new(vec![1, 1, 1, 1, 0, 0, 0, 0]);
         let test_vec2 = IntVector::new(vec![1, 0, 1, 0, 1, 0, 1, 0]);
@@ -1179,6 +1261,35 @@ mod tests {
         let fv = FloatVector::new(vec![1.2, 3.4, -4.5]);
         assert_eq!(fv.to_string(), "[1.2,3.4,-4.5]");
     }
+
+    #[test]
+    fn float_vector_get_pushes_vector_element() {
+        let test_vec1 = FloatVector::new(vec![1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0]);
+        let mut test_state = PushState::new();
+        test_state.float_vector_stack.push(test_vec1);
+        test_state.int_stack.push(3);
+        float_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.float_stack.pop().unwrap(), 0.0);
+        // Invalid index results in noop
+        test_state.int_stack.push(15);
+        float_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.float_stack.size(), 0);
+    }
+
+    #[test]
+    fn float_vector_set_modifies_vector() {
+        let test_vec1 = FloatVector::new(vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]);
+        let mut test_state = PushState::new();
+        test_state.float_vector_stack.push(test_vec1);
+        test_state.float_stack.push(12.0);
+        test_state.int_stack.push(5); // Top item: index
+        float_vector_set(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.pop().unwrap(),
+            FloatVector::new(vec![1.0, 1.0, 1.0, 1.0, 1.0, 12.0, 1.0, 1.0])
+        );
+    }
+
     #[test]
     fn float_vector_add_with_partial() {
         let test_vec1 = FloatVector::new(vec![1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
