@@ -105,18 +105,194 @@ impl PartialEq for FloatVector {
 
 pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
-        String::from("BOOLVECTOR.="),
+        String::from("BOOLVECTOR.GET"),
+        Instruction::new(bool_vector_get),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.SET"),
+        Instruction::new(bool_vector_set),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.AND"),
+        Instruction::new(bool_vector_and),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.OR"),
+        Instruction::new(bool_vector_or),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.NOT"),
+        Instruction::new(bool_vector_not),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.DEFINE"),
+        Instruction::new(bool_vector_define),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.DUP"),
+        Instruction::new(bool_vector_dup),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.EQUAL"),
         Instruction::new(bool_vector_equal),
     );
-
     map.insert(
-        String::from("INTVECTOR.="),
-        Instruction::new(int_vector_equal),
+        String::from("BOOLVECTOR.FLUSH"),
+        Instruction::new(bool_vector_flush),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.RAND"),
+        Instruction::new(bool_vector_rand),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.SHOVE"),
+        Instruction::new(bool_vector_shove),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.SWAP"),
+        Instruction::new(bool_vector_swap),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.STACKDEPTH"),
+        Instruction::new(bool_vector_stack_depth),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.YANK"),
+        Instruction::new(bool_vector_yank),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.YANKDUP"),
+        Instruction::new(bool_vector_yank_dup),
     );
 
     map.insert(
-        String::from("FLOATVECTOR.="),
+        String::from("INTVECTOR.GET"),
+        Instruction::new(int_vector_get),
+    );
+    map.insert(
+        String::from("INTVECTOR.SET"),
+        Instruction::new(int_vector_set),
+    );
+    map.insert(
+        String::from("INTVECTOR.ADD"),
+        Instruction::new(int_vector_add),
+    );
+    map.insert(
+        String::from("INTVECTOR.SUBTRACT"),
+        Instruction::new(int_vector_subtract),
+    );
+    map.insert(
+        String::from("INTVECTOR.MULTIPLY"),
+        Instruction::new(int_vector_multiply),
+    );
+    map.insert(
+        String::from("INTVECTOR.DIVIDE"),
+        Instruction::new(int_vector_divide),
+    );
+    map.insert(
+        String::from("INTVECTOR.DEFINE"),
+        Instruction::new(int_vector_define),
+    );
+    map.insert(
+        String::from("INTVECTOR.DUP"),
+        Instruction::new(int_vector_dup),
+    );
+    map.insert(
+        String::from("INTVECTOR.EQUAL"),
+        Instruction::new(int_vector_equal),
+    );
+    map.insert(
+        String::from("INTVECTOR.FLUSH"),
+        Instruction::new(int_vector_flush),
+    );
+    map.insert(
+        String::from("INTVECTOR.RAND"),
+        Instruction::new(int_vector_rand),
+    );
+    map.insert(
+        String::from("INTVECTOR.SHOVE"),
+        Instruction::new(int_vector_shove),
+    );
+    map.insert(
+        String::from("INTVECTOR.SWAP"),
+        Instruction::new(int_vector_swap),
+    );
+    map.insert(
+        String::from("INTVECTOR.STACKDEPTH"),
+        Instruction::new(int_vector_stack_depth),
+    );
+    map.insert(
+        String::from("INTVECTOR.YANK"),
+        Instruction::new(int_vector_yank),
+    );
+    map.insert(
+        String::from("INTVECTOR.YANKDUP"),
+        Instruction::new(int_vector_yank_dup),
+    );
+
+    map.insert(
+        String::from("FLOATVECTOR.GET"),
+        Instruction::new(float_vector_get),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.SET"),
+        Instruction::new(float_vector_set),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.ADD"),
+        Instruction::new(float_vector_add),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.SUBTRACT"),
+        Instruction::new(float_vector_subtract),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.MULTIPLY"),
+        Instruction::new(float_vector_multiply),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.DIVIDE"),
+        Instruction::new(float_vector_divide),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.DEFINE"),
+        Instruction::new(float_vector_define),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.DUP"),
+        Instruction::new(float_vector_dup),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.EQUAL"),
         Instruction::new(float_vector_equal),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.FLUSH"),
+        Instruction::new(float_vector_flush),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.RAND"),
+        Instruction::new(float_vector_rand),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.SHOVE"),
+        Instruction::new(float_vector_shove),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.SWAP"),
+        Instruction::new(float_vector_swap),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.STACKDEPTH"),
+        Instruction::new(float_vector_stack_depth),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.YANK"),
+        Instruction::new(float_vector_yank),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.YANKDUP"),
+        Instruction::new(float_vector_yank_dup),
     );
 }
 
@@ -452,6 +628,19 @@ pub fn int_vector_flush(push_state: &mut PushState, _instruction_cache: &Instruc
     push_state.int_vector_stack.flush();
 }
 
+/// INTVECTOR.RAND: Pushes a newly generated random INTVECTOR. The size, min and max values
+/// taken from the INTEGER stack in that order. If the size is <0 or max < min this act as a NOOP.
+pub fn int_vector_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(params) = push_state.int_stack.pop_vec(3) {
+        // 1 params[2] -> size
+        // 2 params[1] -> max
+        // 3 params[0] -> min
+        if let Some(rbvval) = CodeGenerator::random_int_vector(params[2], params[0], params[1]) {
+            push_state.int_vector_stack.push(rbvval);
+        }
+    }
+}
+
 /// INTVECTOR.SHOVE: Inserts the second INTEGER "deep" in the stack, at the position indexed by the
 /// top INTEGER. The index position is calculated after the index is removed.
 pub fn int_vector_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -647,6 +836,23 @@ fn float_vector_equal(push_state: &mut PushState, _instruction_cache: &Instructi
 /// FLOATVECTOR.FLUSH: Empties the FLOATVECTOR stack.
 pub fn float_vector_flush(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.float_vector_stack.flush();
+}
+
+/// FLOATVECTOR.RAND: Pushes a newly generated random INTVECTOR. The size is taken from the
+/// INTEGER stack while the parameters for mean and standard deviation are the first (top) and
+/// second item on the FLOAT stack. If size < 0 or standard deviation < 0 this act as a NOOP.
+pub fn float_vector_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size) = push_state.int_stack.pop() {
+        if let Some(gauss_params) = push_state.float_stack.pop_vec(2) {
+            // 1 gauss_params[1]: mean
+            // 2 gauss_params[0]: stddev
+            if let Some(rfvval) =
+                CodeGenerator::random_float_vector(size, gauss_params[1], gauss_params[0])
+            {
+                push_state.float_vector_stack.push(rfvval);
+            }
+        }
+    }
 }
 
 /// FLOATVECTOR.SHOVE: Inserts the second FLOATVECTOR "deep" in the stack, at the position indexed by the
@@ -1175,6 +1381,30 @@ mod tests {
     }
 
     #[test]
+    fn int_vector_rand_pushes_new_item() {
+        let mut test_state = PushState::new();
+        let test_size = 92;
+        let test_min = -7;
+        let test_max = 77;
+        test_state.int_stack.push(test_min);
+        test_state.int_stack.push(test_max);
+        test_state.int_stack.push(test_size);
+        int_vector_rand(&mut test_state, &icache());
+        if let Some(riv) = test_state.int_vector_stack.pop() {
+            assert_eq!(riv.values.len(), test_size as usize);
+            assert_eq!(
+                riv.values
+                    .iter()
+                    .filter(|&n| (*n >= test_min && *n <= test_max) == true)
+                    .count(),
+                test_size as usize
+            );
+        } else {
+            assert!(false, "Expected to find bool vector");
+        }
+    }
+
+    #[test]
     fn int_vector_shove_inserts_at_right_position() {
         let mut test_state = PushState::new();
         test_state.int_vector_stack.push(IntVector::new(vec![4]));
@@ -1414,6 +1644,26 @@ mod tests {
             test_state.float_vector_stack.to_string(),
             "1:[2]; 2:[3]; 3:[1]; 4:[4];"
         );
+    }
+
+    #[test]
+    fn float_vector_rand_pushes_new_item() {
+        let mut test_state = PushState::new();
+        let test_size = 1000;
+        let test_mean = -7.0;
+        let test_stddev = 0.77;
+        test_state.int_stack.push(test_size);
+        test_state.float_stack.push(test_stddev);
+        test_state.float_stack.push(test_mean);
+        float_vector_rand(&mut test_state, &icache());
+        if let Some(fvs) = test_state.float_vector_stack.pop() {
+            assert_eq!(fvs.values.len(), test_size as usize);
+            let sum = fvs.values.iter().sum::<f32>();
+            let count = fvs.values.len() as f32;
+            assert!(f32::abs(sum / count - test_mean) < test_stddev);
+        } else {
+            assert!(false, "Expected to find bool vector");
+        }
     }
 
     #[test]

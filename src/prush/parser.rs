@@ -1,5 +1,5 @@
 use crate::prush::instructions::InstructionSet;
-use crate::prush::item::{Item, PushType};
+use crate::prush::item::Item;
 use crate::prush::stack::PushStack;
 use crate::prush::state::PushState;
 

@@ -7,6 +7,7 @@ use crate::prush::execution::*;
 use crate::prush::float::*;
 use crate::prush::integer::*;
 use crate::prush::name::*;
+use crate::prush::vector::*;
 
 // Instructions
 //
@@ -38,6 +39,7 @@ impl InstructionSet {
         load_float_instructions(&mut self.map);
         load_int_instructions(&mut self.map);
         load_name_instructions(&mut self.map);
+        load_vector_instructions(&mut self.map);
     }
 
     /// Create a snapshot of the current instruction names
@@ -54,7 +56,7 @@ impl InstructionSet {
     /// under the given name.
     pub fn is_instruction(&self, name: &str) -> bool {
         match self.map.get(name) {
-            Some(i) => true,
+            Some(_i) => true,
             None => false,
         }
     }

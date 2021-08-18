@@ -95,6 +95,22 @@ impl CodeGenerator {
         }
     }
 
+    /// Returns a random integer vector. Its elements are independent and identically distributed
+    /// random variables drawn from the normal distribution with given min and max values.
+    pub fn random_int_vector(size: i32, min: i32, max: i32) -> Option<IntVector> {
+        if size < 0 || max < min {
+            None
+        } else {
+            let mut int_vector = Vec::with_capacity(size as usize);
+            // mean 2, standard deviation 3
+            let mut r = rand::thread_rng();
+            for _i in 0..size {
+                int_vector.push(r.gen_range(min..max));
+            }
+            Some(IntVector::new(int_vector))
+        }
+    }
+
     /// Returns random float value within the bounds given by configuration
     pub fn random_float(push_state: &PushState) -> Option<f32> {
         let mut rng = rand::thread_rng();
@@ -243,10 +259,21 @@ mod tests {
         if let Some(rand_vector) =
             CodeGenerator::random_float_vector(test_size, test_mean, test_stddev)
         {
-            println!("Rand Vector = {}", rand_vector);
             assert_eq!(rand_vector.values.len(), test_size as usize);
         } else {
-            assert!(false, "Expected to get bool vector");
+            assert!(false, "Expected to get int vector");
+        }
+    }
+
+    #[test]
+    fn random_int_vector_is_generated() {
+        let test_size = 100;
+        let test_min = 5;
+        let test_max = 11;
+        if let Some(rand_vector) = CodeGenerator::random_int_vector(test_size, test_min, test_max) {
+            assert_eq!(rand_vector.values.len(), test_size as usize);
+        } else {
+            assert!(false, "Expected to get int vector");
         }
     }
 
