@@ -1,6 +1,6 @@
 ## Prush
 
-Prush is Rust based interpreter for Push programs.
+Prush is a Rust based interpreter for Push programs.
 
 ## What is Push?
 
@@ -24,7 +24,9 @@ Additionally, it provides the vector types for boolean, float and integer:
 * FLOATVECTOR
 * INTVECTOR
 
-The default instructions for vector types are dup, equal, flush, shove, stackdepth, swap, yank and yankdup. 
+The default instructions for vector types are 'dup', 'equal', 'flush', 'get', 'set', 'shove', 'stackdepth', 'rand', 'swap', 'yank' and 'yankdup'. Additionally, the instruction set contains 'add', 'subtract', 'multiply' and 'divide' for float and integer vectors, as well as 'and', 'or' and 'not' for boolean vectors.
+
+Vector lengths do not have to match. Arithmetic operatios are executed element-wise on the overlapping parts. An offset parameter shifts the top vector on the stack to create the desired overlap. 
 
 In a Push program the vectors are defined as BOOL[..], FLOAT[..] and INT[..]. For example, BOOL[1,0] defines a BOOLVECTOR with two elements. 
 
