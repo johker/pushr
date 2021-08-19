@@ -6,6 +6,7 @@ use crate::prush::vector::{BoolVector, FloatVector, IntVector};
 
 pub struct PushParser {}
 
+#[derive(Debug)]
 pub enum VectorType {
     Bool,
     Int,
@@ -118,7 +119,7 @@ impl<'a> PushParser {
                 PushParser::parse_vector(
                     push_state,
                     depth,
-                    &VectorType::Int,
+                    &VectorType::Float,
                     &token[6..token.len() - 1],
                 );
                 continue;
@@ -127,7 +128,7 @@ impl<'a> PushParser {
                 PushParser::parse_vector(
                     push_state,
                     depth,
-                    &VectorType::Int,
+                    &VectorType::Bool,
                     &token[5..token.len() - 1],
                 );
                 continue;
@@ -234,5 +235,31 @@ mod tests {
         assert_eq!(
             push_state.exec_stack.to_string(),
             "1:List: 1:InstructionMeta(CODE.QUOTE); 2:List: 1:InstructionMeta(CODE.DUP); 2:InstructionMeta(INTEGER.DUP); 3:Literal(1); 4:InstructionMeta(INTEGER.-); 5:InstructionMeta(CODE.DO); 6:InstructionMeta(INTEGER.*);; 3:InstructionMeta(CODE.QUOTE); 4:List: 1:InstructionMeta(INTEGER.POP); 2:Literal(1);; 5:InstructionMeta(INTEGER.DUP); 6:Literal(2); 7:InstructionMeta(INTEGER.<); 8:InstructionMeta(CODE.IF);;");
+    }
+
+    #[test]
+    pub fn parse_different_vector_types_with_correct_syntax() {
+        let input = "( BOOL[1,1,1,0,0] INT[2,345,-5] FLOAT[3.3,1.2,4.1] )";
+        let mut push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        PushParser::parse_program(&mut push_state, &instruction_set, &input);
+        assert_eq!(
+            push_state.exec_stack.to_string(),
+            "1:List: 1:Literal([1,1,1,0,0]); 2:Literal([2,345,-5]); 3:Literal([3.3,1.2,4.1]);;"
+        );
+    }
+
+    #[test]
+    pub fn parse_different_vector_types_with_wrong_syntax() {
+        let input = "( BOOL[1,1,2,0,0] INT[2,345,-5.0] FLOAT[3.3,NAN,4.1] INT[1,2,3] )";
+        let mut push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        PushParser::parse_program(&mut push_state, &instruction_set, &input);
+        assert_eq!(
+            push_state.exec_stack.to_string(),
+            "1:List: 1:Literal([1,2,3]);;"
+        );
     }
 }
