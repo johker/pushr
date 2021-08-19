@@ -6,7 +6,7 @@ edition = "2018"
 description = "Pushr is a Rust based interpreter for Push programs."
 repository = "https://github.com/johker/prush/"
 license = "MIT"
-keywords = ["push", "evolutionary computation", "stack-based execution architecture"]
+keywords = ["push", "evolutionary", "stack-based", "genetic", "interpreter"]
 readme = "README.md"
 categories = ["compilers"]
 
