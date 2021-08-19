@@ -1,8 +1,8 @@
-use crate::prush::instructions::InstructionSet;
-use crate::prush::item::Item;
-use crate::prush::stack::PushStack;
-use crate::prush::state::PushState;
-use crate::prush::vector::{BoolVector, FloatVector, IntVector};
+use crate::push::instructions::InstructionSet;
+use crate::push::item::Item;
+use crate::push::stack::PushStack;
+use crate::push::state::PushState;
+use crate::push::vector::{BoolVector, FloatVector, IntVector};
 
 pub struct PushParser {}
 

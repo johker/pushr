@@ -1,7 +1,7 @@
 use std::fmt;
 
-use crate::prush::stack::PushStack;
-use crate::prush::vector::{BoolVector, FloatVector, IntVector};
+use crate::push::stack::PushStack;
+use crate::push::vector::{BoolVector, FloatVector, IntVector};
 
 // Items
 #[allow(dead_code)]

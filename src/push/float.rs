@@ -1,8 +1,8 @@
-use crate::prush::instructions::Instruction;
-use crate::prush::instructions::InstructionCache;
-use crate::prush::item::Item;
-use crate::prush::random::CodeGenerator;
-use crate::prush::state::PushState;
+use crate::push::instructions::Instruction;
+use crate::push::instructions::InstructionCache;
+use crate::push::item::Item;
+use crate::push::random::CodeGenerator;
+use crate::push::state::PushState;
 use std::collections::HashMap;
 
 /// Floating-point numbers (that is, numbers with decimal points).

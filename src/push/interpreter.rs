@@ -1,6 +1,6 @@
-use crate::prush::instructions::InstructionSet;
-use crate::prush::item::{Item, PushType};
-use crate::prush::state::PushState;
+use crate::push::instructions::InstructionSet;
+use crate::push::item::{Item, PushType};
+use crate::push::state::PushState;
 
 pub struct PushInterpreter {}
 
@@ -64,7 +64,7 @@ impl PushInterpreter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prush::parser::PushParser;
+    use crate::push::parser::PushParser;
 
     #[test]
     pub fn copy_simple_program_to_code_stack() {

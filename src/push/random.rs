@@ -1,9 +1,9 @@
 extern crate names;
 
-use crate::prush::instructions::InstructionCache;
-use crate::prush::item::Item;
-use crate::prush::state::PushState;
-use crate::prush::vector::{BoolVector, FloatVector, IntVector};
+use crate::push::instructions::InstructionCache;
+use crate::push::item::Item;
+use crate::push::state::PushState;
+use crate::push::vector::{BoolVector, FloatVector, IntVector};
 use names::Generator;
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::Rng;
@@ -229,7 +229,7 @@ impl CodeGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prush::instructions::InstructionSet;
+    use crate::push::instructions::InstructionSet;
 
     #[test]
     fn random_bool_vector_is_generated() {

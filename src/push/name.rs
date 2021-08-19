@@ -1,7 +1,7 @@
-use crate::prush::instructions::Instruction;
-use crate::prush::instructions::InstructionCache;
-use crate::prush::random::CodeGenerator;
-use crate::prush::state::PushState;
+use crate::push::instructions::Instruction;
+use crate::push::instructions::InstructionCache;
+use crate::push::random::CodeGenerator;
+use crate::push::state::PushState;
 use std::collections::HashMap;
 
 /// For creating bindings between symbolic identifiers and values of various types; that is,
@@ -128,7 +128,7 @@ pub fn name_yank_dup(push_state: &mut PushState, _instruction_cache: &Instructio
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prush::item::Item;
+    use crate::push::item::Item;
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])

@@ -1,11 +1,11 @@
 [package]
-name = "prush"
-version = "1.0.0"
+name = "pushr"
+version = "0.1.0"
 authors = ["johker <johannes.kern@zoho.com>"]
 edition = "2018"
-description = "Prush is a Rust based interpreter for Push programs."
+description = "Pushr is a Rust based interpreter for Push programs."
 repository = "https://github.com/johker/prush/"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 keywords = ["push", "evolutionary computation", "stack-based execution architecture"]
 readme = "README.md"
 categories = ["compilers"]

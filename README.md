@@ -1,6 +1,6 @@
-## Prush
+## Pushr
 
-Prush is a Rust based interpreter for Push programs.
+Pushr is a Rust based interpreter for Push programs.
 
 ## What is Push?
 

@@ -1,7 +1,7 @@
-use crate::prush::instructions::Instruction;
-use crate::prush::instructions::InstructionCache;
-use crate::prush::item::{Item, PushType};
-use crate::prush::state::PushState;
+use crate::push::instructions::Instruction;
+use crate::push::instructions::InstructionCache;
+use crate::push::item::{Item, PushType};
+use crate::push::state::PushState;
 use rand::Rng;
 use std::collections::HashMap;
 
