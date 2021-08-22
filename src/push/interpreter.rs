@@ -20,7 +20,6 @@ impl PushInterpreter {
         let icache = instruction_set.cache();
         loop {
             // TODO: Stop conditions here
-            println!("{}", push_state.to_string());
             match push_state.exec_stack.pop() {
                 None => break,
                 Some(Item::Literal { push_type }) => match push_type {
@@ -46,7 +45,6 @@ impl PushInterpreter {
                 }
                 Some(Item::InstructionMeta { name }) => {
                     if let Some(instruction) = instruction_set.get_instruction(&name) {
-                        println!(">> {}", name);
                         (instruction.execute)(push_state, &icache);
                     }
                 }

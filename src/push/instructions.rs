@@ -29,7 +29,7 @@ impl InstructionSet {
     }
 
     /// Load the default instrcution set for the stack types
-    /// bool, int, float, code, exec, name and sdr
+    /// bool, int, float, code, exec, name and vector types
     pub fn load(&mut self) {
         self.map
             .insert(String::from("NOOP"), Instruction::new(noop));

@@ -96,7 +96,7 @@ impl CodeGenerator {
     }
 
     /// Returns a random integer vector. Its elements are independent and identically distributed
-    /// random variables drawn from the normal distribution with given min and max values.
+    /// random variables drawn from the uniform distribution with given min and max values.
     pub fn random_int_vector(size: i32, min: i32, max: i32) -> Option<IntVector> {
         if size < 0 || max < min {
             None
