@@ -166,6 +166,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     );
 
     map.insert(
+        String::from("INTVECTOR.BOOLINDEX"),
+        Instruction::new(int_vector_get),
+    );
+    map.insert(
         String::from("INTVECTOR.GET"),
         Instruction::new(int_vector_get),
     );
@@ -472,6 +476,23 @@ pub fn bool_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Ins
 }
 
 /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
+
+/// INTVECTOR.BOOLINDEX: Pushes an INTVECTOR item that contains the indices of all true values
+/// of the top BOOLVECTOR item. For example, this instruction pushes INT[0,2] if the top item
+/// on the BOOLVECTOR stack is BOOL[1,0,1]. The BOOLVECTOR item is popped.
+pub fn int_vector_bool_index(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(bvval) = push_state.bool_vector_stack.pop() {
+        let mut index_vector = vec![];
+        for (i, bval) in bvval.values.iter().enumerate() {
+            if *bval {
+                index_vector.push(i as i32);
+            }
+        }
+        push_state
+            .int_vector_stack
+            .push(IntVector::new(index_vector));
+    }
+}
 
 /// INTVECTOR.GET: Copies the element at index i of the top INTVECTOR item to the INTEGER stack
 /// where i taken from the INTEGER stack.
@@ -1233,6 +1254,19 @@ mod tests {
     fn int_vector_prints_values() {
         let iv = IntVector::new(vec![1, 2, -3]);
         assert_eq!(iv.to_string(), "[1,2,-3]");
+    }
+
+    #[test]
+    fn int_vector_bool_index_pushes_indices_of_active_bits() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::from_int_array(vec![1, 0, 0, 1, 0]));
+        int_vector_bool_index(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![0, 3])
+        );
     }
 
     #[test]

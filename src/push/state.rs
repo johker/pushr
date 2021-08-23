@@ -45,15 +45,23 @@ impl PushState {
 
 impl fmt::Display for PushState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut nb = "".to_string();
+        for (key, value) in &self.name_bindings {
+            nb += &format!("{} => {};", key, value)[..];
+        }
         write!(
             f,
-            "> BOOL  : {}\n> CODE  : {}\n> EXEC  : {}\n> FLOAT : {}\n> INT   : {}\n> NAME  : {}\n",
+            "> BOOL  : {}\n> CODE  : {}\n> EXEC  : {}\n> FLOAT : {}\n> INT   : {}\n> BVEC  : {}\n>FVEC  : {}\n>IVEC  : {}\n> NAME  : {}\n> IDS   : {}\n",
             self.bool_stack.to_string(),
             self.code_stack.to_string(),
             self.exec_stack.to_string(),
             self.float_stack.to_string(),
             self.int_stack.to_string(),
-            self.name_stack.to_string()
+            self.bool_vector_stack.to_string(),
+            self.float_vector_stack.to_string(),
+            self.int_vector_stack.to_string(),
+            self.name_stack.to_string(),
+            nb
         )
     }
 }
