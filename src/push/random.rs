@@ -60,7 +60,10 @@ impl CodeGenerator {
         } else {
             let mut rng = rand::thread_rng();
             // default = false when less than half of the bits should be active
+            // sparcity = portion of non-default values
             let default = sparsity > 0.5;
+            let sparsity = (100.0 * f32::min(sparsity, 1.0 - sparsity)).round() / 100.0;
+            println!("default = {}, sparsity = {}", default, sparsity);
             let mut bool_vector = vec![default; size as usize];
             let num_active_bits = (sparsity * size as f32) as i32;
             for _i in 1..num_active_bits + 1 {
@@ -85,7 +88,6 @@ impl CodeGenerator {
             None
         } else {
             let mut float_vector = Vec::with_capacity(size as usize);
-            // mean 2, standard deviation 3
             let mut r = rand::thread_rng();
             let n = Normal::new(mean, stddev).unwrap();
             for _i in 0..size {
@@ -234,20 +236,21 @@ mod tests {
     #[test]
     fn random_bool_vector_is_generated() {
         let test_size = 100;
-        let test_sparsity = 0.12;
-        if let Some(rand_bool_vector) = CodeGenerator::random_bool_vector(test_size, test_sparsity)
-        {
-            assert_eq!(rand_bool_vector.values.len(), test_size as usize);
-            assert_eq!(
-                rand_bool_vector
-                    .values
-                    .iter()
-                    .filter(|&n| *n == true)
-                    .count(),
-                (test_sparsity * test_size as f32) as usize
-            );
-        } else {
-            assert!(false, "Expected to get bool vector");
+        let test_sparsity = vec![0.0, 0.12, 0.5, 0.85, 1.0];
+        for test_sp in test_sparsity {
+            if let Some(rand_bool_vector) = CodeGenerator::random_bool_vector(test_size, test_sp) {
+                assert_eq!(rand_bool_vector.values.len(), test_size as usize);
+                assert_eq!(
+                    rand_bool_vector
+                        .values
+                        .iter()
+                        .filter(|&n| *n == true)
+                        .count(),
+                    (test_sp * test_size as f32) as usize
+                );
+            } else {
+                assert!(false, "Expected to get bool vector");
+            }
         }
     }
 

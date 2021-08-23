@@ -1684,19 +1684,23 @@ mod tests {
     fn float_vector_rand_pushes_new_item() {
         let mut test_state = PushState::new();
         let test_size = 1000;
-        let test_mean = -7.0;
-        let test_stddev = 0.77;
-        test_state.int_stack.push(test_size);
-        test_state.float_stack.push(test_stddev);
-        test_state.float_stack.push(test_mean);
-        float_vector_rand(&mut test_state, &icache());
-        if let Some(fvs) = test_state.float_vector_stack.pop() {
-            assert_eq!(fvs.values.len(), test_size as usize);
-            let sum = fvs.values.iter().sum::<f32>();
-            let count = fvs.values.len() as f32;
-            assert!(f32::abs(sum / count - test_mean) < test_stddev);
-        } else {
-            assert!(false, "Expected to find bool vector");
+        let test_mean = vec![-7.0, 0.0, 12.0];
+        let test_stddev = vec![0.77, 1.23];
+        for tm in &test_mean {
+            for ts in &test_stddev {
+                test_state.int_stack.push(test_size);
+                test_state.float_stack.push(*ts);
+                test_state.float_stack.push(*tm);
+                float_vector_rand(&mut test_state, &icache());
+                if let Some(fvs) = test_state.float_vector_stack.pop() {
+                    assert_eq!(fvs.values.len(), test_size as usize);
+                    let sum = fvs.values.iter().sum::<f32>();
+                    let count = fvs.values.len() as f32;
+                    assert!(f32::abs(sum / count - tm) < *ts);
+                } else {
+                    assert!(false, "Expected to find bool vector");
+                }
+            }
         }
     }
 
