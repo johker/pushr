@@ -1,6 +1,6 @@
 [package]
 name = "pushr"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["johker <johannes.kern@zoho.com>"]
 edition = "2018"
 description = "Pushr is a Rust based interpreter for Push programs."
