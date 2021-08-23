@@ -167,7 +167,7 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
 
     map.insert(
         String::from("INTVECTOR.BOOLINDEX"),
-        Instruction::new(int_vector_get),
+        Instruction::new(int_vector_bool_index),
     );
     map.insert(
         String::from("INTVECTOR.GET"),
