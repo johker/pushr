@@ -46,8 +46,11 @@ impl PushState {
 impl fmt::Display for PushState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut nb = "".to_string();
-        for (key, value) in &self.name_bindings {
-            nb += &format!("{} => {};", key, value)[..];
+        let mut sorted: Vec<_> = self.name_bindings.iter().collect();
+        sorted.sort_by_key(|a| a.0);
+
+        for (key, value) in &sorted {
+            nb += &format!("{} => {}; ", key, value)[..];
         }
         write!(
             f,
@@ -63,5 +66,23 @@ impl fmt::Display for PushState {
             self.name_stack.to_string(),
             nb
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn push_state_prints_name_bindings_in_alphabetical_order() {
+        let mut test_state = PushState::new();
+        test_state.name_bindings.insert(
+            "Var2".to_string(),
+            Item::instruction("INTVECTOR.BOOLINDEX".to_string()),
+        );
+        test_state
+            .name_bindings
+            .insert("Var1".to_string(), Item::bool(true));
+        assert_eq!(test_state.to_string(), "> BOOL  : \n> CODE  : \n> EXEC  : \n> FLOAT : \n> INT   : \n> BVEC  : \n>FVEC  : \n>IVEC  : \n> NAME  : \n> IDS   : Var1 => Literal(true); Var2 => InstructionMeta(INTVECTOR.BOOLINDEX); \n")
     }
 }

@@ -15,7 +15,6 @@ impl PushInterpreter {
 
     /// Copies execution stack to code stac and recursively runs execution stack
     pub fn run(push_state: &mut PushState, instruction_set: &mut InstructionSet) {
-        // TODO: Make static / Call run_stack
         PushInterpreter::copy_to_code_stack(push_state);
         let icache = instruction_set.cache();
         loop {
