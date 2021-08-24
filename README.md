@@ -18,7 +18,7 @@ This implementation supports all Push3 instructions for the types desribed in th
 * INTEGER
 * NAME
 
-Additionally, it provides the vector types for boolean, float and integer:
+It also provides the vector types for boolean, float and integer:
 
 * BOOLVECTOR
 * FLOATVECTOR
@@ -26,9 +26,16 @@ Additionally, it provides the vector types for boolean, float and integer:
 
 The default instructions for vector types are 'dup', 'equal', 'flush', 'get', 'set', 'shove', 'stackdepth', 'rand', 'swap', 'yank' and 'yankdup'. Additionally, the instruction set contains 'add', 'subtract', 'multiply' and 'divide' for float and integer vectors, as well as 'and', 'or' and 'not' for boolean vectors.
 
-Vector lengths do not have to match. Arithmetic operations are executed element-wise on the overlapping parts. An offset parameter shifts the top vector on the stack to create the desired overlap. 
+For vector instructions the following rules apply: 
 
-In a Push program the vectors are defined as BOOL[..], FLOAT[..] and INT[..]. For example, BOOL[1,0] defines a BOOLVECTOR with two elements. 
+* The 'rand' instruction is interpreted differently for boolean, float and integer vectors: 
+   - BOOLVECTOR.RAND randomly distributes (sparsity * n) 'true' values acrross an array of length n where sparsity is the percentage of active bits.
+   - INTVECTOR.RAND draws n samples from the uniform distribution U(min,max).
+   - FLOATVECTOR.RAND draws n samples form the normal distribution N(mu,sig).
+
+* Vector lengths do not have to match. Arithmetic operations are executed element-wise on the overlapping parts. An offset parameter shifts the top vector on the stack to create the desired overlap. 
+
+* In a Push program the vectors are defined as BOOL[..], FLOAT[..] and INT[..]. For example, BOOL[1,0] defines a BOOLVECTOR with two elements. 
 
 
 ## Usage
