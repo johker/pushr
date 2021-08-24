@@ -423,12 +423,12 @@ pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &Instru
 }
 
 /// BOOLVECTOR.RAND: Pushes a newly generated random BOOLVECTOR. The size is taken from the INTEGER
-/// stack, the sparcity from the FLOAT stack. If the size is <0 or the sparcity not in [0,1] this
+/// stack, the sparsity from the FLOAT stack. If the size is <0 or the sparcity not in [0,1] this
 /// acts as a NOOP.
 pub fn bool_vector_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(size) = push_state.int_stack.pop() {
-        if let Some(sparcity) = push_state.float_stack.pop() {
-            if let Some(rbvval) = CodeGenerator::random_bool_vector(size, sparcity) {
+        if let Some(sparsity) = push_state.float_stack.pop() {
+            if let Some(rbvval) = CodeGenerator::random_bool_vector(size, sparsity) {
                 push_state.bool_vector_stack.push(rbvval);
             }
         }
