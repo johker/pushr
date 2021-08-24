@@ -12,7 +12,12 @@ pub struct PushConfiguration {
     pub min_random_integer: i32,
     // The maximum number of points that will be executed in a single top-level call to the
     // interpreter.
-    pub evalpush_limit: i32,
+    pub eval_push_limit: i32,
+    // The maximum time in milliseconds for the execution of a single top-level call to the interpreter
+    pub eval_time_limit: u64,
+    // Max number of elements that can be added to a PushState at any given
+    // step of program execution. If exceeded, program terminates.
+    pub growth_cap: usize,
     // The probability that the selection of the ephemeral
     // random NAME constant for inclusion in randomly generated code will produce a new name
     // (rather than a name that was previously generated).
@@ -31,7 +36,9 @@ impl PushConfiguration {
             min_random_float: -1.0,
             max_random_integer: 10,
             min_random_integer: -10,
-            evalpush_limit: 1000,
+            eval_push_limit: 1000,
+            eval_time_limit: 5000,
+            growth_cap: 500,
             new_erc_name_probability: 0.001,
             max_points_in_random_expressions: 25,
             max_points_in_program: 100,

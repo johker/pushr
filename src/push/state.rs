@@ -41,6 +41,17 @@ impl PushState {
             quote_name: false,
         }
     }
+    pub fn size(&self) -> usize {
+        self.bool_stack.size()
+            + self.float_stack.size()
+            + self.int_stack.size()
+            + self.name_stack.size()
+            + self.code_stack.size()
+            + self.exec_stack.size()
+            + self.bool_vector_stack.size()
+            + self.float_vector_stack.size()
+            + self.int_vector_stack.size()
+    }
 }
 
 impl fmt::Display for PushState {

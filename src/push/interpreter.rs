@@ -1,6 +1,14 @@
-use crate::push::instructions::InstructionSet;
+use crate::push::instructions::{InstructionCache, InstructionSet};
 use crate::push::item::{Item, PushType};
 use crate::push::state::PushState;
+use std::time::{Duration, Instant};
+
+pub enum PushInterpreterState {
+    Normal,
+    StepLimitExceeded,
+    TimeLimitExceeded,
+    GrowthCapExceeded,
+}
 
 pub struct PushInterpreter {}
 
@@ -13,47 +21,70 @@ impl PushInterpreter {
         }
     }
 
-    /// Copies execution stack to code stac and recursively runs execution stack
-    pub fn run(push_state: &mut PushState, instruction_set: &mut InstructionSet) {
-        PushInterpreter::copy_to_code_stack(push_state);
-        let icache = instruction_set.cache();
-        loop {
-            // TODO: Stop conditions here
-            match push_state.exec_stack.pop() {
-                None => break,
-                Some(Item::Literal { push_type }) => match push_type {
-                    PushType::Bool { val } => push_state.bool_stack.push(val),
-                    PushType::Int { val } => push_state.int_stack.push(val),
-                    PushType::Float { val } => push_state.float_stack.push(val),
-                    PushType::BoolVector { val } => push_state.bool_vector_stack.push(val),
-                    PushType::FloatVector { val } => push_state.float_vector_stack.push(val),
-                    PushType::IntVector { val } => push_state.int_vector_stack.push(val),
-                },
-                Some(Item::Identifier { name }) => {
-                    if push_state.quote_name {
-                        push_state.name_stack.push(name);
-                        push_state.quote_name = false;
+    /// Executes one instruction from the top of the
+    /// execution stack.
+    pub fn step(
+        push_state: &mut PushState,
+        instruction_set: &mut InstructionSet,
+        icache: &InstructionCache,
+    ) {
+        match push_state.exec_stack.pop() {
+            None => return,
+            Some(Item::Literal { push_type }) => match push_type {
+                PushType::Bool { val } => push_state.bool_stack.push(val),
+                PushType::Int { val } => push_state.int_stack.push(val),
+                PushType::Float { val } => push_state.float_stack.push(val),
+                PushType::BoolVector { val } => push_state.bool_vector_stack.push(val),
+                PushType::FloatVector { val } => push_state.float_vector_stack.push(val),
+                PushType::IntVector { val } => push_state.int_vector_stack.push(val),
+            },
+            Some(Item::Identifier { name }) => {
+                if push_state.quote_name {
+                    push_state.name_stack.push(name);
+                    push_state.quote_name = false;
+                } else {
+                    if let Some(item) = push_state.name_bindings.get(&*name) {
+                        // Evaluate item for this name in next iteration
+                        push_state.exec_stack.push(item.clone());
                     } else {
-                        if let Some(item) = push_state.name_bindings.get(&*name) {
-                            // Evaluate item for this name in next iteration
-                            push_state.exec_stack.push(item.clone());
-                        } else {
-                            push_state.name_stack.push(name);
-                        }
-                    }
-                }
-                Some(Item::InstructionMeta { name }) => {
-                    if let Some(instruction) = instruction_set.get_instruction(&name) {
-                        (instruction.execute)(push_state, &icache);
-                    }
-                }
-                Some(Item::List { mut items }) => {
-                    if let Some(pv) = items.pop_vec(items.size()) {
-                        push_state.exec_stack.push_vec(pv);
+                        push_state.name_stack.push(name);
                     }
                 }
             }
-            // TODO: Growth cap here
+            Some(Item::InstructionMeta { name }) => {
+                if let Some(instruction) = instruction_set.get_instruction(&name) {
+                    (instruction.execute)(push_state, &icache);
+                }
+            }
+            Some(Item::List { mut items }) => {
+                if let Some(pv) = items.pop_vec(items.size()) {
+                    push_state.exec_stack.push_vec(pv);
+                }
+            }
+        }
+    }
+    /// Copies execution stack to code stac and recursively runs execution stack
+    pub fn run(
+        push_state: &mut PushState,
+        instruction_set: &mut InstructionSet,
+    ) -> PushInterpreterState {
+        PushInterpreter::copy_to_code_stack(push_state);
+        let icache = instruction_set.cache();
+        let mut step_counter = 0;
+        let start = Instant::now();
+        loop {
+            if step_counter > push_state.configuration.eval_push_limit {
+                return PushInterpreterState::StepLimitExceeded;
+            }
+            if start.elapsed() > Duration::from_millis(push_state.configuration.eval_time_limit) {
+                return PushInterpreterState::TimeLimitExceeded;
+            }
+            let size_before_step = push_state.size();
+            PushInterpreter::step(push_state, instruction_set, &icache);
+            if push_state.size() > size_before_step + push_state.configuration.growth_cap as usize {
+                return PushInterpreterState::GrowthCapExceeded;
+            }
+            step_counter += 1;
         }
     }
 }
