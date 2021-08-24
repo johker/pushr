@@ -4,7 +4,7 @@ Pushr is a Rust based interpreter for Push programs.
 
 ## What is Push?
 
-Push is a stack-based Turing-complete programming language that enables autoconstructive evolution in its programs.
+Push is a stack-based, Turing-complete programming language that enables autoconstructive evolution in its programs.
 More information can be found [here](http://faculty.hampshire.edu/lspector/push.html).
 
 ## Supported Stack Types

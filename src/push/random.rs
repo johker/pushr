@@ -10,13 +10,15 @@ use rand::Rng;
 use rand_distr::Normal;
 
 /// Item types without list
-// TODO: Add item types
 pub enum ItemType {
     Boolean,
     Float,
     Instruction,
     Integer,
     Name,
+    BoolVector,
+    FloatVector,
+    IntVector,
 }
 
 impl Distribution<ItemType> for Standard {
@@ -63,7 +65,6 @@ impl CodeGenerator {
             // sparcity = portion of non-default values
             let default = sparsity > 0.5;
             let sparsity = (100.0 * f32::min(sparsity, 1.0 - sparsity)).round() / 100.0;
-            println!("default = {}, sparsity = {}", default, sparsity);
             let mut bool_vector = vec![default; size as usize];
             let num_active_bits = (sparsity * size as f32) as i32;
             for _i in 1..num_active_bits + 1 {
@@ -104,7 +105,6 @@ impl CodeGenerator {
             None
         } else {
             let mut int_vector = Vec::with_capacity(size as usize);
-            // mean 2, standard deviation 3
             let mut r = rand::thread_rng();
             for _i in 0..size {
                 int_vector.push(r.gen_range(min..max));
@@ -144,7 +144,6 @@ impl CodeGenerator {
     pub fn new_random_name() -> String {
         let mut generator = Generator::default();
         let rand_name = generator.next().unwrap();
-        // TODO: Check for collisions?
         return rand_name;
     }
 
@@ -197,6 +196,31 @@ impl CodeGenerator {
                         rand_name = CodeGenerator::existing_random_name(push_state);
                     }
                     Item::name(rand_name)
+                }
+                ItemType::BoolVector => {
+                    let sparsity = rng.gen_range(0.0..1.0);
+                    let size = rng.gen_range(0..push_state.configuration.max_random_integer);
+                    Item::boolvec(CodeGenerator::random_bool_vector(size, sparsity).unwrap())
+                }
+                ItemType::FloatVector => {
+                    let size = rng.gen_range(0..push_state.configuration.max_random_integer);
+                    let mean = rng.gen_range(
+                        push_state.configuration.min_random_float
+                            ..push_state.configuration.max_random_float,
+                    );
+                    let stddev = rng.gen_range(0.0..push_state.configuration.max_random_float);
+                    Item::floatvec(CodeGenerator::random_float_vector(size, mean, stddev).unwrap())
+                }
+                ItemType::IntVector => {
+                    let size = rng.gen_range(0..push_state.configuration.max_random_integer);
+                    Item::intvec(
+                        CodeGenerator::random_int_vector(
+                            size,
+                            push_state.configuration.min_random_integer,
+                            push_state.configuration.max_random_integer,
+                        )
+                        .unwrap(),
+                    )
                 }
             }
         } else {
