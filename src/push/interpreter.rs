@@ -3,8 +3,9 @@ use crate::push::item::{Item, PushType};
 use crate::push::state::PushState;
 use std::time::{Duration, Instant};
 
+#[derive(Debug, PartialEq)]
 pub enum PushInterpreterState {
-    Normal,
+    NoErrors,
     StepLimitExceeded,
     TimeLimitExceeded,
     GrowthCapExceeded,
@@ -21,23 +22,26 @@ impl PushInterpreter {
         }
     }
 
-    /// Executes one instruction from the top of the
-    /// execution stack.
+    /// Executes one instruction from the top of the execution stack.
+    /// Returns true if the execution stack is empty.
     pub fn step(
         push_state: &mut PushState,
         instruction_set: &mut InstructionSet,
         icache: &InstructionCache,
-    ) {
+    ) -> bool {
         match push_state.exec_stack.pop() {
-            None => return,
-            Some(Item::Literal { push_type }) => match push_type {
-                PushType::Bool { val } => push_state.bool_stack.push(val),
-                PushType::Int { val } => push_state.int_stack.push(val),
-                PushType::Float { val } => push_state.float_stack.push(val),
-                PushType::BoolVector { val } => push_state.bool_vector_stack.push(val),
-                PushType::FloatVector { val } => push_state.float_vector_stack.push(val),
-                PushType::IntVector { val } => push_state.int_vector_stack.push(val),
-            },
+            None => true,
+            Some(Item::Literal { push_type }) => {
+                match push_type {
+                    PushType::Bool { val } => push_state.bool_stack.push(val),
+                    PushType::Int { val } => push_state.int_stack.push(val),
+                    PushType::Float { val } => push_state.float_stack.push(val),
+                    PushType::BoolVector { val } => push_state.bool_vector_stack.push(val),
+                    PushType::FloatVector { val } => push_state.float_vector_stack.push(val),
+                    PushType::IntVector { val } => push_state.int_vector_stack.push(val),
+                }
+                false
+            }
             Some(Item::Identifier { name }) => {
                 if push_state.quote_name {
                     push_state.name_stack.push(name);
@@ -50,20 +54,25 @@ impl PushInterpreter {
                         push_state.name_stack.push(name);
                     }
                 }
+                false
             }
             Some(Item::InstructionMeta { name }) => {
                 if let Some(instruction) = instruction_set.get_instruction(&name) {
                     (instruction.execute)(push_state, &icache);
                 }
+                false
             }
             Some(Item::List { mut items }) => {
                 if let Some(pv) = items.pop_vec(items.size()) {
                     push_state.exec_stack.push_vec(pv);
                 }
+                false
             }
         }
     }
-    /// Copies execution stack to code stac and recursively runs execution stack
+    /// Copies execution stack to code stac and recursively runs execution stack.
+    /// Stops execution if Step Limit, Time Limit or Growth Cap are exceeded and
+    /// returns corresponding error code.
     pub fn run(
         push_state: &mut PushState,
         instruction_set: &mut InstructionSet,
@@ -80,12 +89,15 @@ impl PushInterpreter {
                 return PushInterpreterState::TimeLimitExceeded;
             }
             let size_before_step = push_state.size();
-            PushInterpreter::step(push_state, instruction_set, &icache);
+            if PushInterpreter::step(push_state, instruction_set, &icache) {
+                break;
+            }
             if push_state.size() > size_before_step + push_state.configuration.growth_cap as usize {
                 return PushInterpreterState::GrowthCapExceeded;
             }
             step_counter += 1;
         }
+        PushInterpreterState::NoErrors
     }
 }
 
@@ -130,7 +142,10 @@ mod tests {
         push_state.exec_stack.push(Item::int(2));
         assert_eq!(push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1f); 5:Literal(5.2f); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);");
 
-        PushInterpreter::run(&mut push_state, &mut instruction_set);
+        assert_eq!(
+            PushInterpreter::run(&mut push_state, &mut instruction_set),
+            PushInterpreterState::NoErrors
+        );
         assert_eq!(push_state.int_stack.to_string(), "1:6;");
         assert!((push_state.float_stack.copy_vec(1).unwrap()[0] - 9.3).abs() < 0.00001);
         assert_eq!(push_state.bool_stack.to_string(), "1:true;");
@@ -145,7 +160,10 @@ mod tests {
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         push_state.int_stack.push(4);
         push_state.float_stack.push(2.0);
-        PushInterpreter::run(&mut push_state, &mut instruction_set);
+        assert_eq!(
+            PushInterpreter::run(&mut push_state, &mut instruction_set),
+            PushInterpreterState::NoErrors
+        );
         assert_eq!(push_state.float_stack.to_string(), "1:16;");
     }
 
@@ -159,7 +177,10 @@ mod tests {
         instruction_set.load();
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         push_state.int_stack.push(4);
-        PushInterpreter::run(&mut push_state, &mut instruction_set);
+        assert_eq!(
+            PushInterpreter::run(&mut push_state, &mut instruction_set),
+            PushInterpreterState::NoErrors
+        );
         assert_eq!(push_state.int_stack.to_string(), "1:24;");
     }
 }
