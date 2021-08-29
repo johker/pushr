@@ -19,6 +19,10 @@ pub struct PushState {
     pub float_vector_stack: PushStack<FloatVector>,
     pub int_vector_stack: PushStack<IntVector>,
 
+    // IO
+    pub input_stack: PushStack<BoolVector>,
+    pub output_stack: PushStack<BoolVector>,
+
     pub name_bindings: HashMap<String, Item>,
     pub configuration: PushConfiguration,
     pub quote_name: bool,
@@ -36,11 +40,15 @@ impl PushState {
             bool_vector_stack: PushStack::new(),
             float_vector_stack: PushStack::new(),
             int_vector_stack: PushStack::new(),
+            input_stack: PushStack::new(),
+            output_stack: PushStack::new(),
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
             quote_name: false,
         }
     }
+
+    /// Returns total size of stacks without IO stacks.
     pub fn size(&self) -> usize {
         self.bool_stack.size()
             + self.float_stack.size()
@@ -65,17 +73,17 @@ impl fmt::Display for PushState {
         }
         write!(
             f,
-            "> BOOL  : {}\n> CODE  : {}\n> EXEC  : {}\n> FLOAT : {}\n> INT   : {}\n> BVEC  : {}\n>FVEC  : {}\n>IVEC  : {}\n> NAME  : {}\n> IDS   : {}\n",
-            self.bool_stack.to_string(),
-            self.code_stack.to_string(),
-            self.exec_stack.to_string(),
-            self.float_stack.to_string(),
-            self.int_stack.to_string(),
-            self.bool_vector_stack.to_string(),
-            self.float_vector_stack.to_string(),
-            self.int_vector_stack.to_string(),
-            self.name_stack.to_string(),
-            nb
+            "> BOOL  : {}\n> CODE  : {}\n> EXEC  : {}\n> FLOAT : {}\n> INT   : {}\n> BVEC  : {}\n> FVEC  : {}\n> IVEC  : {}\n> NAME  : {}\n> IDS   : {}\n",
+            self.bool_stack.to_string().replace(";", ";\n"),
+            self.code_stack.to_string().replace(";", ";\n"),
+            self.exec_stack.to_string().replace(";", ";\n"),
+            self.float_stack.to_string().replace(";", ";\n"),
+            self.int_stack.to_string().replace(";", ";\n"),
+            self.bool_vector_stack.to_string().replace(";", ";\n"),
+            self.float_vector_stack.to_string().replace(";", ";\n"),
+            self.int_vector_stack.to_string().replace(";", ";\n"),
+            self.name_stack.to_string().replace(";", ";\n"),
+            nb.replace(";", ";\n"),
         )
     }
 }
@@ -94,6 +102,6 @@ mod tests {
         test_state
             .name_bindings
             .insert("Var1".to_string(), Item::bool(true));
-        assert_eq!(test_state.to_string(), "> BOOL  : \n> CODE  : \n> EXEC  : \n> FLOAT : \n> INT   : \n> BVEC  : \n>FVEC  : \n>IVEC  : \n> NAME  : \n> IDS   : Var1 => Literal(true); Var2 => InstructionMeta(INTVECTOR.BOOLINDEX); \n")
+        assert_eq!(test_state.to_string(), "> BOOL  : \n> CODE  : \n> EXEC  : \n> FLOAT : \n> INT   : \n> BVEC  : \n> FVEC  : \n> IVEC  : \n> NAME  : \n> IDS   : Var1 => Literal(true);\n Var2 => InstructionMeta(INTVECTOR.BOOLINDEX);\n \n")
     }
 }

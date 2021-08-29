@@ -6,6 +6,7 @@ pub mod float;
 pub mod instructions;
 pub mod integer;
 pub mod interpreter;
+pub mod io;
 pub mod item;
 pub mod name;
 pub mod parser;

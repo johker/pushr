@@ -6,16 +6,9 @@ use crate::push::code::*;
 use crate::push::execution::*;
 use crate::push::float::*;
 use crate::push::integer::*;
+use crate::push::io::*;
 use crate::push::name::*;
 use crate::push::vector::*;
-
-// Instructions
-//
-//
-// Instruction as trait (Abstract class)
-//
-// Each instrcution is a struct
-// Instruction Set is a hashmap with string key and struct as value
 
 pub struct InstructionSet {
     map: HashMap<String, Instruction>,
@@ -40,6 +33,7 @@ impl InstructionSet {
         load_int_instructions(&mut self.map);
         load_name_instructions(&mut self.map);
         load_vector_instructions(&mut self.map);
+        load_io_instructions(&mut self.map);
     }
 
     /// Create a snapshot of the current instruction names

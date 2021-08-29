@@ -132,6 +132,14 @@ where
         }
     }
 
+    /// Removes the bottom element from the stack and returns it.
+    pub fn pop_front(&mut self) -> Option<T> {
+        if self.elements.is_empty() {
+            return None;
+        }
+        Some(self.elements.remove(0))
+    }
+
     /// Removes the top element from the stack and returns it.
     pub fn pop(&mut self) -> Option<T> {
         self.elements.pop()

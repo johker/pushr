@@ -44,6 +44,7 @@ impl PushInterpreter {
             }
             Some(Item::Identifier { name }) => {
                 if push_state.quote_name {
+                    // Always push to name stack when quote_name flag is set
                     push_state.name_stack.push(name);
                     push_state.quote_name = false;
                 } else {
