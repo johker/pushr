@@ -1,8 +1,6 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
-use crate::push::item::Item;
 use crate::push::state::PushState;
-use crate::push::vector::BoolVector;
 use std::collections::HashMap;
 
 pub fn load_io_instructions(map: &mut HashMap<String, Instruction>) {
