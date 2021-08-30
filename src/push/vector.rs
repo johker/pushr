@@ -141,6 +141,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(bool_vector_flush),
     );
     map.insert(
+        String::from("BOOLVECTOR.ONES"),
+        Instruction::new(bool_vector_ones),
+    );
+    map.insert(
         String::from("BOOLVECTOR.RAND"),
         Instruction::new(bool_vector_rand),
     );
@@ -164,6 +168,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("BOOLVECTOR.YANKDUP"),
         Instruction::new(bool_vector_yank_dup),
     );
+    map.insert(
+        String::from("BOOLVECTOR.ZEROS"),
+        Instruction::new(bool_vector_zeros),
+    );
 
     map.insert(
         String::from("INTVECTOR.BOOLINDEX"),
@@ -178,19 +186,19 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(int_vector_set),
     );
     map.insert(
-        String::from("INTVECTOR.ADD"),
+        String::from("INTVECTOR.+"),
         Instruction::new(int_vector_add),
     );
     map.insert(
-        String::from("INTVECTOR.SUBTRACT"),
+        String::from("INTVECTOR.-"),
         Instruction::new(int_vector_subtract),
     );
     map.insert(
-        String::from("INTVECTOR.MULTIPLY"),
+        String::from("INTVECTOR.*"),
         Instruction::new(int_vector_multiply),
     );
     map.insert(
-        String::from("INTVECTOR.DIVIDE"),
+        String::from("INTVECTOR./"),
         Instruction::new(int_vector_divide),
     );
     map.insert(
@@ -208,6 +216,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("INTVECTOR.FLUSH"),
         Instruction::new(int_vector_flush),
+    );
+    map.insert(
+        String::from("INTVECTOR.ONES"),
+        Instruction::new(int_vector_ones),
     );
     map.insert(
         String::from("INTVECTOR.RAND"),
@@ -233,6 +245,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("INTVECTOR.YANKDUP"),
         Instruction::new(int_vector_yank_dup),
     );
+    map.insert(
+        String::from("INTVECTOR.ZEROS"),
+        Instruction::new(int_vector_zeros),
+    );
 
     map.insert(
         String::from("FLOATVECTOR.GET"),
@@ -243,19 +259,19 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(float_vector_set),
     );
     map.insert(
-        String::from("FLOATVECTOR.ADD"),
+        String::from("FLOATVECTOR.+"),
         Instruction::new(float_vector_add),
     );
     map.insert(
-        String::from("FLOATVECTOR.SUBTRACT"),
+        String::from("FLOATVECTOR.-"),
         Instruction::new(float_vector_subtract),
     );
     map.insert(
-        String::from("FLOATVECTOR.MULTIPLY"),
+        String::from("FLOATVECTOR.*"),
         Instruction::new(float_vector_multiply),
     );
     map.insert(
-        String::from("FLOATVECTOR.DIVIDE"),
+        String::from("FLOATVECTOR./"),
         Instruction::new(float_vector_divide),
     );
     map.insert(
@@ -273,6 +289,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("FLOATVECTOR.FLUSH"),
         Instruction::new(float_vector_flush),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.ONES"),
+        Instruction::new(float_vector_ones),
     );
     map.insert(
         String::from("FLOATVECTOR.RAND"),
@@ -298,22 +318,13 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("FLOATVECTOR.YANKDUP"),
         Instruction::new(float_vector_yank_dup),
     );
+    map.insert(
+        String::from("FLOATVECTOR.ZEROS"),
+        Instruction::new(float_vector_zeros),
+    );
 }
 
 /////////////////////////////////////// BOOLVECTOR //////////////////////////////////////////
-
-/// BOOLVECTOR.GET: Copies the element at index i of the top BOOLVECTOR item to the BOOLEAN stack
-/// where i taken from the INTEGER stack.
-pub fn bool_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(index) = push_state.int_stack.pop() {
-        if let Some(element) = push_state.bool_vector_stack.get(0) {
-            let i = index as usize;
-            if i > 0 && i < element.values.len() {
-                push_state.bool_stack.push(element.values[i].clone());
-            }
-        }
-    }
-}
 
 /// BOOLVECTOR.SET: Replaces the ith element of the top BOOLVECTOR item by the top item of the
 /// BOOLEAN stack. The index i is taken from the INTEGER stack.
@@ -348,6 +359,19 @@ pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &Instruct
                 bv[0].values[ofs_idx] &= bv[1].values[i];
             }
             push_state.bool_vector_stack.push(bv[0].clone());
+        }
+    }
+}
+
+/// BOOLVECTOR.GET: Copies the element at index i of the top BOOLVECTOR item to the BOOLEAN stack
+/// where i taken from the INTEGER stack.
+pub fn bool_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        if let Some(element) = push_state.bool_vector_stack.get(0) {
+            let i = index as usize;
+            if i > 0 && i < element.values.len() {
+                push_state.bool_stack.push(element.values[i].clone());
+            }
         }
     }
 }
@@ -422,6 +446,18 @@ pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &Instru
     push_state.bool_vector_stack.flush();
 }
 
+/// BOOLVECTOR.ONES: Pushes a newly generated BOOLVECTOR with all elements set to true. The size
+/// is taken from the INTEGER stack
+pub fn bool_vector_ones(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size) = push_state.int_stack.pop() {
+        if size > 0 {
+            push_state
+                .bool_vector_stack
+                .push(BoolVector::from_int_array(vec![1; size as usize]));
+        }
+    }
+}
+
 /// BOOLVECTOR.RAND: Pushes a newly generated random BOOLVECTOR. The size is taken from the INTEGER
 /// stack, the sparsity from the FLOAT stack. If the size is <0 or the sparcity not in [0,1] this
 /// acts as a NOOP.
@@ -475,6 +511,18 @@ pub fn bool_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Ins
     }
 }
 
+/// BOOLVECTOR.ZEROS: Pushes a newly generated BOOLVECTOR with all elements set to false. The size
+/// is taken from the INTEGER stack.
+pub fn bool_vector_zeros(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size) = push_state.int_stack.pop() {
+        if size > 0 {
+            push_state
+                .bool_vector_stack
+                .push(BoolVector::from_int_array(vec![0; size as usize]));
+        }
+    }
+}
+
 /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
 
 /// INTVECTOR.BOOLINDEX: Pushes an INTVECTOR item that contains the indices of all true values
@@ -522,7 +570,7 @@ pub fn int_vector_set(push_state: &mut PushState, _instruction_cache: &Instructi
     }
 }
 
-/// INTVECTOR.ADD: Pushes the result of applying element-wise ADD of the top item to the
+/// INTVECTOR.+: Pushes the result of applying element-wise ADD of the top item to the
 /// second item on the INTVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
 /// range of the second item are ignored. If there is no overlap of indices the second item of
@@ -544,7 +592,7 @@ pub fn int_vector_add(push_state: &mut PushState, _instruction_cache: &Instructi
     }
 }
 
-/// INTVECTOR.SUBTRACT: Pushes the result of element-wise SUBTRACT of the top item from the
+/// INTVECTOR.-: Pushes the result of element-wise SUBTRACT of the top item from the
 /// second item on the INTVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
 /// range of the second item are ignored. If there is no overlap of indices the second item of
@@ -566,7 +614,7 @@ pub fn int_vector_subtract(push_state: &mut PushState, _instruction_cache: &Inst
     }
 }
 
-/// INTVECTOR.MULTIPLY: Pushes the result of element-wise MULTIPLY of the top item to the
+/// INTVECTOR.*: Pushes the result of element-wise MULTIPLY of the top item to the
 /// second item on the INTVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
 /// range of the second item are ignored. If there is no overlap of indices the second item of
@@ -588,7 +636,7 @@ pub fn int_vector_multiply(push_state: &mut PushState, _instruction_cache: &Inst
     }
 }
 
-/// INTVECTOR.DIVIDE: Pushes the result of element-wise DIVIDE of the second item by the
+/// INTVECTOR./: Pushes the result of element-wise DIVIDE of the second item by the
 /// top item on the INTVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
 /// range of the second item are ignored. If there is no overlap of indices the second item of
@@ -649,6 +697,18 @@ pub fn int_vector_flush(push_state: &mut PushState, _instruction_cache: &Instruc
     push_state.int_vector_stack.flush();
 }
 
+/// INTVECTOR.ONES: Pushes a newly generated INTVECTOR with all elements set to 1. The size
+/// is taken from the INTEGER stack
+pub fn int_vector_ones(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size) = push_state.int_stack.pop() {
+        if size > 0 {
+            push_state
+                .int_vector_stack
+                .push(IntVector::new(vec![1; size as usize]));
+        }
+    }
+}
+
 /// INTVECTOR.RAND: Pushes a newly generated random INTVECTOR. The size, min and max values
 /// taken from the INTEGER stack in that order. If the size is <0 or max < min this act as a NOOP.
 pub fn int_vector_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -702,6 +762,18 @@ pub fn int_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &Inst
     }
 }
 
+/// INTVECTOR.ZEROS: Pushes a newly generated INTVECTOR with all elements set to 0. The size
+/// is taken from the INTEGER stack
+pub fn int_vector_zeros(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size) = push_state.int_stack.pop() {
+        if size > 0 {
+            push_state
+                .int_vector_stack
+                .push(IntVector::new(vec![0; size as usize]));
+        }
+    }
+}
+
 ////////////////////////////////////// FLOATVECTOR //////////////////////////////////////////
 
 /// FLOATVECTOR.GET: Copies the element at index i of the top FLOATVECTOR item to the FLOAT stack
@@ -732,7 +804,7 @@ pub fn float_vector_set(push_state: &mut PushState, _instruction_cache: &Instruc
     }
 }
 
-/// FLOATVECTOR.ADD: Pushes the result of applying element-wise ADD of the top item to the
+/// FLOATVECTOR.+: Pushes the result of applying element-wise ADD of the top item to the
 /// second item on the FLOATVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
 /// range of the second item are ignored. If there is no overlap of indices the second item of
@@ -754,7 +826,7 @@ pub fn float_vector_add(push_state: &mut PushState, _instruction_cache: &Instruc
     }
 }
 
-/// FLOATVECTOR.SUBTRACT: Pushes the result of element-wise SUBTRACT of the top item from the
+/// FLOATVECTOR.-: Pushes the result of element-wise SUBTRACT of the top item from the
 /// second item on the INTVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
 /// range of the second item are ignored. If there is no overlap of indices the second item of
@@ -776,7 +848,7 @@ pub fn float_vector_subtract(push_state: &mut PushState, _instruction_cache: &In
     }
 }
 
-/// INTVECTOR.MULTIPLY: Pushes the result of element-wise MULTIPLY of the top item to the
+/// FLOATVECTOR.*: Pushes the result of element-wise MULTIPLY of the top item to the
 /// second item on the INTVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
 /// range of the second item are ignored. If there is no overlap of indices the second item of
@@ -798,8 +870,8 @@ pub fn float_vector_multiply(push_state: &mut PushState, _instruction_cache: &In
     }
 }
 
-/// FLOATVECTOR.DIVIDE: Pushes the result of element-wise DIVIDE of the second item by the
-/// top item on the INTVECTOR stack. It applies an offset to the indices of the top
+/// FLOATVECTOR./: Pushes the result of element-wise DIVIDE of the second item by the
+/// top item on the FLOATVECTOR stack. It applies an offset to the indices of the top
 /// item. The offset is taken from the INTEGER stack. Indices that are outside of the valid
 /// range of the second item are ignored. If there is no overlap of indices the second item of
 /// the stack is pushed as a result. If at least one divisor is zero the instruction acts
@@ -859,6 +931,18 @@ pub fn float_vector_flush(push_state: &mut PushState, _instruction_cache: &Instr
     push_state.float_vector_stack.flush();
 }
 
+/// FLOATVECTOR.ONES: Pushes a newly generated FLOATVECTOR with all elements set to 1. The size
+/// is taken from the INTEGER stack
+pub fn float_vector_ones(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size) = push_state.int_stack.pop() {
+        if size > 0 {
+            push_state
+                .float_vector_stack
+                .push(FloatVector::new(vec![1.0; size as usize]));
+        }
+    }
+}
+
 /// FLOATVECTOR.RAND: Pushes a newly generated random INTVECTOR. The size is taken from the
 /// INTEGER stack while the parameters for mean and standard deviation are the first (top) and
 /// second item on the FLOAT stack. If size < 0 or standard deviation < 0 this act as a NOOP.
@@ -872,6 +956,28 @@ pub fn float_vector_rand(push_state: &mut PushState, _instruction_cache: &Instru
             {
                 push_state.float_vector_stack.push(rfvval);
             }
+        }
+    }
+}
+
+/// FLOATVECTOR.SINE: Pushes a FLOATVECTOR item whose elements describe a sine wave. The sine wave
+/// for the element at index i is calulated as A*sin(2*pi*x*i + phi). The amplitude A (1st),
+/// the angle velocity x (2nd) and the phase angle phi (3rd) are taken from the FLOAT stack
+/// (in that order). The vector length is taken from the INTEGER stack.
+pub fn float_vector_sine(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(sine_params) = push_state.float_stack.pop_vec(3) {
+        if let Some(vector_size) = push_state.int_stack.pop() {
+            let mut sine_vector = vec![];
+            for i in 0..vector_size as usize {
+                sine_vector.push(
+                    sine_params[2]
+                        * (2.0 * std::f32::consts::PI * sine_params[1] * i as f32 + sine_params[0])
+                            .sin(),
+                )
+            }
+            push_state
+                .float_vector_stack
+                .push(FloatVector::new(sine_vector));
         }
     }
 }
@@ -912,6 +1018,18 @@ pub fn float_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &In
     if let Some(idx) = push_state.int_stack.pop() {
         if let Some(deep_item) = push_state.float_vector_stack.copy(idx as usize) {
             push_state.float_vector_stack.push(deep_item);
+        }
+    }
+}
+
+/// FLOATVECTOR.ZEROS: Pushes a newly generated FLOATVECTOR with all elements set to 0. The size
+/// is taken from the INTEGER stack
+pub fn float_vector_zeros(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(size) = push_state.int_stack.pop() {
+        if size > 0 {
+            push_state
+                .float_vector_stack
+                .push(FloatVector::new(vec![0.0; size as usize]));
         }
     }
 }
@@ -1110,6 +1228,22 @@ mod tests {
     }
 
     #[test]
+    fn bool_vector_ones_creates_item() {
+        let mut test_state = PushState::new();
+        let mut test_size = -11;
+        test_state.int_stack.push(test_size);
+        bool_vector_ones(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 0);
+        test_size = 11;
+        test_state.int_stack.push(test_size);
+        bool_vector_ones(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1; test_size as usize])
+        );
+    }
+
+    #[test]
     fn bool_vector_rand_pushes_new_item() {
         let mut test_state = PushState::new();
         let test_size = 92;
@@ -1245,6 +1379,22 @@ mod tests {
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
             "1:[0]; 2:[1]; 3:[1]; 4:[1]; 5:[0]; 6:[1];"
+        );
+    }
+
+    #[test]
+    fn bool_vector_zeros_creates_item() {
+        let mut test_state = PushState::new();
+        let mut test_size = -11;
+        test_state.int_stack.push(test_size);
+        bool_vector_ones(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.size(), 0);
+        test_size = 11;
+        test_state.int_stack.push(test_size);
+        bool_vector_ones(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.pop().unwrap(),
+            BoolVector::from_int_array(vec![1; test_size as usize])
         );
     }
 
@@ -1415,6 +1565,21 @@ mod tests {
     }
 
     #[test]
+    fn int_vector_ones_creates_item() {
+        let mut test_state = PushState::new();
+        let mut test_size = -11;
+        test_state.int_stack.push(test_size);
+        int_vector_ones(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 0);
+        test_size = 11;
+        test_state.int_stack.push(test_size);
+        int_vector_ones(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![1; test_size as usize])
+        );
+    }
+    #[test]
     fn int_vector_rand_pushes_new_item() {
         let mut test_state = PushState::new();
         let test_size = 92;
@@ -1518,6 +1683,22 @@ mod tests {
         );
     }
 
+    #[test]
+    fn int_vector_zeros_creates_item() {
+        let mut test_state = PushState::new();
+        let mut test_size = -11;
+        test_state.int_stack.push(test_size);
+        int_vector_zeros(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 0);
+        test_size = 11;
+        test_state.int_stack.push(test_size);
+        int_vector_zeros(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![0; test_size as usize])
+        );
+    }
+
     ////////////////////////////////////// FLOATVECTOR //////////////////////////////////////////
 
     #[test]
@@ -1570,6 +1751,24 @@ mod tests {
             test_state.float_vector_stack.pop().unwrap(),
             FloatVector::new(vec![2.0, 1.0, 2.0, 1.0, 1.0, 0.0, 1.0, 0.0])
         );
+    }
+
+    #[test]
+    fn float_vector_sine_generates_2pi_angle() {
+        let mut test_state = PushState::new();
+        test_state.int_stack.push(1000); // Array length
+        test_state.float_stack.push(0.0); // Phase angle is 0
+        test_state.float_stack.push(0.001); // Angle velocity
+        test_state.float_stack.push(1.0); // Amplitude
+        float_vector_sine(&mut test_state, &icache());
+
+        let sine_vector = test_state.float_vector_stack.pop().unwrap().values;
+        assert_eq!(sine_vector.len(), 1000);
+        assert!(f32::abs(sine_vector[0]) < 0.01f32);
+        assert!(f32::abs(sine_vector[249] - 1.0) < 0.01f32);
+        assert!(f32::abs(sine_vector[499]) < 0.01f32);
+        assert!(f32::abs(sine_vector[749] + 1.0) < 0.01f32);
+        assert!(f32::abs(sine_vector[999]) < 0.01f32);
     }
 
     #[test]
@@ -1677,6 +1876,21 @@ mod tests {
         assert_eq!(
             test_state.float_vector_stack.to_string(),
             "1:[2]; 2:[3]; 3:[1]; 4:[4];"
+        );
+    }
+    #[test]
+    fn float_vector_ones_creates_item() {
+        let mut test_state = PushState::new();
+        let mut test_size = -11;
+        test_state.int_stack.push(test_size);
+        float_vector_ones(&mut test_state, &icache());
+        assert_eq!(test_state.float_vector_stack.size(), 0);
+        test_size = 11;
+        test_state.int_stack.push(test_size);
+        float_vector_ones(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.pop().unwrap(),
+            FloatVector::new(vec![1.0; test_size as usize])
         );
     }
 
@@ -1794,6 +2008,22 @@ mod tests {
         assert_eq!(
             test_state.float_vector_stack.to_string(),
             "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[4]; 6:[5];"
+        );
+    }
+
+    #[test]
+    fn float_vector_zeros_creates_item() {
+        let mut test_state = PushState::new();
+        let mut test_size = -11;
+        test_state.int_stack.push(test_size);
+        float_vector_zeros(&mut test_state, &icache());
+        assert_eq!(test_state.float_vector_stack.size(), 0);
+        test_size = 11;
+        test_state.int_stack.push(test_size);
+        float_vector_zeros(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.pop().unwrap(),
+            FloatVector::new(vec![0.0; test_size as usize])
         );
     }
 }
