@@ -24,7 +24,7 @@ It also provides the vector types for boolean, float and integer:
 * FLOATVECTOR
 * INTVECTOR
 
-The default instructions for vector types are 'dup', 'equal', 'flush', 'get', 'set', 'shove', 'stackdepth', 'rand', 'swap', 'yank' and 'yankdup'. Additionally, the instruction set contains 'add', 'subtract', 'multiply' and 'divide' for float and integer vectors, as well as 'and', 'or' and 'not' for boolean vectors.
+The default instructions for vector types are 'dup', 'equal', 'flush', 'get', 'set', 'shove', 'stackdepth', 'rand', 'swap', 'yank' and 'yankdup'. Additionally, the instruction set contains 'add', 'subtract', 'multiply' and 'divide' for float and integer vectors, as well as 'and', 'or' and 'not' for boolean vectors. To initialize vectors the instructions 'ones'  and 'zeros' can be used.
 
 For vector instructions the following rules apply: 
 
