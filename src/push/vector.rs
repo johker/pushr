@@ -299,6 +299,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(float_vector_rand),
     );
     map.insert(
+        String::from("FLOATVECTOR.SINE"),
+        Instruction::new(float_vector_sine),
+    );
+    map.insert(
         String::from("FLOATVECTOR.SHOVE"),
         Instruction::new(float_vector_shove),
     );
