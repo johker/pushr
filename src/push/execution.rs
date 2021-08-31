@@ -180,7 +180,7 @@ pub fn exec_if(push_state: &mut PushState, _instruction_cache: &InstructionCache
     if let Some(code) = push_state.exec_stack.pop_vec(2) {
         if let Some(exec_first) = push_state.bool_stack.pop() {
             if exec_first {
-                // Push top element for execution
+                // Push first element for execution
                 push_state.exec_stack.push(code[1].clone());
             } else {
                 // Push second element for execution

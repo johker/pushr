@@ -74,15 +74,15 @@ impl fmt::Display for PushState {
         write!(
             f,
             "> BOOL  : {}\n> CODE  : {}\n> EXEC  : {}\n> FLOAT : {}\n> INT   : {}\n> BVEC  : {}\n> FVEC  : {}\n> IVEC  : {}\n> NAME  : {}\n> IDS   : {}\n",
-            self.bool_stack.to_string().replace(";", ";\n"),
-            self.code_stack.to_string().replace(";", ";\n"),
-            self.exec_stack.to_string().replace(";", ";\n"),
-            self.float_stack.to_string().replace(";", ";\n"),
-            self.int_stack.to_string().replace(";", ";\n"),
+            self.bool_stack.to_string(),
+            self.code_stack.to_string(),
+            self.exec_stack.to_string(),
+            self.float_stack.to_string(),
+            self.int_stack.to_string(),
             self.bool_vector_stack.to_string().replace(";", ";\n"),
             self.float_vector_stack.to_string().replace(";", ";\n"),
             self.int_vector_stack.to_string().replace(";", ";\n"),
-            self.name_stack.to_string().replace(";", ";\n"),
+            self.name_stack.to_string(),
             nb.replace(";", ";\n"),
         )
     }

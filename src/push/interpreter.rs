@@ -170,9 +170,9 @@ mod tests {
 
     #[test]
     pub fn run_factorial_program() {
-        let input = "( CODE.QUOTE ( CODE.DUP INTEGER.DUP 1 INTEGER.- CODE.DO INTEGER.* )
-                       CODE.QUOTE ( INTEGER.POP 1 )
-                                      INTEGER.DUP 2 INTEGER.< CODE.IF )";
+        let input = "( CODE.QUOTE ( INTEGER.POP 1 )
+                       CODE.QUOTE ( CODE.DUP INTEGER.DUP 1 INTEGER.- CODE.DO INTEGER.* )
+                       INTEGER.DUP 2 INTEGER.< CODE.IF )";
         let mut push_state = PushState::new();
         let mut instruction_set = InstructionSet::new();
         instruction_set.load();

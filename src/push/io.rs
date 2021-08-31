@@ -69,6 +69,7 @@ pub fn output_write(push_state: &mut PushState, _instruction_cache: &Instruction
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::push::vector::BoolVector;
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
