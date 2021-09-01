@@ -178,6 +178,11 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     );
 
     map.insert(
+        String::from("INTVECTOR.BOOLINDEX"),
+        Instruction::new(int_vector_bool_index),
+    );
+
+    map.insert(
         String::from("INTVECTOR.GET"),
         Instruction::new(int_vector_get),
     );
@@ -336,10 +341,9 @@ pub fn bool_vector_set(push_state: &mut PushState, _instruction_cache: &Instruct
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(new_element) = push_state.bool_stack.pop() {
             if let Some(item_to_change) = push_state.bool_vector_stack.get_mut(0) {
-                let i = index as usize;
-                if i > 0 && i < item_to_change.values.len() {
-                    item_to_change.values[i] = new_element;
-                }
+                let i =
+                    i32::min(i32::max(index, 0), item_to_change.values.len() as i32 - 1) as usize;
+                item_to_change.values[i] = new_element;
             }
         }
     }
@@ -368,14 +372,12 @@ pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &Instruct
 }
 
 /// BOOLVECTOR.GET: Copies the element at index i of the top BOOLVECTOR item to the BOOLEAN stack
-/// where i taken from the INTEGER stack.
+/// where i taken from the INTEGER stack limited to valid range.
 pub fn bool_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.bool_vector_stack.get(0) {
-            let i = index as usize;
-            if i > 0 && i < element.values.len() {
-                push_state.bool_stack.push(element.values[i].clone());
-            }
+            let i = i32::min(i32::max(index, 0), element.values.len() as i32 - 1) as usize;
+            push_state.bool_stack.push(element.values[i].clone());
         }
     }
 }
@@ -538,29 +540,43 @@ pub fn bool_vector_zeros(push_state: &mut PushState, _instruction_cache: &Instru
 
 /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
 
+/// INTVECTOR.BOOLINDEX: Pushes an INTVECTOR item that contains the indices of all true values
+/// of the top BOOLVECTOR item. For example, this instruction pushes INT[0,2] if the top
+/// item on the BOOLVECTOR stack is BOOL[1,0,1]. The BOOLVECTOR item is popped.
+pub fn int_vector_bool_index(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(bvval) = push_state.bool_vector_stack.pop() {
+        let mut index_vector = vec![];
+        for (i, bval) in bvval.values.iter().enumerate() {
+            if *bval {
+                index_vector.push(i as i32);
+            }
+        }
+        push_state
+            .int_vector_stack
+            .push(IntVector::new(index_vector));
+    }
+}
+
 /// INTVECTOR.GET: Copies the element at index i of the top INTVECTOR item to the INTEGER stack
-/// where i taken from the INTEGER stack.
+/// where i taken from the INTEGER stack and bound to valid range.
 pub fn int_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.int_vector_stack.get(0) {
-            let i = index as usize;
-            if i > 0 && i < element.values.len() {
-                push_state.int_stack.push(element.values[i].clone());
-            }
+            let i = i32::min(i32::max(index, 0), element.values.len() as i32 - 1) as usize;
+            push_state.int_stack.push(element.values[i].clone());
         }
     }
 }
 
 /// INTVECTOR.SET: Replaces the ith element of the top INTVECTOR item by the second item of the
-/// INTVECTOR stack. The top item of the INTEGER stack is the index i.
+/// INTVECTOR stack. The top item of the INTEGER stack is the index i bound to valid range.
 pub fn int_vector_set(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(new_element) = push_state.int_stack.pop() {
             if let Some(item_to_change) = push_state.int_vector_stack.get_mut(0) {
-                let i = index as usize;
-                if i > 0 && i < item_to_change.values.len() {
-                    item_to_change.values[i] = new_element;
-                }
+                let i =
+                    i32::min(i32::max(index, 0), item_to_change.values.len() as i32 - 1) as usize;
+                item_to_change.values[i] = new_element;
             }
         }
     }
@@ -773,28 +789,25 @@ pub fn int_vector_zeros(push_state: &mut PushState, _instruction_cache: &Instruc
 ////////////////////////////////////// FLOATVECTOR //////////////////////////////////////////
 
 /// FLOATVECTOR.GET: Copies the element at index i of the top FLOATVECTOR item to the FLOAT stack
-/// where i is taken from the FLOAT stack.
+/// where i is taken from the FLOAT stack limited to valid range.
 pub fn float_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.float_vector_stack.get(0) {
-            let i = index as usize;
-            if i > 0 && i < element.values.len() {
-                push_state.float_stack.push(element.values[i].clone());
-            }
+            let i = i32::min(i32::max(index, 0), element.values.len() as i32 - 1) as usize;
+            push_state.float_stack.push(element.values[i].clone());
         }
     }
 }
 
 /// FLOATVECTOR.SET: Replaces the ith element of the top FLOATVECTOR item by the top item of the
-/// FLOAT stack. The top item of the INTEGER stack is the index i.
+/// FLOAT stack. The top item of the INTEGER stack is the index i limited to valid range.
 pub fn float_vector_set(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(new_element) = push_state.float_stack.pop() {
             if let Some(item_to_change) = push_state.float_vector_stack.get_mut(0) {
-                let i = index as usize;
-                if i > 0 && i < item_to_change.values.len() {
-                    item_to_change.values[i] = new_element;
-                }
+                let i =
+                    i32::min(i32::max(index, 0), item_to_change.values.len() as i32 - 1) as usize;
+                item_to_change.values[i] = new_element;
             }
         }
     }
@@ -1106,10 +1119,10 @@ mod tests {
         test_state.int_stack.push(3);
         bool_vector_get(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), false);
-        // Invalid index results in noop
+        // Invalid index is bound to valid range
         test_state.int_stack.push(15);
         bool_vector_get(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.size(), 0);
+        assert_eq!(test_state.bool_stack.pop().unwrap(), true);
     }
 
     #[test]
@@ -1413,17 +1426,33 @@ mod tests {
     }
 
     #[test]
+    fn int_vector_bool_index_pushes_indices_of_active_bits() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::from_int_array(vec![1, 0, 0, 1, 0]));
+        int_vector_bool_index(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![0, 3])
+        );
+    }
+
+    #[test]
     fn int_vector_get_pushes_vector_element() {
-        let test_vec1 = IntVector::new(vec![1, 1, 1, 0, 1, 1, 1, 1]);
+        let test_vec1 = IntVector::new(vec![1, 1, 1, 0, 1, 1, 1, 2]);
         let mut test_state = PushState::new();
         test_state.int_vector_stack.push(test_vec1);
         test_state.int_stack.push(3);
         int_vector_get(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.pop().unwrap(), 0);
-        // Invalid index results in noop
+        // Invalid index is changed to valid range
+        test_state.int_stack.push(-15);
+        int_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.pop().unwrap(), 1);
         test_state.int_stack.push(15);
-        bool_vector_get(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.size(), 0);
+        int_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.pop().unwrap(), 2);
     }
 
     #[test]
@@ -1702,16 +1731,19 @@ mod tests {
 
     #[test]
     fn float_vector_get_pushes_vector_element() {
-        let test_vec1 = FloatVector::new(vec![1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0]);
+        let test_vec1 = FloatVector::new(vec![2.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 4.0]);
         let mut test_state = PushState::new();
         test_state.float_vector_stack.push(test_vec1);
         test_state.int_stack.push(3);
         float_vector_get(&mut test_state, &icache());
         assert_eq!(test_state.float_stack.pop().unwrap(), 0.0);
-        // Invalid index results in noop
+        // Invalid index is changed to valid index
+        test_state.int_stack.push(-115);
+        float_vector_get(&mut test_state, &icache());
+        assert_eq!(test_state.float_stack.pop().unwrap(), 2.0);
         test_state.int_stack.push(15);
         float_vector_get(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.size(), 0);
+        assert_eq!(test_state.float_stack.pop().unwrap(), 4.0);
     }
 
     #[test]
