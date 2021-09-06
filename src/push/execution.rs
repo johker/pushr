@@ -228,8 +228,12 @@ pub fn exec_s(push_state: &mut PushState, _instruction_cache: &InstructionCache)
 /// EXEC.SHOVE: Inserts the top EXEC item "deep" in the stack, at the position indexed by the top
 /// INTEGER. This may be thought of as a "DO LATER" instruction.
 pub fn exec_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(new_pos) = push_state.int_stack.pop() {
-        push_state.exec_stack.shove(new_pos as usize);
+    if let Some(shove_index) = push_state.int_stack.pop() {
+        let corr_index = i32::max(
+            i32::min((push_state.exec_stack.size() as i32) - 1, shove_index),
+            0,
+        ) as usize;
+        push_state.exec_stack.shove(corr_index as usize);
     }
 }
 

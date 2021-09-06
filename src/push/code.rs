@@ -649,7 +649,11 @@ pub fn code_rot(push_state: &mut PushState, _instruction_cache: &InstructionCach
 /// top INTEGER.
 pub fn code_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(shove_index) = push_state.int_stack.pop() {
-        push_state.code_stack.shove(shove_index as usize);
+        let corr_index = i32::max(
+            i32::min((push_state.code_stack.size() as i32) - 1, shove_index),
+            0,
+        ) as usize;
+        push_state.code_stack.shove(corr_index as usize);
     }
 }
 

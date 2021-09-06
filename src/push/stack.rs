@@ -127,7 +127,8 @@ where
     pub fn shove(&mut self, index: usize) {
         if index < self.size() {
             if let Some(el) = self.elements.pop() {
-                self.elements.insert(self.size() - index, el);
+                let top_down_index = self.size() - index;
+                self.elements.insert(top_down_index, el);
             }
         }
     }
@@ -277,15 +278,15 @@ mod tests {
         let mut test_idx = 1;
         test_stack.shove(test_idx);
         assert_eq!(test_stack.elements, [1, 2, 3, 5, 4]);
-        test_idx = 5; // No change
+        test_idx = 4; // Push to bottom
         test_stack.shove(test_idx);
-        assert_eq!(test_stack.elements, [1, 2, 3, 5, 4]);
+        assert_eq!(test_stack.elements, [4, 1, 2, 3, 5]);
         test_idx = 3;
         test_stack.shove(test_idx);
-        assert_eq!(test_stack.elements, [1, 4, 2, 3, 5]);
+        assert_eq!(test_stack.elements, [4, 5, 1, 2, 3]);
         test_idx = 0; // No change
         test_stack.shove(test_idx);
-        assert_eq!(test_stack.elements, [1, 4, 2, 3, 5]);
+        assert_eq!(test_stack.elements, [4, 5, 1, 2, 3]);
     }
 
     #[test]

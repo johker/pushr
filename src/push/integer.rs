@@ -208,7 +208,11 @@ pub fn integer_rot(push_state: &mut PushState, _instruction_cache: &InstructionC
 /// top INTEGER. The index position is calculated after the index is removed.
 pub fn integer_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(shove_index) = push_state.int_stack.pop() {
-        push_state.int_stack.shove(shove_index as usize);
+        let corr_index = i32::max(
+            i32::min((push_state.int_stack.size() as i32) - 1, shove_index),
+            0,
+        ) as usize;
+        push_state.int_stack.shove(corr_index as usize);
     }
 }
 

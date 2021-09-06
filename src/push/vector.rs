@@ -342,7 +342,7 @@ pub fn bool_vector_set(push_state: &mut PushState, _instruction_cache: &Instruct
         if let Some(new_element) = push_state.bool_stack.pop() {
             if let Some(item_to_change) = push_state.bool_vector_stack.get_mut(0) {
                 let i =
-                    i32::min(i32::max(index, 0), item_to_change.values.len() as i32 - 1) as usize;
+                    i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
                 item_to_change.values[i] = new_element;
             }
         }
@@ -376,7 +376,7 @@ pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &Instruct
 pub fn bool_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.bool_vector_stack.get(0) {
-            let i = i32::min(i32::max(index, 0), element.values.len() as i32 - 1) as usize;
+            let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
             push_state.bool_stack.push(element.values[i].clone());
         }
     }
@@ -490,7 +490,14 @@ pub fn bool_vector_rand(push_state: &mut PushState, _instruction_cache: &Instruc
 /// top INTEGER. The index position is calculated after the index is removed.
 pub fn bool_vector_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(shove_index) = push_state.int_stack.pop() {
-        push_state.bool_vector_stack.shove(shove_index as usize);
+        let corr_index = i32::max(
+            i32::min(
+                (push_state.bool_vector_stack.size() as i32) - 1,
+                shove_index,
+            ),
+            0,
+        ) as usize;
+        push_state.bool_vector_stack.shove(corr_index);
     }
 }
 
@@ -562,7 +569,7 @@ pub fn int_vector_bool_index(push_state: &mut PushState, _instruction_cache: &In
 pub fn int_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.int_vector_stack.get(0) {
-            let i = i32::min(i32::max(index, 0), element.values.len() as i32 - 1) as usize;
+            let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
             push_state.int_stack.push(element.values[i].clone());
         }
     }
@@ -575,7 +582,7 @@ pub fn int_vector_set(push_state: &mut PushState, _instruction_cache: &Instructi
         if let Some(new_element) = push_state.int_stack.pop() {
             if let Some(item_to_change) = push_state.int_vector_stack.get_mut(0) {
                 let i =
-                    i32::min(i32::max(index, 0), item_to_change.values.len() as i32 - 1) as usize;
+                    i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
                 item_to_change.values[i] = new_element;
             }
         }
@@ -738,7 +745,11 @@ pub fn int_vector_rand(push_state: &mut PushState, _instruction_cache: &Instruct
 /// top INTEGER. The index position is calculated after the index is removed.
 pub fn int_vector_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(shove_index) = push_state.int_stack.pop() {
-        push_state.int_vector_stack.shove(shove_index as usize);
+        let corr_index = i32::max(
+            i32::min((push_state.int_vector_stack.size() as i32) - 1, shove_index),
+            0,
+        ) as usize;
+        push_state.int_vector_stack.shove(corr_index as usize);
     }
 }
 
@@ -793,7 +804,7 @@ pub fn int_vector_zeros(push_state: &mut PushState, _instruction_cache: &Instruc
 pub fn float_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.float_vector_stack.get(0) {
-            let i = i32::min(i32::max(index, 0), element.values.len() as i32 - 1) as usize;
+            let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
             push_state.float_stack.push(element.values[i].clone());
         }
     }
@@ -806,7 +817,7 @@ pub fn float_vector_set(push_state: &mut PushState, _instruction_cache: &Instruc
         if let Some(new_element) = push_state.float_stack.pop() {
             if let Some(item_to_change) = push_state.float_vector_stack.get_mut(0) {
                 let i =
-                    i32::min(i32::max(index, 0), item_to_change.values.len() as i32 - 1) as usize;
+                    i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
                 item_to_change.values[i] = new_element;
             }
         }
@@ -995,7 +1006,14 @@ pub fn float_vector_sine(push_state: &mut PushState, _instruction_cache: &Instru
 /// top INTEGER. The index position is calculated after the index is removed.
 pub fn float_vector_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(shove_index) = push_state.int_stack.pop() {
-        push_state.float_vector_stack.shove(shove_index as usize);
+        let corr_index = i32::max(
+            i32::min(
+                (push_state.float_vector_stack.size() as i32) - 1,
+                shove_index,
+            ),
+            0,
+        ) as usize;
+        push_state.float_vector_stack.shove(corr_index as usize);
     }
 }
 
@@ -1305,6 +1323,23 @@ mod tests {
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
             "1:[0]; 2:[0]; 3:[1]; 4:[0];"
+        );
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state.int_stack.push(25);
+        bool_vector_shove(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.to_string(),
+            "1:[0]; 2:[0]; 3:[1]; 4:[0]; 5:[1];"
+        );
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true]));
+        test_state.int_stack.push(-2);
+        assert_eq!(
+            test_state.bool_vector_stack.to_string(),
+            "1:[1]; 2:[0]; 3:[0]; 4:[1]; 5:[0]; 6:[1];"
         );
     }
 

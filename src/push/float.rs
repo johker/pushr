@@ -206,7 +206,11 @@ pub fn float_rot(push_state: &mut PushState, _instruction_cache: &InstructionCac
 /// INTEGER.
 pub fn float_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(shove_index) = push_state.int_stack.pop() {
-        push_state.float_stack.shove(shove_index as usize);
+        let corr_index = i32::max(
+            i32::min((push_state.float_stack.size() as i32) - 1, shove_index),
+            0,
+        ) as usize;
+        push_state.float_stack.shove(corr_index as usize);
     }
 }
 

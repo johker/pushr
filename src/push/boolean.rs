@@ -139,8 +139,12 @@ pub fn boolean_rot(push_state: &mut PushState, _instruction_cache: &InstructionC
 /// BOOLEAN.SHOVE: Inserts the top BOOLEAN "deep" in the stack, at the position indexed by the top
 /// INTEGER.
 pub fn boolean_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(ival) = push_state.int_stack.pop() {
-        push_state.bool_stack.shove(ival as usize);
+    if let Some(shove_index) = push_state.int_stack.pop() {
+        let corr_index = i32::max(
+            i32::min((push_state.bool_stack.size() as i32) - 1, shove_index),
+            0,
+        ) as usize;
+        push_state.bool_stack.shove(corr_index as usize);
     }
 }
 
