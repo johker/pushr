@@ -163,8 +163,12 @@ pub fn boolean_swap(push_state: &mut PushState, _instruction_cache: &Instruction
 /// BOOLEAN.YANK: Removes an indexed item from "deep" in the stack and pushes it on top of the
 /// stack. The index is taken from the INTEGER stack.
 pub fn boolean_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(ival) = push_state.int_stack.pop() {
-        push_state.bool_stack.yank(ival as usize);
+    if let Some(index) = push_state.int_stack.pop() {
+        let corr_index = i32::max(
+            i32::min((push_state.bool_stack.size() as i32) - 1, index),
+            0,
+        ) as usize;
+        push_state.bool_stack.yank(corr_index as usize);
     }
 }
 

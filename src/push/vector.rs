@@ -518,7 +518,11 @@ pub fn bool_vector_swap(push_state: &mut PushState, _instruction_cache: &Instruc
 /// removed.
 pub fn bool_vector_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(idx) = push_state.int_stack.pop() {
-        push_state.bool_vector_stack.yank(idx as usize);
+        let corr_index = i32::max(
+            i32::min((push_state.bool_vector_stack.size() as i32) - 1, idx),
+            0,
+        ) as usize;
+        push_state.bool_vector_stack.yank(corr_index as usize);
     }
 }
 
@@ -770,7 +774,11 @@ pub fn int_vector_swap(push_state: &mut PushState, _instruction_cache: &Instruct
 /// removed.
 pub fn int_vector_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(idx) = push_state.int_stack.pop() {
-        push_state.int_vector_stack.yank(idx as usize);
+        let corr_index = i32::max(
+            i32::min((push_state.int_vector_stack.size() as i32) - 1, idx),
+            0,
+        ) as usize;
+        push_state.int_vector_stack.yank(corr_index as usize);
     }
 }
 
@@ -1034,7 +1042,11 @@ pub fn float_vector_swap(push_state: &mut PushState, _instruction_cache: &Instru
 /// removed.
 pub fn float_vector_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(idx) = push_state.int_stack.pop() {
-        push_state.float_vector_stack.yank(idx as usize);
+        let corr_index = i32::max(
+            i32::min((push_state.float_vector_stack.size() as i32) - 1, idx),
+            0,
+        ) as usize;
+        push_state.float_vector_stack.yank(corr_index as usize);
     }
 }
 

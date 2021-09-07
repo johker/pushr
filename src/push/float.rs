@@ -243,8 +243,12 @@ pub fn float_tan(push_state: &mut PushState, _instruction_cache: &InstructionCac
 /// FLOAT.YANK: Removes an indexed item from "deep" in the stack and pushes it on top of the stack.
 /// The index is taken from the INTEGER stack.
 pub fn float_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(idx) = push_state.int_stack.pop() {
-        push_state.float_stack.yank(idx as usize);
+    if let Some(index) = push_state.int_stack.pop() {
+        let corr_index = i32::max(
+            i32::min((push_state.float_stack.size() as i32) - 1, index),
+            0,
+        ) as usize;
+        push_state.float_stack.yank(corr_index as usize);
     }
 }
 
