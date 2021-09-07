@@ -531,7 +531,11 @@ pub fn bool_vector_yank(push_state: &mut PushState, _instruction_cache: &Instruc
 /// indexing is done after the index is removed.
 pub fn bool_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(idx) = push_state.int_stack.pop() {
-        if let Some(deep_item) = push_state.bool_vector_stack.copy(idx as usize) {
+        let corr_index = i32::max(
+            i32::min((push_state.bool_vector_stack.size() as i32) - 1, idx),
+            0,
+        ) as usize;
+        if let Some(deep_item) = push_state.bool_vector_stack.copy(corr_index as usize) {
             push_state.bool_vector_stack.push(deep_item);
         }
     }
@@ -787,7 +791,11 @@ pub fn int_vector_yank(push_state: &mut PushState, _instruction_cache: &Instruct
 /// indexing is done after the index is removed.
 pub fn int_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(idx) = push_state.int_stack.pop() {
-        if let Some(deep_item) = push_state.int_vector_stack.copy(idx as usize) {
+        let corr_index = i32::max(
+            i32::min((push_state.int_vector_stack.size() as i32) - 1, idx),
+            0,
+        ) as usize;
+        if let Some(deep_item) = push_state.int_vector_stack.copy(corr_index as usize) {
             push_state.int_vector_stack.push(deep_item);
         }
     }
@@ -1055,7 +1063,11 @@ pub fn float_vector_yank(push_state: &mut PushState, _instruction_cache: &Instru
 /// indexing is done after the index is removed.
 pub fn float_vector_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(idx) = push_state.int_stack.pop() {
-        if let Some(deep_item) = push_state.float_vector_stack.copy(idx as usize) {
+        let corr_index = i32::max(
+            i32::min((push_state.float_vector_stack.size() as i32) - 1, idx),
+            0,
+        ) as usize;
+        if let Some(deep_item) = push_state.float_vector_stack.copy(corr_index as usize) {
             push_state.float_vector_stack.push(deep_item);
         }
     }

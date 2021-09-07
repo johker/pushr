@@ -243,8 +243,10 @@ pub fn integer_yank(push_state: &mut PushState, _instruction_cache: &Instruction
 /// stack, without removing the deep item. The index is taken from the INTEGER stack, and the
 /// indexing is done after the index is removed.
 pub fn integer_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(idx) = push_state.int_stack.pop() {
-        if let Some(deep_item) = push_state.int_stack.copy(idx as usize) {
+    if let Some(index) = push_state.int_stack.pop() {
+        let corr_index =
+            i32::max(i32::min((push_state.int_stack.size() as i32) - 1, index), 0) as usize;
+        if let Some(deep_item) = push_state.int_stack.copy(corr_index as usize) {
             push_state.int_stack.push(deep_item);
         }
     }

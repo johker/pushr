@@ -713,8 +713,12 @@ pub fn code_yank(push_state: &mut PushState, _instruction_cache: &InstructionCac
 /// CODE.YANKDUP: Pushes a copy of an indexed item "deep" in the stack onto the top of the stack,
 /// without removing the deep item. The index is taken from the INTEGER stack.
 pub fn code_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(idx) = push_state.int_stack.pop() {
-        if let Some(deep_item) = push_state.code_stack.copy(idx as usize) {
+    if let Some(index) = push_state.int_stack.pop() {
+        let corr_index = i32::max(
+            i32::min((push_state.code_stack.size() as i32) - 1, index),
+            0,
+        ) as usize;
+        if let Some(deep_item) = push_state.code_stack.copy(corr_index as usize) {
             push_state.code_stack.push(deep_item);
         }
     }

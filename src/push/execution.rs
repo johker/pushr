@@ -264,16 +264,24 @@ pub fn exec_y(push_state: &mut PushState, _instruction_cache: &InstructionCache)
 /// EXEC.YANK: Removes an indexed item from "deep" in the stack and pushes it on top of the stack.
 /// The index is taken from the INTEGER stack. This may be thought of as a "DO SOONER" instruction.
 pub fn exec_yank(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(idx) = push_state.int_stack.pop() {
-        push_state.exec_stack.yank(idx as usize);
+    if let Some(index) = push_state.int_stack.pop() {
+        let corr_index = i32::max(
+            i32::min((push_state.exec_stack.size() as i32) - 1, index),
+            0,
+        ) as usize;
+        push_state.exec_stack.yank(corr_index);
     }
 }
 
 /// EXEC.YANKDUP: Pushes a copy of an indexed item "deep" in the stack onto the top of the stack,
 /// without removing the deep item. The index is taken from the INTEGER stack.
 pub fn exec_yank_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(idx) = push_state.int_stack.pop() {
-        if let Some(deep_item) = push_state.exec_stack.copy(idx as usize) {
+    if let Some(index) = push_state.int_stack.pop() {
+        let corr_index = i32::max(
+            i32::min((push_state.exec_stack.size() as i32) - 1, index),
+            0,
+        ) as usize;
+        if let Some(deep_item) = push_state.exec_stack.copy(corr_index as usize) {
             push_state.exec_stack.push(deep_item);
         }
     }
