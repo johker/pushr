@@ -149,6 +149,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(bool_vector_ones),
     );
     map.insert(
+        String::from("BOOLVECTOR.POP"),
+        Instruction::new(bool_vector_pop),
+    );
+    map.insert(
         String::from("BOOLVECTOR.RAND"),
         Instruction::new(bool_vector_rand),
     );
@@ -227,6 +231,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(int_vector_ones),
     );
     map.insert(
+        String::from("INTVECTOR.POP"),
+        Instruction::new(int_vector_pop),
+    );
+    map.insert(
         String::from("INTVECTOR.RAND"),
         Instruction::new(int_vector_rand),
     );
@@ -298,6 +306,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("FLOATVECTOR.ONES"),
         Instruction::new(float_vector_ones),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.POP"),
+        Instruction::new(float_vector_pop),
     );
     map.insert(
         String::from("FLOATVECTOR.RAND"),
@@ -471,6 +483,11 @@ pub fn bool_vector_ones(push_state: &mut PushState, _instruction_cache: &Instruc
                 .push(BoolVector::from_int_array(vec![1; size as usize]));
         }
     }
+}
+
+/// BOOLVECTOR.POP: Pops the BOOLVECTOR stack.
+pub fn bool_vector_pop(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.bool_vector_stack.pop();
 }
 
 /// BOOLVECTOR.RAND: Pushes a newly generated random BOOLVECTOR. The size is taken from the INTEGER
@@ -736,6 +753,11 @@ pub fn int_vector_ones(push_state: &mut PushState, _instruction_cache: &Instruct
     }
 }
 
+/// INTVECTOR.POP: Pops the INTVECTOR stack.
+pub fn int_vector_pop(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.int_vector_stack.pop();
+}
+
 /// INTVECTOR.RAND: Pushes a newly generated random INTVECTOR. The size, min and max values
 /// taken from the INTEGER stack in that order. If the size is <0 or max < min this act as a NOOP.
 pub fn int_vector_rand(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -977,6 +999,11 @@ pub fn float_vector_ones(push_state: &mut PushState, _instruction_cache: &Instru
                 .push(FloatVector::new(vec![1.0; size as usize]));
         }
     }
+}
+
+/// FLOATVECTOR.POP: Pops the FLOATVECTOR stack.
+pub fn float_vector_pop(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.float_vector_stack.pop();
 }
 
 /// FLOATVECTOR.RAND: Pushes a newly generated random INTVECTOR. The size is taken from the

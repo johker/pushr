@@ -1,10 +1,10 @@
 [package]
 name = "pushr"
-version = "0.1.10"
+version = "0.1.11"
 authors = ["johker <johannes.kern@zoho.com>"]
 edition = "2018"
 description = "Pushr is a Rust based interpreter for Push programs."
-repository = "https://github.com/johker/prush/"
+repository = "https://github.com/johker/pushr/"
 license = "MIT"
 keywords = ["push", "evolutionary", "stack-based", "genetic", "interpreter"]
 readme = "README.md"
