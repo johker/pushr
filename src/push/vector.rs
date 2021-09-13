@@ -473,6 +473,30 @@ pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &Instru
     push_state.bool_vector_stack.flush();
 }
 
+/// BOOLVECTOR.NEIGHBORS: Calculates the neighborhood for a given index of the top BOOLVECTOR
+/// element and pushes the indices that are contained in this neighborhood to the INTVECTOR stack.
+/// The index and the number of dimensions (vector topology) are taken from the INTEGER
+/// stack in that order. The radius is taken from the float stack. Distances are calculated using the
+/// Eucledian metric. All values are corrected by max-min. If the size of the top element is not a power
+/// of the dimensions the additional elements are collected in excess rows, e.g. two dimensions
+/// and size = 38 > 36 = 6x6 leads to [7,6]. Neighbor indices that do no exist (e.g. 40) are ignored.
+pub fn bool_vector_neighbors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(bvval) = push_state.bool_vector_stack.pop() {
+        if let Some(topology) = push_state.int_stack.pop_vec(3) {
+            let index =
+                i32::max(i32::min((bvval.values.len() as i32) - 1, topology[1]), 0) as usize;
+            let dimensions =
+                i32::max(i32::min((bvval.values.len() as i32) - 1, topology[0]), 0) as usize;
+            if let Some(fval) = push_state.float_stack.pop() {
+                let radius = f32::max(fval, 0.0);
+                for i in 0..bvval.values.len() {
+                    // TODO Call decompose
+                }
+            }
+        }
+    }
+}
+
 /// BOOLVECTOR.ONES: Pushes a newly generated BOOLVECTOR with all elements set to true. The size
 /// is taken from the INTEGER stack
 pub fn bool_vector_ones(push_state: &mut PushState, _instruction_cache: &InstructionCache) {

@@ -13,4 +13,5 @@ pub mod parser;
 pub mod random;
 pub mod stack;
 pub mod state;
+pub mod topology;
 pub mod vector;
