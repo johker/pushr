@@ -474,33 +474,6 @@ pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &Instru
     push_state.bool_vector_stack.flush();
 }
 
-/// BOOLVECTOR.NEIGHBORS: Calculates the neighborhood for a given index of the top BOOLVECTOR
-/// element and pushes the indices that are contained in this neighborhood to the INTVECTOR stack.
-/// The index and the number of dimensions (vector topology) are taken from the INTEGER
-/// stack in that order. The radius is taken from the float stack. Distances are calculated using the
-/// Eucledian metric. All values are corrected by max-min. If the size of the top element is not a power
-/// of the dimensions the smallest hypercube that includes the indices is used to represent the
-/// topology, e.g. two dimensions and size = 38 is represented by[7,7]. Neighbor indices that
-/// do no exist (e.g. 40) are ignored.
-pub fn bool_vector_neighbors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(bvval) = push_state.bool_vector_stack.pop() {
-        if let Some(topology) = push_state.int_stack.pop_vec(2) {
-            let index =
-                i32::max(i32::min((bvval.values.len() as i32) - 1, topology[1]), 0) as usize;
-            let dimensions =
-                i32::max(i32::min((bvval.values.len() as i32) - 1, topology[0]), 0) as usize;
-            if let Some(fval) = push_state.float_stack.pop() {
-                let radius = f32::max(fval, 0.0);
-                if let Some(neighbors) =
-                    Topology::find_neighbors(&bvval.values.len(), &dimensions, &index, &radius)
-                {
-                    push_state.int_vector_stack.push(neighbors);
-                }
-            }
-        }
-    }
-}
-
 /// BOOLVECTOR.ONES: Pushes a newly generated BOOLVECTOR with all elements set to true. The size
 /// is taken from the INTEGER stack
 pub fn bool_vector_ones(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -767,6 +740,30 @@ fn int_vector_equal(push_state: &mut PushState, _instruction_cache: &Instruction
 /// INTVECTOR.FLUSH: Empties the INTVECTOR stack.
 pub fn int_vector_flush(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.int_vector_stack.flush();
+}
+
+/// INTVECTOR.NEIGHBORS: Calculates the neighborhood for a given index element and length. It
+/// pushes the indices that are contained in this neighborhood to the INTVECTOR stack.
+/// The size, the number of dimensions and index (vector topology) are taken from the INTEGER
+/// stack in that order. The radius is taken from the float stack. Distances are calculated using the
+/// Eucledian metric. All values are corrected by max-min. If the size of the top element is not a power
+/// of the dimensions the smallest hypercube that includes the indices is used to represent the
+/// topology, e.g. two dimensions and size = 38 is represented by[7,7]. Neighbor indices that
+/// do no exist (e.g. 40) are ignored.
+pub fn int_vector_neighbors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(topology) = push_state.int_stack.pop_vec(3) {
+        let size = i32::max(topology[2], 0);
+        let index = i32::max(i32::min(size - 1, topology[1]), 0) as usize;
+        let dimensions = i32::max(i32::min(size, topology[0]), 0) as usize;
+        if let Some(fval) = push_state.float_stack.pop() {
+            let radius = f32::max(fval, 0.0);
+            if let Some(neighbors) =
+                Topology::find_neighbors(&(size as usize), &dimensions, &index, &radius)
+            {
+                push_state.int_vector_stack.push(neighbors);
+            }
+        }
+    }
 }
 
 /// INTVECTOR.ONES: Pushes a newly generated INTVECTOR with all elements set to 1. The size
@@ -1344,49 +1341,6 @@ mod tests {
     }
 
     #[test]
-    fn bool_vector_neighbors_pushes_result_for_valid_index() {
-        let mut test_state = PushState::new();
-        test_state.float_stack.push(1.5); // Radius
-        test_state
-            .bool_vector_stack
-            .push(BoolVector::from_int_array(vec![1; 100]));
-        test_state.int_stack.push(2); // Dimensions
-        test_state.int_stack.push(50); // Index
-        bool_vector_neighbors(&mut test_state, &icache());
-        assert_eq!(
-            test_state.int_vector_stack.pop().unwrap(),
-            IntVector::new(vec![40, 41, 50, 51, 60, 61])
-        );
-    }
-
-    #[test]
-    fn bool_vector_neighbors_corrects_out_of_bounds_index() {
-        let mut test_state = PushState::new();
-        test_state.float_stack.push(1.5); // Radius
-        test_state
-            .bool_vector_stack
-            .push(BoolVector::from_int_array(vec![1; 100]));
-        test_state.int_stack.push(2); // Dimensions
-        test_state.int_stack.push(105); // Index
-        bool_vector_neighbors(&mut test_state, &icache());
-        assert_eq!(
-            test_state.int_vector_stack.pop().unwrap(),
-            IntVector::new(vec![88, 89, 98, 99])
-        );
-        test_state.float_stack.push(1.5); // Radius
-        test_state
-            .bool_vector_stack
-            .push(BoolVector::from_int_array(vec![1; 100]));
-        test_state.int_stack.push(2); // Dimensions
-        test_state.int_stack.push(-10); // Index
-        bool_vector_neighbors(&mut test_state, &icache());
-        assert_eq!(
-            test_state.int_vector_stack.pop().unwrap(),
-            IntVector::new(vec![0, 1, 10, 11])
-        );
-    }
-
-    #[test]
     fn bool_vector_ones_creates_item() {
         let mut test_state = PushState::new();
         let mut test_size = -11;
@@ -1741,6 +1695,43 @@ mod tests {
         test_state.int_vector_stack.push(IntVector::new(vec![4]));
         int_vector_equal(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+    }
+
+    #[test]
+    fn int_vector_neighbors_pushes_result_for_valid_index() {
+        let mut test_state = PushState::new();
+        test_state.float_stack.push(1.5); // Radius
+        test_state.int_stack.push(2); // Dimensions
+        test_state.int_stack.push(50); // Index
+        test_state.int_stack.push(100); // Size
+        int_vector_neighbors(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![40, 41, 50, 51, 60, 61])
+        );
+    }
+
+    #[test]
+    fn int_vector_neighbors_corrects_out_of_bounds_index() {
+        let mut test_state = PushState::new();
+        test_state.float_stack.push(1.5); // Radius
+        test_state.int_stack.push(2); // Dimensions
+        test_state.int_stack.push(105); // Index
+        test_state.int_stack.push(100); // Size
+        int_vector_neighbors(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![88, 89, 98, 99])
+        );
+        test_state.float_stack.push(1.5); // Radius
+        test_state.int_stack.push(2); // Dimensions
+        test_state.int_stack.push(-10); // Index
+        test_state.int_stack.push(100); // Size
+        int_vector_neighbors(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![0, 1, 10, 11])
+        );
     }
 
     #[test]
