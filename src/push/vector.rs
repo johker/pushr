@@ -484,7 +484,7 @@ pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &Instru
 /// do no exist (e.g. 40) are ignored.
 pub fn bool_vector_neighbors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(bvval) = push_state.bool_vector_stack.pop() {
-        if let Some(topology) = push_state.int_stack.pop_vec(3) {
+        if let Some(topology) = push_state.int_stack.pop_vec(2) {
             let index =
                 i32::max(i32::min((bvval.values.len() as i32) - 1, topology[1]), 0) as usize;
             let dimensions =
@@ -1341,6 +1341,49 @@ mod tests {
             .push(BoolVector::new(vec![true]));
         bool_vector_equal(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+    }
+
+    #[test]
+    fn bool_vector_neighbors_pushes_result_for_valid_index() {
+        let mut test_state = PushState::new();
+        test_state.float_stack.push(1.5); // Radius
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::from_int_array(vec![1; 100]));
+        test_state.int_stack.push(2); // Dimensions
+        test_state.int_stack.push(50); // Index
+        bool_vector_neighbors(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![40, 41, 50, 51, 60, 61])
+        );
+    }
+
+    #[test]
+    fn bool_vector_neighbors_corrects_out_of_bounds_index() {
+        let mut test_state = PushState::new();
+        test_state.float_stack.push(1.5); // Radius
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::from_int_array(vec![1; 100]));
+        test_state.int_stack.push(2); // Dimensions
+        test_state.int_stack.push(105); // Index
+        bool_vector_neighbors(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![88, 89, 98, 99])
+        );
+        test_state.float_stack.push(1.5); // Radius
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::from_int_array(vec![1; 100]));
+        test_state.int_stack.push(2); // Dimensions
+        test_state.int_stack.push(-10); // Index
+        bool_vector_neighbors(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![0, 1, 10, 11])
+        );
     }
 
     #[test]
