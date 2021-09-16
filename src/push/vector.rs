@@ -3,6 +3,7 @@ use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
 use crate::push::random::CodeGenerator;
 use crate::push::state::PushState;
+use crate::push::topology::Topology;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -478,8 +479,9 @@ pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &Instru
 /// The index and the number of dimensions (vector topology) are taken from the INTEGER
 /// stack in that order. The radius is taken from the float stack. Distances are calculated using the
 /// Eucledian metric. All values are corrected by max-min. If the size of the top element is not a power
-/// of the dimensions the additional elements are collected in excess rows, e.g. two dimensions
-/// and size = 38 > 36 = 6x6 leads to [7,6]. Neighbor indices that do no exist (e.g. 40) are ignored.
+/// of the dimensions the smallest hypercube that includes the indices is used to represent the
+/// topology, e.g. two dimensions and size = 38 is represented by[7,7]. Neighbor indices that
+/// do no exist (e.g. 40) are ignored.
 pub fn bool_vector_neighbors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(bvval) = push_state.bool_vector_stack.pop() {
         if let Some(topology) = push_state.int_stack.pop_vec(3) {
@@ -489,8 +491,10 @@ pub fn bool_vector_neighbors(push_state: &mut PushState, _instruction_cache: &In
                 i32::max(i32::min((bvval.values.len() as i32) - 1, topology[0]), 0) as usize;
             if let Some(fval) = push_state.float_stack.pop() {
                 let radius = f32::max(fval, 0.0);
-                for i in 0..bvval.values.len() {
-                    // TODO Call decompose
+                if let Some(neighbors) =
+                    Topology::find_neighbors(&bvval.values.len(), &dimensions, &index, &radius)
+                {
+                    push_state.int_vector_stack.push(neighbors);
                 }
             }
         }
