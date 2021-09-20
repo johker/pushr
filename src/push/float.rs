@@ -3,6 +3,7 @@ use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
 use crate::push::random::CodeGenerator;
 use crate::push::state::PushState;
+use crate::push::state::*;
 use std::collections::HashMap;
 
 /// Floating-point numbers (that is, numbers with decimal points).
@@ -23,6 +24,7 @@ pub fn load_float_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("FLOAT.FROMBOOLEAN"),
         Instruction::new(float_from_boolean),
     );
+    map.insert(String::from("FLOAT.ID"), Instruction::new(float_id));
     map.insert(
         String::from("FLOAT.FROMINTEGER"),
         Instruction::new(float_from_integer),
@@ -47,6 +49,12 @@ pub fn load_float_instructions(map: &mut HashMap<String, Instruction>) {
     );
 }
 
+/// FLOAT.ID: Pushes the ID of the FLOAT stack to the INTEGER stack.
+pub fn float_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    push_state.int_stack.push(FLOAT_STACK_ID);
+}
+
+/// INTEGER.ID: Pushes the ID of the INTEGER stack to the INTEGER stack.
 /// FLOAT.%: Pushes the second stack item modulo the top stack item. If the top item is zero this
 /// acts as a NOOP. The modulus is computed as the remainder of the quotient, where the quotient
 /// has first been truncated toward negative infinity.

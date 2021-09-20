@@ -2,6 +2,7 @@ use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::{Item, PushType};
 use crate::push::state::PushState;
+use crate::push::state::*;
 use rand::Rng;
 use std::collections::HashMap;
 
@@ -25,6 +26,7 @@ pub fn load_boolean_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("BOOLEAN.FROMINTEGER"),
         Instruction::new(boolean_from_integer),
     );
+    map.insert(String::from("BOOLEAN.ID"), Instruction::new(boolean_id));
     map.insert(String::from("BOOLEAN.NOT"), Instruction::new(boolean_not));
     map.insert(String::from("BOOLEAN.OR"), Instruction::new(boolean_or));
     map.insert(String::from("BOOLEAN.POP"), Instruction::new(boolean_pop));
@@ -44,6 +46,11 @@ pub fn load_boolean_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("BOOLEAN.YANKDUP"),
         Instruction::new(boolean_yank_dup),
     );
+}
+
+/// BOOLEAN.ID: Pushes the ID of the BOOLEAN stack to the INTEGER stack.
+pub fn boolean_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    push_state.int_stack.push(BOOL_STACK_ID);
 }
 
 /// BOOLEAN.=: Pushes TRUE if the top two BOOLEANs are equal, or FALSE otherwise.

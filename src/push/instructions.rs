@@ -7,6 +7,7 @@ use crate::push::execution::*;
 use crate::push::float::*;
 use crate::push::integer::*;
 use crate::push::io::*;
+use crate::push::list::*;
 use crate::push::name::*;
 use crate::push::vector::*;
 
@@ -31,6 +32,7 @@ impl InstructionSet {
         load_exec_instructions(&mut self.map);
         load_float_instructions(&mut self.map);
         load_int_instructions(&mut self.map);
+        load_list_instructions(&mut self.map);
         load_name_instructions(&mut self.map);
         load_vector_instructions(&mut self.map);
         load_io_instructions(&mut self.map);

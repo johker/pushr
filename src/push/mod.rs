@@ -8,6 +8,7 @@ pub mod integer;
 pub mod interpreter;
 pub mod io;
 pub mod item;
+pub mod list;
 pub mod name;
 pub mod parser;
 pub mod random;

@@ -4,6 +4,7 @@ use crate::push::item::Item;
 use crate::push::random::CodeGenerator;
 use crate::push::stack::PushStack;
 use crate::push::state::PushState;
+use crate::push::state::*;
 use std::cmp;
 use std::collections::HashMap;
 
@@ -68,6 +69,7 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("CODE.FROMNAME"),
         Instruction::new(code_from_name),
     );
+    map.insert(String::from("CODE.ID"), Instruction::new(code_id));
     map.insert(String::from("CODE.IF"), Instruction::new(code_if));
     map.insert(String::from("CODE.INSERT"), Instruction::new(code_insert));
     map.insert(
@@ -102,6 +104,11 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("CODE.YANKDUP"),
         Instruction::new(code_yank_dup),
     );
+}
+
+/// CODE.ID: Pushes the ID of the CODE stack to the INTEGER stack.
+pub fn code_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    push_state.int_stack.push(CODE_STACK_ID);
 }
 
 /// CODE.=: Pushes TRUE if the top two pieces of CODE are equal,
@@ -499,12 +506,6 @@ pub fn code_insert(push_state: &mut PushState, _instruction_cache: &InstructionC
     }
 }
 
-/// CODE.INSTRUCTIONS: Pushes a list of all active instructions in the interpreter's current
-/// configuration.
-pub fn code_instructions(_push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    //TODO
-}
-
 /// CODE.LENGTH: Pushes the length of the top item on the CODE stack onto the INTEGER stack. If the
 /// top item is not a list then this pushes a 1. If the top item is a list then this pushes the
 /// number of items in the top level of the list; that is, nested lists contribute only 1 to this
@@ -568,15 +569,6 @@ pub fn code_nth(push_state: &mut PushState, _instruction_cache: &InstructionCach
             push_state.code_stack.push(item_to_push);
         }
     }
-}
-
-/// CODE.NTHCDR: Pushes the nth "CDR" (in the Lisp sense) of the expression on top of the CODE
-/// stack (which is coerced to a list first if necessary). If the expression is an empty list then
-/// the result is an empty list. N is taken from the INTEGER stack and is taken modulo the length
-/// of the expression into which it is indexing. A "CDR" of a list is the list without its first
-/// element.
-pub fn code_nth_cdr(_push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    //TODO
 }
 
 /// CODE.NULL: Pushes TRUE onto the BOOLEAN stack if the top item of the CODE stack is an empty

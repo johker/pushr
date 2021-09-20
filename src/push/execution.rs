@@ -2,6 +2,7 @@ use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
 use crate::push::state::PushState;
+use crate::push::state::*;
 use std::collections::HashMap;
 
 /// Code queued for execution. The EXEC stack maintains the execution state of the Push
@@ -26,6 +27,7 @@ pub fn load_exec_instructions(map: &mut HashMap<String, Instruction>) {
     );
     map.insert(String::from("EXEC.DUP"), Instruction::new(exec_dup));
     map.insert(String::from("EXEC.FLUSH"), Instruction::new(exec_flush));
+    map.insert(String::from("EXEC.ID"), Instruction::new(exec_id));
     map.insert(String::from("EXEC.IF"), Instruction::new(exec_if));
     map.insert(String::from("EXEC.K"), Instruction::new(exec_k));
     map.insert(String::from("EXEC.POP"), Instruction::new(exec_pop));
@@ -43,6 +45,11 @@ pub fn load_exec_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("EXEC.YANKDUP"),
         Instruction::new(exec_yank_dup),
     );
+}
+
+/// EXEC.ID: Pushes the ID of the EXEC stack to the INTEGER stack.
+pub fn exec_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    push_state.int_stack.push(EXEC_STACK_ID);
 }
 
 /// EXEC.=: Pushes TRUE if the top two items on the EXEC stack are equal, or FALSE otherwise.

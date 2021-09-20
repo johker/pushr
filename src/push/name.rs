@@ -2,6 +2,7 @@ use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::random::CodeGenerator;
 use crate::push::state::PushState;
+use crate::push::state::*;
 use std::collections::HashMap;
 
 /// For creating bindings between symbolic identifiers and values of various types; that is,
@@ -15,6 +16,7 @@ pub fn load_name_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("NAME.="), Instruction::new(name_equal));
     map.insert(String::from("NAME.DUP"), Instruction::new(name_dup));
     map.insert(String::from("NAME.FLUSH"), Instruction::new(name_flush));
+    map.insert(String::from("NAME.ID"), Instruction::new(name_id));
     map.insert(String::from("NAME.POP"), Instruction::new(name_pop));
     map.insert(String::from("NAME.QUOTE"), Instruction::new(name_quote));
     map.insert(String::from("NAME.RAND"), Instruction::new(name_rand));
@@ -34,6 +36,11 @@ pub fn load_name_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("NAME.YANKDUP"),
         Instruction::new(name_yank_dup),
     );
+}
+
+/// NAME.ID: Pushes the ID of the NAME stack to the INTEGER stack.
+pub fn name_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    push_state.int_stack.push(NAME_STACK_ID);
 }
 
 /// NAME.=: Pushes TRUE if the top two NAMEs are equal, or FALSE otherwise.

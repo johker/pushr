@@ -3,6 +3,7 @@ use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
 use crate::push::random::CodeGenerator;
 use crate::push::state::PushState;
+use crate::push::state::*;
 use std::collections::HashMap;
 
 /// Integer numbers (that is, numbers without decimal points).
@@ -35,6 +36,7 @@ pub fn load_int_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("INTEGER.FROMFLOAT"),
         Instruction::new(integer_from_float),
     );
+    map.insert(String::from("INTEGER.ID"), Instruction::new(integer_id));
     map.insert(String::from("INTEGER.MAX"), Instruction::new(integer_max));
     map.insert(String::from("INTEGER.MIN"), Instruction::new(integer_min));
     map.insert(String::from("INTEGER.POP"), Instruction::new(integer_pop));
@@ -54,6 +56,11 @@ pub fn load_int_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("INTEGER.YANKDUP"),
         Instruction::new(integer_yank_dup),
     );
+}
+
+/// INTEGER.ID: Pushes the ID of the INTEGER stack to the INTEGER stack.
+pub fn integer_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    push_state.int_stack.push(INT_STACK_ID);
 }
 
 /// INTEGER.%: Pushes the second stack item modulo the top stack item. If the top item is zero this
