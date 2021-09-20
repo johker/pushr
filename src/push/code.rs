@@ -72,16 +72,11 @@ pub fn load_code_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("CODE.ID"), Instruction::new(code_id));
     map.insert(String::from("CODE.IF"), Instruction::new(code_if));
     map.insert(String::from("CODE.INSERT"), Instruction::new(code_insert));
-    map.insert(
-        String::from("CODE.INSTRUCTIONS"),
-        Instruction::new(code_instructions),
-    );
     map.insert(String::from("CODE.LENGTH"), Instruction::new(code_length));
     map.insert(String::from("CODE.LIST"), Instruction::new(code_list));
     map.insert(String::from("CODE.MEMBER"), Instruction::new(code_member));
     map.insert(String::from("CODE.NOOP"), Instruction::new(code_noop));
     map.insert(String::from("CODE.NTH"), Instruction::new(code_nth));
-    map.insert(String::from("CODE.NTHCDR"), Instruction::new(code_nth_cdr));
     map.insert(String::from("CODE.NULL"), Instruction::new(code_null));
     map.insert(String::from("CODE.POP"), Instruction::new(code_pop));
     map.insert(

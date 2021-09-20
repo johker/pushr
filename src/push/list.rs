@@ -1,7 +1,7 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
-use crate::push::state::PushState;
+use crate::push::state::*;
 use crate::push::topology::Topology;
 use std::collections::HashMap;
 
@@ -142,12 +142,39 @@ pub fn list_neighbors(push_state: &mut PushState, _instruction_cache: &Instructi
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::push::vector::*;
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
     }
+
     #[test]
-    fn index_vector_neighbors_pushes_result_for_valid_index() {
+    fn list_add_from_different_stacks() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(true);
+        test_state.int_stack.push(1);
+        test_state.float_stack.push(1.0);
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![3.0]));
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::from_int_array(vec![1]));
+        test_state.int_vector_stack.push(IntVector::new(vec![22]));
+        test_state.int_vector_stack.push(IntVector::new(vec![
+            BOOL_STACK_ID,
+            INT_STACK_ID,
+            FLOAT_STACK_ID,
+            FLOAT_VECTOR_STACK_ID,
+            BOOL_VECTOR_STACK_ID,
+            INT_VECTOR_STACK_ID,
+        ]));
+        list_add(&mut test_state, &icache());
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal([22]); 2:Literal([1]); 3:Literal([3]); 4:Literal(1f); 5:Literal(1); 6:Literal(true);;");
+    }
+
+    #[test]
+    fn list_neighbors_pushes_result_for_valid_index() {
         let mut test_state = PushState::new();
         test_state.float_stack.push(1.5); // Radius
         test_state.int_stack.push(2); // Dimensions
@@ -161,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn index_vector_neighbors_corrects_out_of_bounds_index() {
+    fn list_neighbors_corrects_out_of_bounds_index() {
         let mut test_state = PushState::new();
         test_state.float_stack.push(1.5); // Radius
         test_state.int_stack.push(2); // Dimensions
