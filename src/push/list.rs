@@ -77,7 +77,7 @@ pub fn generate_list(push_state: &mut PushState) -> Option<Vec<Item>> {
 /// LIST.ADD: Pushes a list item to the code stack with the content
 /// specified by the top item of the INTVECTOR. Each entry of the INTVECTOR
 /// represents the stack id of an item to be contained.
-pub fn list_add(push_state: &mut PushState, instruction_set: &InstructionCache) {
+pub fn list_add(push_state: &mut PushState, _instruction_set: &InstructionCache) {
     if let Some(items) = generate_list(push_state) {
         let list_item = Item::list(items);
         push_state.code_stack.push(list_item);
@@ -108,7 +108,7 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
         if let Some(items) = generate_list(push_state) {
             let list_item = Item::list(items);
-            push_state.code_stack.replace(list_index, list_item);
+            let _res = push_state.code_stack.replace(list_index, list_item);
         }
     }
 }
@@ -171,6 +171,43 @@ mod tests {
         ]));
         list_add(&mut test_state, &icache());
         assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal([22]); 2:Literal([1]); 3:Literal([3]); 4:Literal(1f); 5:Literal(1); 6:Literal(true);;");
+    }
+
+    #[test]
+    fn list_get_pushes_code_items() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(1));
+        test_state.code_stack.push(Item::list(vec![
+            Item::bool(true),
+            Item::int(2),
+            Item::int(3),
+            Item::float(2.3),
+        ]));
+        test_state.code_stack.push(Item::int(2));
+        test_state.int_stack.push(1);
+        list_get(&mut test_state, &icache());
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:List: 1:Literal(2.3f); 2:Literal(3); 3:Literal(2); 4:Literal(true);;"
+        );
+    }
+
+    #[test]
+    fn list_set_replaces_code_item() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(true);
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![BOOL_STACK_ID]));
+        test_state.int_stack.push(1);
+        test_state.code_stack.push(Item::int(11));
+        test_state.code_stack.push(Item::int(22));
+        test_state.code_stack.push(Item::int(33));
+        list_set(&mut test_state, &icache());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(33); 2:List: 1:Literal(true);; 3:Literal(11);"
+        );
     }
 
     #[test]

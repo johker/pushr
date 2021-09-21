@@ -4,7 +4,6 @@ use crate::push::item::Item;
 use crate::push::random::CodeGenerator;
 use crate::push::state::PushState;
 use crate::push::state::*;
-use crate::push::topology::Topology;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -230,6 +229,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("INTVECTOR.FLUSH"),
         Instruction::new(int_vector_flush),
+    );
+    map.insert(
+        String::from("INTVECTOR.FROMINT"),
+        Instruction::new(int_vector_from_int),
     );
     map.insert(
         String::from("INTVECTOR.ID"),
@@ -764,10 +767,17 @@ pub fn int_vector_flush(push_state: &mut PushState, _instruction_cache: &Instruc
     push_state.int_vector_stack.flush();
 }
 
-/// INTVECTOR.FROMINT: Create an INTVECTOR out of the first n elements of the INTEGER stack
-/// where the top item is the last element of the vector.
-pub fn int_vector_from_bool(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    // TODO
+/// INTVECTOR.FROMINT: Create an INTVECTOR from the elements of the INTEGER stack. The top
+/// element 0 (min-max corrected) describes the number of elements. The elements 1..n of
+/// the INTEGER stack are pushed as vector to the INTVECTOR stack.
+pub fn int_vector_from_int(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(vector_size) = push_state.int_stack.pop() {
+        let size = push_state.int_stack.size() as i32;
+        let corr_size = i32::max(i32::min(size - 1, vector_size), 0) as usize;
+        if let Some(ivec) = push_state.int_stack.pop_vec(corr_size) {
+            push_state.int_vector_stack.push(IntVector::new(ivec));
+        }
+    }
 }
 
 /// INTVECTOR.ONES: Pushes a newly generated INTVECTOR with all elements set to 1. The size
@@ -1704,6 +1714,20 @@ mod tests {
         test_state.int_vector_stack.push(IntVector::new(vec![4]));
         int_vector_equal(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+    }
+
+    #[test]
+    fn int_vector_from_int_pushes_item() {
+        let mut test_state = PushState::new();
+        for i in 0..10 {
+            test_state.int_stack.push(i);
+        }
+        test_state.int_stack.push(3);
+        int_vector_from_int(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.pop().unwrap(),
+            IntVector::new(vec![7, 8, 9])
+        );
     }
 
     #[test]

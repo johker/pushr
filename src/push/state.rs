@@ -40,7 +40,6 @@ pub struct PushState {
     // Bindings
     pub name_bindings: HashMap<String, Item>,
 
-    index: usize,
     pub configuration: PushConfiguration,
     pub quote_name: bool,
 }
@@ -61,7 +60,6 @@ impl PushState {
             input_stack: PushStack::new(),
             output_stack: PushStack::new(),
             name_bindings: HashMap::new(),
-            index: 0,
             configuration: PushConfiguration::new(),
             quote_name: false,
         }
