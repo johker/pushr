@@ -21,7 +21,7 @@ pub const OUTPUT_STACK_ID: i32 = 12;
 pub struct PushState {
     // Scalar Types
     pub bool_stack: PushStack<bool>,
-    pub code_stack: PushStack<Item>,
+    pub code_stack: PushStack<Item>, // Change this to reference for speedup
     pub exec_stack: PushStack<Item>,
     pub float_stack: PushStack<f32>,
     pub index_stack: PushStack<usize>,

@@ -223,6 +223,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(int_vector_dup),
     );
     map.insert(
+        String::from("INTVECTOR.DO*RANGE"),
+        Instruction::new(int_vector_do_range),
+    );
+    map.insert(
         String::from("INTVECTOR.EQUAL"),
         Instruction::new(int_vector_equal),
     );
