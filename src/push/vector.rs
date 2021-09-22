@@ -810,6 +810,26 @@ pub fn int_vector_rand(push_state: &mut PushState, _instruction_cache: &Instruct
     }
 }
 
+/// INTVECTOR.DO*RANGE: An iteration instruction that executes the top item on the execution stack
+/// once for each element of the top INTVECTOR item. The element is pushed to the INTEGER stack
+/// before the instruction of the bodyelement is pushed to the INTEGER stack
+pub fn int_vector_do_range(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut remaining_elements) = push_state.int_vector_stack.pop() {
+        if let Some(body) = push_state.exec_stack.pop() {
+            if let Some(el) = remaining_elements.values.pop() {
+                let updated_loop = Item::list(vec![
+                    body.clone(),
+                    Item::instruction("INTVECTOR.DO*RANGE".to_string()),
+                    Item::intvec(remaining_elements),
+                ]);
+                push_state.int_stack.push(el);
+                push_state.exec_stack.push(updated_loop);
+                push_state.exec_stack.push(body);
+            }
+        }
+    }
+}
+
 /// INTVECTOR.SHOVE: Inserts the second INTEGER "deep" in the stack, at the position indexed by the
 /// top INTEGER. The index position is calculated after the index is removed.
 pub fn int_vector_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -1767,6 +1787,23 @@ mod tests {
         } else {
             assert!(false, "Expected to find bool vector");
         }
+    }
+
+    #[test]
+    fn int_vector_do_range_executes_for_each_element() {
+        let mut test_state = PushState::new();
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![1, 2, 3, 4, 5]));
+        test_state
+            .exec_stack
+            .push(Item::instruction("NOOP".to_string()));
+        int_vector_do_range(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 0);
+        assert_eq!(
+            test_state.exec_stack.to_string(),
+            "1:InstructionMeta(NOOP); 2:List: 1:Literal([1,2,3,4]); 2:InstructionMeta(INTVECTOR.DO*RANGE); 3:InstructionMeta(NOOP);;"
+        );
     }
 
     #[test]
