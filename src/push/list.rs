@@ -101,7 +101,6 @@ pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCach
 /// the stacks that are identified by the top INTVECTOR element. For example
 /// [ INTEGER.ID INTEGER.ID BOOLEAN.ID ] = [ 9 9 1 ] replaces with a list containing
 /// two integer and a boolean item.
-///
 pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;

@@ -777,7 +777,7 @@ pub fn int_vector_flush(push_state: &mut PushState, _instruction_cache: &Instruc
 pub fn int_vector_from_int(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(vector_size) = push_state.int_stack.pop() {
         let size = push_state.int_stack.size() as i32;
-        let corr_size = i32::max(i32::min(size - 1, vector_size), 0) as usize;
+        let corr_size = i32::max(i32::min(size, vector_size), 0) as usize;
         if let Some(ivec) = push_state.int_stack.pop_vec(corr_size) {
             push_state.int_vector_stack.push(IntVector::new(ivec));
         }
@@ -1746,11 +1746,11 @@ mod tests {
         for i in 0..10 {
             test_state.int_stack.push(i);
         }
-        test_state.int_stack.push(3);
+        test_state.int_stack.push(11);
         int_vector_from_int(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.pop().unwrap(),
-            IntVector::new(vec![7, 8, 9])
+            IntVector::new(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
         );
     }
 
