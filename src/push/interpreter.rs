@@ -35,6 +35,7 @@ impl PushInterpreter {
                 match push_type {
                     PushType::Bool { val } => push_state.bool_stack.push(val),
                     PushType::Int { val } => push_state.int_stack.push(val),
+                    PushType::Index { val } => push_state.index_stack.push(val),
                     PushType::Float { val } => push_state.float_stack.push(val),
                     PushType::BoolVector { val } => push_state.bool_vector_stack.push(val),
                     PushType::FloatVector { val } => push_state.float_vector_stack.push(val),
@@ -106,6 +107,10 @@ impl PushInterpreter {
 mod tests {
     use super::*;
     use crate::push::parser::PushParser;
+
+    pub fn icache() -> InstructionCache {
+        InstructionCache::new(vec![])
+    }
 
     #[test]
     pub fn copy_simple_program_to_code_stack() {
@@ -183,5 +188,23 @@ mod tests {
             PushInterpreterState::NoErrors
         );
         assert_eq!(push_state.int_stack.to_string(), "1:24;");
+    }
+
+    #[test]
+    pub fn run_execution_loop() {
+        // This should calculate the sum of the iteration variable: 0+1+2+3
+        let input = "( 0 4 INDEX.DEFINE EXEC.LOOP ( INDEX.CURRENT INTEGER.+ ) )";
+        let mut push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        PushParser::parse_program(&mut push_state, &instruction_set, &input);
+        loop {
+            if PushInterpreter::step(&mut push_state, &mut instruction_set, &icache()) {
+                break;
+            }
+        }
+        assert_eq!(push_state.int_stack.to_string(), "1:6;");
+        assert_eq!(push_state.index_stack.to_string(), "");
+        assert_eq!(push_state.exec_stack.to_string(), "");
     }
 }

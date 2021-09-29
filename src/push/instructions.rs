@@ -5,6 +5,7 @@ use crate::push::boolean::*;
 use crate::push::code::*;
 use crate::push::execution::*;
 use crate::push::float::*;
+use crate::push::index::*;
 use crate::push::integer::*;
 use crate::push::io::*;
 use crate::push::list::*;
@@ -31,6 +32,7 @@ impl InstructionSet {
         load_code_instructions(&mut self.map);
         load_exec_instructions(&mut self.map);
         load_float_instructions(&mut self.map);
+        load_index_instructions(&mut self.map);
         load_int_instructions(&mut self.map);
         load_list_instructions(&mut self.map);
         load_name_instructions(&mut self.map);

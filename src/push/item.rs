@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::push::index::Index;
 use crate::push::stack::PushStack;
 use crate::push::vector::{BoolVector, FloatVector, IntVector};
 
@@ -17,6 +18,7 @@ pub enum Item {
 pub enum PushType {
     Bool { val: bool },
     Int { val: i32 },
+    Index { val: Index },
     Float { val: f32 },
     BoolVector { val: BoolVector },
     IntVector { val: IntVector },
@@ -28,6 +30,11 @@ impl<'a> Item {
     pub fn int(arg: i32) -> Item {
         Item::Literal {
             push_type: PushType::Int { val: arg },
+        }
+    }
+    pub fn index(arg: Index) -> Item {
+        Item::Literal {
+            push_type: PushType::Index { val: arg },
         }
     }
     pub fn float(arg: f32) -> Item {
@@ -303,6 +310,7 @@ impl<'a> fmt::Display for Item {
                 match push_type {
                     PushType::Bool { val } => info = val.to_string(),
                     PushType::Int { val } => info = val.to_string(),
+                    PushType::Index { val } => info = val.to_string(),
                     PushType::Float { val } => info = val.to_string() + "f",
                     PushType::BoolVector { val } => info = val.to_string(),
                     PushType::FloatVector { val } => info = val.to_string(),
@@ -328,6 +336,10 @@ impl PushType {
             },
             PushType::Int { val } => match &*other {
                 PushType::Int { val: other_val } => return val == other_val,
+                _ => false,
+            },
+            PushType::Index { val } => match &*other {
+                PushType::Index { val: other_val } => return val == other_val,
                 _ => false,
             },
             PushType::Float { val } => match &*other {

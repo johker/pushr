@@ -1,4 +1,5 @@
 use crate::push::configuration::PushConfiguration;
+use crate::push::index::Index;
 use crate::push::item::Item;
 use crate::push::stack::PushStack;
 use crate::push::vector::{BoolVector, FloatVector, IntVector};
@@ -24,7 +25,7 @@ pub struct PushState {
     pub code_stack: PushStack<Item>, // Change this to reference for speedup
     pub exec_stack: PushStack<Item>,
     pub float_stack: PushStack<f32>,
-    pub index_stack: PushStack<usize>,
+    pub index_stack: PushStack<Index>,
     pub int_stack: PushStack<i32>,
     pub name_stack: PushStack<String>,
 
@@ -90,11 +91,12 @@ impl fmt::Display for PushState {
         }
         write!(
             f,
-            "> BOOL  : \n{}\n> CODE  : \n{}\n> EXEC  : \n{}\n> FLOAT : \n{}\n> INT   : \n{}\n> BVEC  : \n{}\n> FVEC  : \n{}\n> IVEC  : \n{}\n> NAME  : \n{}\n> IDS   : \n{}\n",
+            "> BOOL  : \n{}\n> CODE  : \n{}\n> EXEC  : \n{}\n> FLOAT : \n{}\n> INDEX   : \n{}\n> INT   : \n{}\n> BVEC  : \n{}\n> FVEC  : \n{}\n> IVEC  : \n{}\n> NAME  : \n{}\n> IDS   : \n{}\n",
             self.bool_stack.to_string(),
             self.code_stack.to_string(),
             self.exec_stack.to_string(),
             self.float_stack.to_string(),
+            self.index_stack.to_string(),
             self.int_stack.to_string(),
             self.bool_vector_stack.to_string().replace(";", ";\n"),
             self.float_vector_stack.to_string().replace(";", ";\n"),
@@ -119,6 +121,6 @@ mod tests {
         test_state
             .name_bindings
             .insert("Var1".to_string(), Item::bool(true));
-        assert_eq!(test_state.to_string(), "> BOOL  : \n\n> CODE  : \n\n> EXEC  : \n\n> FLOAT : \n\n> INT   : \n\n> BVEC  : \n\n> FVEC  : \n\n> IVEC  : \n\n> NAME  : \n\n> IDS   : \nVar1 => Literal(true);\n Var2 => InstructionMeta(INTVECTOR.BOOLINDEX);\n \n")
+        assert_eq!(test_state.to_string(), "> BOOL  : \n\n> CODE  : \n\n> EXEC  : \n\n> FLOAT : \n\n> INDEX   : \n\n> INT   : \n\n> BVEC  : \n\n> FVEC  : \n\n> IVEC  : \n\n> NAME  : \n\n> IDS   : \nVar1 => Literal(true);\n Var2 => InstructionMeta(INTVECTOR.BOOLINDEX);\n \n")
     }
 }
