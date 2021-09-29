@@ -97,7 +97,6 @@ pub fn index_pop(push_state: &mut PushState, _instruction_cache: &InstructionCac
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::push::item::Item;
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
