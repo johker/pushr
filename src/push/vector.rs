@@ -740,6 +740,17 @@ pub fn int_vector_divide(push_state: &mut PushState, _instruction_cache: &Instru
     }
 }
 
+/// INTVECTOR.CONTAINS: Pushes true to the BOOLEAN stack if the top INTEGER is included in the
+/// top INTVECTOR item. This instruction acts as a NOOP if there is no INTEGER or INTVECTOR.
+/// The INTVECTOR items is not popped.
+pub fn int_vector_contains(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(element) = push_state.int_stack.pop() {
+        if let Some(array) = push_state.int_vector_stack.get(0) {
+            push_state.bool_stack.push(array.values.contains(&element));
+        }
+    }
+}
+
 /// INTVECTOR.DEFINE: Defines the name on top of the NAME stack as an instruction that will
 /// push the top item of the INTVECTOR stack onto the EXEC stack.
 pub fn int_vector_define(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -1717,6 +1728,23 @@ mod tests {
             test_state.int_vector_stack.pop().unwrap(),
             IntVector::new(vec![2, 2, 2, 2, 1, 0, 1, 0])
         );
+    }
+
+    #[test]
+    fn int_vector_contains_pushes_to_bool() {
+        let mut test_state = PushState::new();
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![3, 4, 1, 2]));
+        test_state.int_stack.push(4);
+        int_vector_contains(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        test_state.int_stack.push(5);
+        int_vector_contains(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.pop().unwrap(), false);
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(test_state.int_stack.size(), 0);
     }
 
     #[test]
