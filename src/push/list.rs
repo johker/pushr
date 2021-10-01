@@ -3,6 +3,7 @@ use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
 use crate::push::state::*;
 use crate::push::topology::Topology;
+use crate::push::vector::IntVector;
 use std::collections::HashMap;
 
 /// Integer numbers (that is, numbers without decimal points).
@@ -112,8 +113,13 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
     }
 }
 
+/// LIST.SORT:
+pub fn list_sort(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    // TODO
+}
+
 /// LIST.NEIGHBORS: Calculates the neighborhood for a given index element and length. It
-/// pushes the indices that are contained in this neighborhood to the INTEGER stack.
+/// pushes the indices that are contained in this neighborhood to the INTVECTOR stack.
 /// The size, the number of dimensions and index (vector topology) are taken from the INTEGER
 /// stack in that order. The radius is taken from the float stack. Distances are calculated using the
 /// Eucledian metric. All values are corrected by max-min. If the size of the top element is not a power
@@ -130,9 +136,11 @@ pub fn list_neighbors(push_state: &mut PushState, _instruction_cache: &Instructi
             if let Some(neighbors) =
                 Topology::find_neighbors(&(size as usize), &dimensions, &index, &radius)
             {
+                let mut result = vec![];
                 for n in neighbors.values.iter() {
-                    push_state.int_stack.push(*n);
+                    result.push(*n);
                 }
+                push_state.int_vector_stack.push(IntVector::new(result));
             }
         }
     }
@@ -218,8 +226,8 @@ mod tests {
         test_state.int_stack.push(100); // Size
         list_neighbors(&mut test_state, &icache());
         assert_eq!(
-            test_state.int_stack.to_string(),
-            String::from("1:61; 2:60; 3:51; 4:50; 5:41; 6:40;")
+            test_state.int_vector_stack.to_string(),
+            String::from("1:[40,41,50,51,60,61];")
         );
     }
 
@@ -232,18 +240,18 @@ mod tests {
         test_state.int_stack.push(100); // Size
         list_neighbors(&mut test_state, &icache());
         assert_eq!(
-            test_state.int_stack.to_string(),
-            String::from("1:99; 2:98; 3:89; 4:88;")
+            test_state.int_vector_stack.to_string(),
+            String::from("1:[88,89,98,99];")
         );
-        test_state.int_stack.flush();
+        test_state.int_vector_stack.flush();
         test_state.float_stack.push(1.5); // Radius
         test_state.int_stack.push(2); // Dimensions
         test_state.int_stack.push(-10); // Index
         test_state.int_stack.push(100); // Size
         list_neighbors(&mut test_state, &icache());
         assert_eq!(
-            test_state.int_stack.to_string(),
-            String::from("1:11; 2:10; 3:1; 4:0;")
+            test_state.int_vector_stack.to_string(),
+            String::from("1:[0,1,10,11];")
         );
     }
 }
