@@ -43,6 +43,7 @@ pub struct PushState {
 
     pub configuration: PushConfiguration,
     pub quote_name: bool,
+    pub list_uid: i32,
 }
 
 impl PushState {
@@ -63,6 +64,7 @@ impl PushState {
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
             quote_name: false,
+            list_uid: 0,
         }
     }
 

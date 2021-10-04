@@ -1,6 +1,7 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
+use crate::push::item::PushType;
 use crate::push::state::*;
 use crate::push::topology::Topology;
 use crate::push::vector::IntVector;
@@ -17,7 +18,39 @@ pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
     );
 }
 
-pub fn generate_list(push_state: &mut PushState) -> Option<Vec<Item>> {
+/// Generates continuous numbering starting from 0.
+pub fn generate_id(push_state: &mut PushState) -> i32 {
+    push_state.list_uid = (push_state.list_uid + 1) % i32::MAX;
+    return push_state.list_uid;
+}
+
+/// Extracts id from the list item specified by the list index.
+pub fn extract_id(push_state: &mut PushState, list_index: usize) -> Option<i32> {
+    if let Some(list) = push_state.code_stack.get(list_index) {
+        match list {
+            Item::List { items } => match items.copy(0) {
+                Some(Item::Literal { push_type }) => match push_type {
+                    PushType::Int { val } => return Some(val),
+                    _ => return None,
+                },
+                _ => return None,
+            },
+            // List is empty but contains ID
+            Item::Literal { push_type } => match push_type {
+                PushType::Int { val } => return Some(val.clone()),
+                _ => return None,
+            },
+            _ => return None,
+        }
+    }
+    return None;
+}
+
+/// Generates a vector of items as specified by the top INTVECTOR.
+/// Each entry is matched against the stack ids. If there is a match the item
+/// of the stack is popped and added to the new list item. As last entry
+/// it adds a auto-generated ID.
+pub fn load_items(push_state: &mut PushState) -> Option<Vec<Item>> {
     if let Some(stack_ids) = push_state.int_vector_stack.pop() {
         let mut items = vec![];
         for &sid in &stack_ids.values {
@@ -75,24 +108,47 @@ pub fn generate_list(push_state: &mut PushState) -> Option<Vec<Item>> {
     return None;
 }
 
+/// Generates a new list using the items specified on top of the INTVECTOR stack.
+/// It adds an unique id at the end of the items.
+pub fn new_list(push_state: &mut PushState) -> Option<Vec<Item>> {
+    if let Some(mut items) = load_items(push_state) {
+        items.push(Item::int(generate_id(push_state)));
+        return Some(items);
+    }
+    return None;
+}
+
 /// LIST.ADD: Pushes a list item to the code stack with the content
 /// specified by the top item of the INTVECTOR. Each entry of the INTVECTOR
 /// represents the stack id of an item to be contained.
 pub fn list_add(push_state: &mut PushState, _instruction_set: &InstructionCache) {
-    if let Some(items) = generate_list(push_state) {
+    if let Some(items) = new_list(push_state) {
         let list_item = Item::list(items);
         push_state.code_stack.push(list_item);
     }
 }
 
-/// LIST.GET: Pushes a copy of the items bound to the specified index to the execution stack.
-/// The index is taken from the top of the INTEGER stack and min-max corrected.
+/// LIST.GET: Pushes a copy of the items at the given stack position to the execution stack.
+/// The index i is taken from the top of the INTEGER stack and min-max corrected.
 pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
         if let Some(list) = push_state.code_stack.copy(list_index) {
             push_state.exec_stack.push(list);
+        }
+    }
+}
+
+/// LIST.ID: Pushes a copy of the list ID at the given stack position. If no integer
+/// is found on top of the stack of the list item this instructions acts a NOOP.
+/// The stack position is taken from the top of the INTEGER stack and min-max corrected.
+pub fn list_id(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        let size = push_state.code_stack.size() as i32;
+        let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
+        if let Some(id) = extract_id(push_state, list_index) {
+            push_state.int_stack.push(id);
         }
     }
 }
@@ -106,14 +162,18 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
-        if let Some(items) = generate_list(push_state) {
-            let list_item = Item::list(items);
-            let _res = push_state.code_stack.replace(list_index, list_item);
+        if let Some(id) = extract_id(push_state, list_index) {
+            if let Some(mut items) = load_items(push_state) {
+                items.push(Item::int(id));
+                let list_item = Item::list(items);
+                let _res = push_state.code_stack.replace(list_index, list_item);
+            }
         }
     }
 }
 
-/// LIST.SORT:
+/// LIST.SORT: Sorts the elements on the list stack based on the second integer item found. (The
+/// first integer is the id)
 pub fn list_sort(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     // TODO
 }
@@ -156,6 +216,16 @@ mod tests {
     }
 
     #[test]
+    fn generate_id_resets_to_0_on_overflow() {
+        let mut test_state = PushState::new();
+        assert_eq!(test_state.list_uid, 0);
+        test_state.list_uid = i32::MAX - 2;
+        assert_eq!(generate_id(&mut test_state), i32::MAX - 1);
+        assert_eq!(generate_id(&mut test_state), 0);
+        assert_eq!(generate_id(&mut test_state), 1);
+    }
+
+    #[test]
     fn list_add_from_different_stacks() {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(true);
@@ -177,7 +247,7 @@ mod tests {
             INT_VECTOR_STACK_ID,
         ]));
         list_add(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal([22]); 2:Literal([1]); 3:Literal([3]); 4:Literal(1f); 5:Literal(1); 6:Literal(true);;");
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal([22]); 3:Literal([1]); 4:Literal([3]); 5:Literal(1f); 6:Literal(1); 7:Literal(true);;");
     }
 
     #[test]
@@ -213,7 +283,8 @@ mod tests {
         list_set(&mut test_state, &icache());
         assert_eq!(
             test_state.code_stack.to_string(),
-            "1:Literal(33); 2:List: 1:Literal(true);; 3:Literal(11);"
+            "1:Literal(33); 2:List: 1:Literal(22); 2:Literal(true);; 3:Literal(11);",
+            "List set should replace content while maintaining list ID"
         );
     }
 
