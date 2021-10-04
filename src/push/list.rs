@@ -11,7 +11,16 @@ use std::collections::HashMap;
 pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("LIST.ADD"), Instruction::new(list_add));
     map.insert(String::from("LIST.GET"), Instruction::new(list_get));
+    map.insert(String::from("LIST.ID"), Instruction::new(list_id));
     map.insert(String::from("LIST.SET"), Instruction::new(list_set));
+    map.insert(
+        String::from("LIST.SORT*ASC"),
+        Instruction::new(list_sort_asscending),
+    );
+    map.insert(
+        String::from("LIST.SORT*DESC"),
+        Instruction::new(list_sort_descending),
+    );
     map.insert(
         String::from("LIST.NEIGHBORS"),
         Instruction::new(list_neighbors),
@@ -172,9 +181,19 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
     }
 }
 
-/// LIST.SORT: Sorts the elements on the list stack based on the second integer item found. (The
-/// first integer is the id)
-pub fn list_sort(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+/// LIST.SORT*DESC: Sorts the elements on the list stack in descending orderbased on the
+/// second subitem found in the list (The first sub item is the id). If the second subitem
+/// is not of type FLOAT or INT the algorithm implcitly assumes i32::MIN = -2147483648 as
+/// value which puts the item at the bottom of the stack.
+pub fn list_sort_descending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    // TODO
+}
+
+/// LIST.SORT*ASC: Sorts the elements on the list stack in ascending order based on the second
+/// subitem found in the list (The first sub item is the id). If the second subitem is not of
+/// type FLOAT or INT the algorithm implcitly assumes i32::MIN = -2147483648 as value which puts
+/// the item at the bottom of the stack.
+pub fn list_sort_asscending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     // TODO
 }
 
