@@ -1,7 +1,7 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
-use crate::push::item::PushType;
+use crate::push::sorting::Sorting;
 use crate::push::state::*;
 use crate::push::topology::Topology;
 use crate::push::vector::IntVector;
@@ -15,7 +15,7 @@ pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("LIST.SET"), Instruction::new(list_set));
     map.insert(
         String::from("LIST.SORT*ASC"),
-        Instruction::new(list_sort_asscending),
+        Instruction::new(list_sort_ascending),
     );
     map.insert(
         String::from("LIST.SORT*DESC"),
@@ -25,34 +25,6 @@ pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("LIST.NEIGHBORS"),
         Instruction::new(list_neighbors),
     );
-}
-
-/// Generates continuous numbering starting from 0.
-pub fn generate_id(push_state: &mut PushState) -> i32 {
-    push_state.list_uid = (push_state.list_uid + 1) % i32::MAX;
-    return push_state.list_uid;
-}
-
-/// Extracts id from the list item specified by the list index.
-pub fn extract_id(push_state: &mut PushState, list_index: usize) -> Option<i32> {
-    if let Some(list) = push_state.code_stack.get(list_index) {
-        match list {
-            Item::List { items } => match items.copy(0) {
-                Some(Item::Literal { push_type }) => match push_type {
-                    PushType::Int { val } => return Some(val),
-                    _ => return None,
-                },
-                _ => return None,
-            },
-            // List is empty but contains ID
-            Item::Literal { push_type } => match push_type {
-                PushType::Int { val } => return Some(val.clone()),
-                _ => return None,
-            },
-            _ => return None,
-        }
-    }
-    return None;
 }
 
 /// Generates a vector of items as specified by the top INTVECTOR.
@@ -121,7 +93,7 @@ pub fn load_items(push_state: &mut PushState) -> Option<Vec<Item>> {
 /// It adds an unique id at the end of the items.
 pub fn new_list(push_state: &mut PushState) -> Option<Vec<Item>> {
     if let Some(mut items) = load_items(push_state) {
-        items.push(Item::int(generate_id(push_state)));
+        items.push(Item::int(Sorting::generate_id(push_state)));
         return Some(items);
     }
     return None;
@@ -156,7 +128,7 @@ pub fn list_id(push_state: &mut PushState, _instruction_cache: &InstructionCache
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
-        if let Some(id) = extract_id(push_state, list_index) {
+        if let Some(id) = Sorting::extract_id(push_state, list_index) {
             push_state.int_stack.push(id);
         }
     }
@@ -171,7 +143,7 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
-        if let Some(id) = extract_id(push_state, list_index) {
+        if let Some(id) = Sorting::extract_id(push_state, list_index) {
             if let Some(mut items) = load_items(push_state) {
                 items.push(Item::int(id));
                 let list_item = Item::list(items);
@@ -181,19 +153,34 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
     }
 }
 
-/// LIST.SORT*DESC: Sorts the elements on the list stack in descending orderbased on the
-/// second subitem found in the list (The first sub item is the id). If the second subitem
-/// is not of type FLOAT or INT the algorithm implcitly assumes i32::MIN = -2147483648 as
-/// value which puts the item at the bottom of the stack.
-pub fn list_sort_descending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    // TODO
-}
-
 /// LIST.SORT*ASC: Sorts the elements on the list stack in ascending order based on the second
 /// subitem found in the list (The first sub item is the id). If the second subitem is not of
-/// type FLOAT or INT the algorithm implcitly assumes i32::MIN = -2147483648 as value which puts
+/// type FLOAT or INT the algorithm implcitly assumes i32::INFINITY as value which puts
 /// the item at the bottom of the stack.
-pub fn list_sort_asscending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+pub fn list_sort_ascending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    let n = push_state.code_stack.size();
+    let mut swapped = false;
+    for l in 1..10 {
+        swapped = false;
+        for i in 1..n - 1 {
+            let vi = Sorting::list_uvalue(push_state, i);
+            let vimo = Sorting::list_uvalue(push_state, i - 1);
+            if vimo > vi {
+                push_state.code_stack.swap(i, i - 1);
+                swapped = true;
+            }
+        }
+        if !swapped {
+            break;
+        }
+    }
+}
+
+/// LIST.SORT*DESC: Sorts the elements on the list stack in descending orderbased on the
+/// second subitem found in the list (The first sub item is the id). If the second subitem
+/// is not of type FLOAT or INT the algorithm implcitly assumes f32::NEG_INFINITY as
+/// value which puts the item at the bottom of the stack.
+pub fn list_sort_descending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     // TODO
 }
 
@@ -232,16 +219,6 @@ mod tests {
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
-    }
-
-    #[test]
-    fn generate_id_resets_to_0_on_overflow() {
-        let mut test_state = PushState::new();
-        assert_eq!(test_state.list_uid, 0);
-        test_state.list_uid = i32::MAX - 2;
-        assert_eq!(generate_id(&mut test_state), i32::MAX - 1);
-        assert_eq!(generate_id(&mut test_state), 0);
-        assert_eq!(generate_id(&mut test_state), 1);
     }
 
     #[test]
@@ -343,5 +320,27 @@ mod tests {
             test_state.int_vector_stack.to_string(),
             String::from("1:[0,1,10,11];")
         );
+    }
+
+    fn list_sort_ascending_swaps_items() {
+        let mut test_state = PushState::new();
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(2), Item::int(5)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(1), Item::int(4)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(9), Item::int(3)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(7), Item::int(2)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(5), Item::int(1)]));
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:List: 1:Literal(4); 2:Literal(1);; 5:List: 1:Literal(5); 2:Literal(2);;");
+        list_sort_ascending(&mut test_state, &icache());
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(4); 2:Literal(1);; 2:List: 1:Literal(5); 2:Literal(2);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(2); 2:Literal(7);; 5:List: 1:Literal(3); 2:Literal(9);;");
     }
 }

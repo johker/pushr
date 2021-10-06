@@ -133,6 +133,11 @@ where
         }
     }
 
+    /// Swaps vector elements
+    pub fn swap(&mut self, i: usize, j: usize) {
+        self.elements.swap(i, j);
+    }
+
     /// Removes the bottom element from the stack and returns it.
     pub fn pop_front(&mut self) -> Option<T> {
         if self.elements.is_empty() {
