@@ -83,10 +83,10 @@ impl Sorting {
         }
     }
 
-    /// Extracts the sort value from the list item.
-    /// The sort value is defined as the item below the id (stack position 2).
-    /// The function returns f32::INFINITY if no list with at least two items is found or
-    /// if the second item does not have type INT/FLOAT.
+    /// Extracts the sort value from the list item. The sort value is defined as the item
+    /// below the id (stack position 2). The function returns the default value if no list
+    /// with at least two items is found or if the second item does not have type INT/FLOAT.
+    /// The default value is f32::INFINITY if pos_default=true, otherwise f32::NEG_INFINITY.
     pub fn value(item: &Item, pos_default: &bool) -> f32 {
         let default_value;
         if *pos_default {
@@ -198,7 +198,10 @@ mod tests {
     }
 
     #[test]
-    fn unsorted_array_with_empty_items() {
+    fn unsorted_array_with_invalid_list_item() {
+        // Item::int(x) has only one entry but it needs two (id,value) to
+        // be sorted properly => The entries will be imputed depending
+        // on the pos_default flag
         let mut arr = vec![litem(3), Item::int(4), litem(2), litem(1)];
         let pos_default = true;
         Sorting::heap_sort(&mut arr, &pos_default);
@@ -232,8 +235,21 @@ mod tests {
         let pos_default = true;
         Sorting::heap_sort(&mut arr, &pos_default);
         assert!(Item::equals(&arr[0], &litem(542)));
+        assert!(Item::equals(&arr[1], &litem(542)));
+        assert!(Item::equals(&arr[2], &litem(542)));
+        assert!(Item::equals(&arr[3], &litem(542)));
+    }
+    #[test]
+    fn multiple_invalid_list_items() {
+        // Item::int(x) has only one entry but it needs two (id,value) to
+        // be sorted properly => The entries will be imputed depending
+        // on the pos_default flag
+        let mut arr = vec![Item::int(1), Item::int(2), Item::int(3), litem(542)];
+        let pos_default = true;
+        Sorting::heap_sort(&mut arr, &pos_default);
         assert!(Item::equals(&arr[0], &litem(542)));
-        assert!(Item::equals(&arr[0], &litem(542)));
-        assert!(Item::equals(&arr[0], &litem(542)));
+        let pos_default = false;
+        Sorting::heap_sort(&mut arr, &pos_default);
+        assert!(Item::equals(&arr[3], &litem(542)));
     }
 }
