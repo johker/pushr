@@ -158,22 +158,7 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
 /// type FLOAT or INT the algorithm implcitly assumes i32::INFINITY as value which puts
 /// the item at the bottom of the stack.
 pub fn list_sort_ascending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    let n = push_state.code_stack.size();
-    //    let mut swapped = false;
-    //    for l in 1..10 {
-    //        swapped = false;
-    //        for i in 1..n - 1 {
-    //            let vi = Sorting::list_uvalue(push_state, i);
-    //            let vimo = Sorting::list_uvalue(push_state, i - 1);
-    //            if vimo > vi {
-    //                push_state.code_stack.swap(i, i - 1);
-    //                swapped = true;
-    //            }
-    //        }
-    //        if !swapped {
-    //            break;
-    //        }
-    //    }
+    push_state.code_stack.sort(&true);
 }
 
 /// LIST.SORT*DESC: Sorts the elements on the list stack in descending orderbased on the
@@ -181,7 +166,7 @@ pub fn list_sort_ascending(push_state: &mut PushState, _instruction_cache: &Inst
 /// is not of type FLOAT or INT the algorithm implcitly assumes f32::NEG_INFINITY as
 /// value which puts the item at the bottom of the stack.
 pub fn list_sort_descending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    // TODO
+    push_state.code_stack.sort(&false);
 }
 
 /// LIST.NEIGHBORS: Calculates the neighborhood for a given index element and length. It

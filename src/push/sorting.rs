@@ -1,6 +1,96 @@
-use crate::push::instructions::InstructionCache;
+use crate::push::index::Index;
 use crate::push::item::{Item, PushType};
 use crate::push::state::PushState;
+use crate::push::vector::{BoolVector, FloatVector, IntVector};
+
+pub trait SortValue {
+    /// Provides a float value depending on the sorting order
+    /// (ascending or descending).
+    fn sval(&self, order: &bool) -> f32;
+}
+
+impl SortValue for i32 {
+    fn sval(&self, _order: &bool) -> f32 {
+        *self as f32
+    }
+}
+
+impl SortValue for f32 {
+    fn sval(&self, _order: &bool) -> f32 {
+        *self
+    }
+}
+
+// Not sorted
+impl SortValue for String {
+    fn sval(&self, _order: &bool) -> f32 {
+        0.0
+    }
+}
+
+impl SortValue for bool {
+    fn sval(&self, _order: &bool) -> f32 {
+        if *self {
+            1.0
+        } else {
+            0.0
+        }
+    }
+}
+
+// Not sorted
+impl SortValue for BoolVector {
+    fn sval(&self, _order: &bool) -> f32 {
+        0.0
+    }
+}
+
+// Not sorted
+impl SortValue for IntVector {
+    fn sval(&self, _order: &bool) -> f32 {
+        0.0
+    }
+}
+
+// Not sorted
+impl SortValue for FloatVector {
+    fn sval(&self, _order: &bool) -> f32 {
+        0.0
+    }
+}
+
+impl SortValue for Item {
+    fn sval(&self, order: &bool) -> f32 {
+        let default_value;
+        if *order {
+            default_value = f32::INFINITY;
+        } else {
+            default_value = f32::NEG_INFINITY;
+        }
+        match self {
+            Item::List { items } => {
+                if items.size() >= 2 {
+                    match items.get(1) {
+                        Some(Item::Literal { push_type }) => match push_type {
+                            PushType::Int { val } => return val.clone() as f32,
+                            PushType::Float { val } => return val.clone(),
+                            _ => return default_value,
+                        },
+                        _ => return default_value,
+                    }
+                }
+            }
+            _ => return default_value,
+        }
+        return default_value;
+    }
+}
+
+impl SortValue for Index {
+    fn sval(&self, _order: &bool) -> f32 {
+        self.current as f32
+    }
+}
 
 pub struct Sorting {}
 
@@ -36,7 +126,7 @@ impl Sorting {
     /// Sorts the array in descending order which results
     /// in a ascending order for the stack. The items with lowest
     /// values are placed at the top of the stack.
-    pub fn heap_sort(arr: &mut [Item], pos_default: &bool) {
+    pub fn heap_sort<T: SortValue>(arr: &mut [T], pos_default: &bool) {
         if arr.len() <= 1 {
             return; // already sorted
         }
@@ -50,7 +140,7 @@ impl Sorting {
     }
 
     /// Convert 'arr' into a max heap.
-    fn heapify(arr: &mut [Item], pos_default: &bool) {
+    fn heapify<T: SortValue>(arr: &mut [T], pos_default: &bool) {
         let last_parent = (arr.len() - 2) / 2;
         for i in (0..=last_parent).rev() {
             Sorting::move_down(arr, i, pos_default);
@@ -59,7 +149,7 @@ impl Sorting {
 
     /// Move the element at 'root' down until 'arr' is a min heap again.
     /// This assumes that the subtrees under `root` are valid min heaps already.
-    fn move_down(arr: &mut [Item], mut root: usize, pos_default: &bool) {
+    fn move_down<T: SortValue>(arr: &mut [T], mut root: usize, pos_default: &bool) {
         let last = arr.len() - 1;
         loop {
             let left = 2 * root + 1;
@@ -67,50 +157,48 @@ impl Sorting {
                 break;
             }
             let right = left + 1;
-            let max = if right <= last
-                && Sorting::value(&arr[right], pos_default)
-                    > Sorting::value(&arr[left], pos_default)
+            let max = if right <= last && arr[right].sval(pos_default) > arr[left].sval(pos_default)
             {
                 right
             } else {
                 left
             };
 
-            if Sorting::value(&arr[max], pos_default) > Sorting::value(&arr[root], pos_default) {
+            if arr[max].sval(pos_default) > arr[root].sval(pos_default) {
                 arr.swap(root, max);
             }
             root = max;
         }
     }
 
-    /// Extracts the sort value from the list item. The sort value is defined as the item
-    /// below the id (stack position 2). The function returns the default value if no list
-    /// with at least two items is found or if the second item does not have type INT/FLOAT.
-    /// The default value is f32::INFINITY if pos_default=true, otherwise f32::NEG_INFINITY.
-    pub fn value(item: &Item, pos_default: &bool) -> f32 {
-        let default_value;
-        if *pos_default {
-            default_value = f32::INFINITY;
-        } else {
-            default_value = f32::NEG_INFINITY;
-        }
-        match item {
-            Item::List { items } => {
-                if items.size() >= 2 {
-                    match items.get(1) {
-                        Some(Item::Literal { push_type }) => match push_type {
-                            PushType::Int { val } => return val.clone() as f32,
-                            PushType::Float { val } => return val.clone(),
-                            _ => return default_value,
-                        },
-                        _ => return default_value,
-                    }
-                }
-            }
-            _ => return default_value,
-        }
-        return default_value;
-    }
+    //    /// Extracts the sort value from the list item. The sort value is defined as the item
+    //    /// below the id (stack position 2). The function returns the default value if no list
+    //    /// with at least two items is found or if the second item does not have type INT/FLOAT.
+    //    /// The default value is f32::INFINITY if pos_default=true, otherwise f32::NEG_INFINITY.
+    //    pub fn item_value(item: &Item, pos_default: &bool) -> f32 {
+    //        let default_value;
+    //        if *pos_default {
+    //            default_value = f32::INFINITY;
+    //        } else {
+    //            default_value = f32::NEG_INFINITY;
+    //        }
+    //        match item {
+    //            Item::List { items } => {
+    //                if items.size() >= 2 {
+    //                    match items.get(1) {
+    //                        Some(Item::Literal { push_type }) => match push_type {
+    //                            PushType::Int { val } => return val.clone() as f32,
+    //                            PushType::Float { val } => return val.clone(),
+    //                            _ => return default_value,
+    //                        },
+    //                        _ => return default_value,
+    //                    }
+    //                }
+    //            }
+    //            _ => return default_value,
+    //        }
+    //        return default_value;
+    //    }
 }
 
 #[cfg(test)]
@@ -141,22 +229,22 @@ mod tests {
             Item::list(vec![Item::int(9), Item::int(3)]),
         ];
         let pos_default = true;
-        assert_eq!(Sorting::value(&test_array[0], &pos_default), 2.0);
-        assert_eq!(Sorting::value(&test_array[1], &pos_default), 1.0);
-        assert_eq!(Sorting::value(&test_array[2], &pos_default), 9.0);
+        assert_eq!(test_array[0].sval(&pos_default), 2.0);
+        assert_eq!(test_array[1].sval(&pos_default), 1.0);
+        assert_eq!(test_array[2].sval(&pos_default), 9.0);
         let pos_default = false;
-        assert_eq!(Sorting::value(&test_array[0], &pos_default), 2.0);
-        assert_eq!(Sorting::value(&test_array[1], &pos_default), 1.0);
-        assert_eq!(Sorting::value(&test_array[2], &pos_default), 9.0);
+        assert_eq!(test_array[0].sval(&pos_default), 2.0);
+        assert_eq!(test_array[1].sval(&pos_default), 1.0);
+        assert_eq!(test_array[2].sval(&pos_default), 9.0);
     }
 
     #[test]
     fn extract_sort_value_returns_infinity_when_item_not_found() {
         let test_item = Item::list(vec![Item::int(2)]);
         let pos_default = true;
-        assert_eq!(Sorting::value(&test_item, &pos_default), f32::INFINITY);
+        assert_eq!(test_item.sval(&pos_default), f32::INFINITY);
         let pos_default = false;
-        assert_eq!(Sorting::value(&test_item, &pos_default), f32::NEG_INFINITY);
+        assert_eq!(test_item.sval(&pos_default), f32::NEG_INFINITY);
     }
 
     #[test]

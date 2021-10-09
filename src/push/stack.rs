@@ -1,3 +1,4 @@
+use crate::push::sorting::{SortValue, Sorting};
 use std::fmt;
 
 #[derive(Clone, Debug)]
@@ -7,7 +8,7 @@ pub struct PushStack<T> {
 
 impl<T> PushStack<T>
 where
-    T: Clone + fmt::Display + PartialEq,
+    T: Clone + fmt::Display + PartialEq + SortValue,
 {
     pub fn new() -> Self {
         Self {
@@ -81,6 +82,11 @@ where
         }
     }
 
+    /// Reverse elements of stack.
+    pub fn reverse(&mut self) {
+        self.elements.reverse();
+    }
+
     /// Returns a mutable reference to the element at stack position i counting
     /// from the top of the stack
     pub fn get_mut(&mut self, i: usize) -> Option<&mut T> {
@@ -136,6 +142,12 @@ where
     /// Swaps vector elements
     pub fn swap(&mut self, i: usize, j: usize) {
         self.elements.swap(i, j);
+    }
+
+    /// Sort vector elements in ascending order if
+    /// argument is true, in descending order otherwise.
+    pub fn sort(&mut self, ascending: &bool) {
+        Sorting::heap_sort(&mut self.elements, ascending);
     }
 
     /// Removes the bottom element from the stack and returns it.
@@ -321,5 +333,14 @@ mod tests {
         assert_eq!(test_stack.replace(4, 19), Ok(()));
         assert_eq!(test_stack.replace(0, 19), Ok(()));
         assert_eq!(test_stack.to_string(), "1:19; 2:19; 3:3; 4:2; 5:19;");
+    }
+
+    #[test]
+    fn reverse_elements() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3, 4, 5],
+        };
+        test_stack.reverse();
+        assert_eq!(test_stack.elements, [5, 4, 3, 2, 1]);
     }
 }
