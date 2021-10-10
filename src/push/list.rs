@@ -1,6 +1,7 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
+use crate::push::sorting::SortValue;
 use crate::push::sorting::Sorting;
 use crate::push::state::*;
 use crate::push::topology::Topology;
@@ -13,6 +14,7 @@ pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("LIST.GET"), Instruction::new(list_get));
     map.insert(String::from("LIST.ID"), Instruction::new(list_id));
     map.insert(String::from("LIST.SET"), Instruction::new(list_set));
+    map.insert(String::from("LIST.SVAL"), Instruction::new(list_sval));
     map.insert(
         String::from("LIST.SORT*ASC"),
         Instruction::new(list_sort_ascending),
@@ -117,6 +119,20 @@ pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCach
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
         if let Some(list) = push_state.code_stack.copy(list_index) {
             push_state.exec_stack.push(list);
+        }
+    }
+}
+
+/// LIST.SVAL: Copies the sort value (i.e. the second sub item of the items at the given
+/// stack position to the FLOAT stack. If the INTEGER does not exist this instruction
+/// acts as a NOOP.
+/// The index i is taken from the top of the INTEGER stack and min-max corrected.
+pub fn list_sval(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        let size = push_state.code_stack.size() as i32;
+        let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
+        if let Some(list) = push_state.code_stack.get(list_index) {
+            push_state.float_stack.push(list.sval(&true));
         }
     }
 }
@@ -249,6 +265,28 @@ mod tests {
             test_state.exec_stack.to_string(),
             "1:List: 1:Literal(2.3f); 2:Literal(3); 3:Literal(2); 4:Literal(true);;"
         );
+    }
+
+    #[test]
+    fn list_sval_returns_second_element() {
+        let mut test_state = PushState::new();
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
+        test_state.int_stack.push(0);
+        list_sval(&mut test_state, &icache());
+        assert_eq!(test_state.float_stack.pop().unwrap(), 1.0);
+    }
+
+    #[test]
+    fn list_id_returns_first_element() {
+        let mut test_state = PushState::new();
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(1), Item::int(2)]));
+        test_state.int_stack.push(0);
+        list_id(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.pop().unwrap(), 2);
     }
 
     #[test]
