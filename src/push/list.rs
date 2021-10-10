@@ -222,14 +222,14 @@ mod tests {
         test_state.int_vector_stack.push(IntVector::new(vec![22]));
         test_state.int_vector_stack.push(IntVector::new(vec![
             BOOL_STACK_ID,
-            INT_STACK_ID,
             FLOAT_STACK_ID,
             FLOAT_VECTOR_STACK_ID,
             BOOL_VECTOR_STACK_ID,
             INT_VECTOR_STACK_ID,
+            INT_STACK_ID,
         ]));
         list_add(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal([22]); 3:Literal([1]); 4:Literal([3]); 5:Literal(1f); 6:Literal(1); 7:Literal(true);;");
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(1); 3:Literal([22]); 4:Literal([1]); 5:Literal([3]); 6:Literal(1f); 7:Literal(true);;");
     }
 
     #[test]
