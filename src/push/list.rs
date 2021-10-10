@@ -159,6 +159,7 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
 /// the item at the bottom of the stack.
 pub fn list_sort_ascending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.code_stack.sort(&true);
+    push_state.code_stack.reverse();
 }
 
 /// LIST.SORT*DESC: Sorts the elements on the list stack in descending orderbased on the
@@ -307,7 +308,8 @@ mod tests {
         );
     }
 
-    fn list_sort_ascending_swaps_items() {
+    #[test]
+    fn list_sort_ascending_with_well_formed_items() {
         let mut test_state = PushState::new();
         test_state
             .code_stack
@@ -327,5 +329,86 @@ mod tests {
         assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:List: 1:Literal(4); 2:Literal(1);; 5:List: 1:Literal(5); 2:Literal(2);;");
         list_sort_ascending(&mut test_state, &icache());
         assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(4); 2:Literal(1);; 2:List: 1:Literal(5); 2:Literal(2);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(2); 2:Literal(7);; 5:List: 1:Literal(3); 2:Literal(9);;");
+    }
+
+    #[test]
+    fn list_sort_descending_with_well_formed_items() {
+        let mut test_state = PushState::new();
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(2), Item::int(5)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(1), Item::int(4)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(9), Item::int(3)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(7), Item::int(2)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(5), Item::int(1)]));
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:List: 1:Literal(4); 2:Literal(1);; 5:List: 1:Literal(5); 2:Literal(2);;");
+        list_sort_descending(&mut test_state, &icache());
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(3); 2:Literal(9);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(5); 2:Literal(2);; 5:List: 1:Literal(4); 2:Literal(1);;");
+    }
+
+    #[test]
+    fn list_sort_ascending_with_non_list_items() {
+        let mut test_state = PushState::new();
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(2), Item::int(5)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(1), Item::int(4)]));
+        test_state
+            .code_stack
+            .push(Item::instruction("TEST1".to_string()));
+        test_state
+            .code_stack
+            .push(Item::instruction("TEST2".to_string()));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(9), Item::int(3)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(7), Item::int(2)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(5), Item::int(1)]));
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:InstructionMeta(TEST2); 5:InstructionMeta(TEST1); 6:List: 1:Literal(4); 2:Literal(1);; 7:List: 1:Literal(5); 2:Literal(2);;");
+        list_sort_ascending(&mut test_state, &icache());
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(4); 2:Literal(1);; 2:List: 1:Literal(5); 2:Literal(2);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(2); 2:Literal(7);; 5:List: 1:Literal(3); 2:Literal(9);; 6:InstructionMeta(TEST1); 7:InstructionMeta(TEST2);");
+    }
+
+    #[test]
+    fn list_sort_descending_with_non_list_items() {
+        let mut test_state = PushState::new();
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(2), Item::int(5)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(1), Item::int(4)]));
+        test_state
+            .code_stack
+            .push(Item::instruction("TEST1".to_string()));
+        test_state
+            .code_stack
+            .push(Item::instruction("TEST2".to_string()));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(9), Item::int(3)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(7), Item::int(2)]));
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::int(5), Item::int(1)]));
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:InstructionMeta(TEST2); 5:InstructionMeta(TEST1); 6:List: 1:Literal(4); 2:Literal(1);; 7:List: 1:Literal(5); 2:Literal(2);;");
+        list_sort_descending(&mut test_state, &icache());
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(3); 2:Literal(9);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(5); 2:Literal(2);; 5:List: 1:Literal(4); 2:Literal(1);; 6:InstructionMeta(TEST1); 7:InstructionMeta(TEST2);");
     }
 }
