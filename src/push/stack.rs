@@ -82,6 +82,14 @@ where
         }
     }
 
+    /// Removes element at position i counting from the top.
+    pub fn remove(&mut self, i: usize) {
+        let size = self.size();
+        if i < size {
+            self.elements.remove(size - (i + 1));
+        }
+    }
+
     /// Reverse elements of stack.
     pub fn reverse(&mut self) {
         self.elements.reverse();

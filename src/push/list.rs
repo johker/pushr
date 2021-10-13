@@ -112,13 +112,20 @@ pub fn list_add(push_state: &mut PushState, _instruction_set: &InstructionCache)
 }
 
 /// LIST.GET: Pushes a copy of the items at the given stack position to the execution stack.
+/// The first element of the list (the id) is removed.
 /// The index i is taken from the top of the INTEGER stack and min-max corrected.
 pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
         if let Some(list) = push_state.code_stack.copy(list_index) {
-            push_state.exec_stack.push(list);
+            match list {
+                Item::List { mut items } => {
+                    items.remove(0); // Remove ID
+                    push_state.exec_stack.push(Item::List { items: items });
+                }
+                _ => (),
+            }
         }
     }
 }
@@ -257,6 +264,7 @@ mod tests {
             Item::int(2),
             Item::int(3),
             Item::float(2.3),
+            Item::int(0), // We set the ID manually
         ]));
         test_state.code_stack.push(Item::int(2));
         test_state.int_stack.push(1);
