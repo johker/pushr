@@ -64,7 +64,7 @@ impl PushState {
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
             quote_name: false,
-            list_uid: 0,
+            list_uid: -1,
         }
     }
 

@@ -252,7 +252,7 @@ mod tests {
             INT_STACK_ID,
         ]));
         list_add(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(1); 3:Literal([22]); 4:Literal([1]); 5:Literal([3]); 6:Literal(1f); 7:Literal(true);;");
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(0); 2:Literal(1); 3:Literal([22]); 4:Literal([1]); 5:Literal([3]); 6:Literal(1f); 7:Literal(true);;");
     }
 
     #[test]

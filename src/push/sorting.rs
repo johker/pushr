@@ -170,35 +170,6 @@ impl Sorting {
             root = max;
         }
     }
-
-    //    /// Extracts the sort value from the list item. The sort value is defined as the item
-    //    /// below the id (stack position 2). The function returns the default value if no list
-    //    /// with at least two items is found or if the second item does not have type INT/FLOAT.
-    //    /// The default value is f32::INFINITY if pos_default=true, otherwise f32::NEG_INFINITY.
-    //    pub fn item_value(item: &Item, pos_default: &bool) -> f32 {
-    //        let default_value;
-    //        if *pos_default {
-    //            default_value = f32::INFINITY;
-    //        } else {
-    //            default_value = f32::NEG_INFINITY;
-    //        }
-    //        match item {
-    //            Item::List { items } => {
-    //                if items.size() >= 2 {
-    //                    match items.get(1) {
-    //                        Some(Item::Literal { push_type }) => match push_type {
-    //                            PushType::Int { val } => return val.clone() as f32,
-    //                            PushType::Float { val } => return val.clone(),
-    //                            _ => return default_value,
-    //                        },
-    //                        _ => return default_value,
-    //                    }
-    //                }
-    //            }
-    //            _ => return default_value,
-    //        }
-    //        return default_value;
-    //    }
 }
 
 #[cfg(test)]
@@ -214,7 +185,7 @@ mod tests {
     #[test]
     fn generate_id_resets_to_0_on_overflow() {
         let mut test_state = PushState::new();
-        assert_eq!(test_state.list_uid, 0);
+        assert_eq!(test_state.list_uid, -1);
         test_state.list_uid = i32::MAX - 2;
         assert_eq!(Sorting::generate_id(&mut test_state), i32::MAX - 1);
         assert_eq!(Sorting::generate_id(&mut test_state), 0);
