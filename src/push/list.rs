@@ -225,6 +225,8 @@ pub fn list_neighbors(push_state: &mut PushState, _instruction_cache: &Instructi
 mod tests {
     use super::*;
     use crate::push::vector::*;
+    use rand::Rng;
+    use std::time::{Duration, Instant};
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
@@ -456,5 +458,23 @@ mod tests {
         assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:InstructionMeta(TEST2); 5:InstructionMeta(TEST1); 6:List: 1:Literal(4); 2:Literal(1);; 7:List: 1:Literal(5); 2:Literal(2);;");
         list_sort_descending(&mut test_state, &icache());
         assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(3); 2:Literal(9);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(5); 2:Literal(2);; 5:List: 1:Literal(4); 2:Literal(1);; 6:InstructionMeta(TEST1); 7:InstructionMeta(TEST2);");
+    }
+    #[test]
+    fn list_sort_large_list() {
+        let mut test_state = PushState::new();
+        let num_list_el = 1024;
+        let min = -200;
+        let max = 200;
+        let mut r = rand::thread_rng();
+        let start = Instant::now();
+
+        for i in 0..num_list_el {
+            test_state.code_stack.push(Item::list(vec![
+                Item::int(r.gen_range(min..max)), // Sorting value
+                Item::int(i),                     // ID
+            ]));
+        }
+        list_sort_descending(&mut test_state, &icache());
+        assert!(start.elapsed() < Duration::from_millis(test_state.configuration.eval_time_limit))
     }
 }
