@@ -1,32 +1,68 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::item::Item;
-use crate::push::sorting::SortValue;
+use crate::push::item::PushType;
 use crate::push::sorting::Sorting;
 use crate::push::state::*;
 use crate::push::topology::Topology;
+use crate::push::vector::FloatVector;
 use crate::push::vector::IntVector;
 use std::collections::HashMap;
 
 /// Integer numbers (that is, numbers without decimal points).
 pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("LIST.ADD"), Instruction::new(list_add));
+    map.insert(String::from("LIST.REMOVE"), Instruction::new(list_add));
     map.insert(String::from("LIST.GET"), Instruction::new(list_get));
-    map.insert(String::from("LIST.ID"), Instruction::new(list_id));
     map.insert(String::from("LIST.SET"), Instruction::new(list_set));
-    map.insert(String::from("LIST.SVAL"), Instruction::new(list_sval));
+    map.insert(String::from("LIST.IVAL"), Instruction::new(list_ival));
+    map.insert(String::from("LIST.FVAL"), Instruction::new(list_fval));
     map.insert(
-        String::from("LIST.SORT*ASC"),
-        Instruction::new(list_sort_ascending),
+        String::from("LIST.NEIGHBOR*IDS"),
+        Instruction::new(list_neighbor_ids),
     );
     map.insert(
-        String::from("LIST.SORT*DESC"),
-        Instruction::new(list_sort_descending),
+        String::from("LIST.NEIGHBOR*IVALS"),
+        Instruction::new(list_neighbor_ivals),
     );
     map.insert(
-        String::from("LIST.NEIGHBORS"),
-        Instruction::new(list_neighbors),
+        String::from("LIST.NEIGHBOR*FVALS"),
+        Instruction::new(list_neighbor_fvals),
     );
+}
+
+/// Returns the first integer that is contained in the item.
+/// If no such value exists it returns i32::NEG_INFINITY
+pub fn ival(item: &Item) -> i32 {
+    let default = 0;
+    match Item::find(item, &Item::int(0)) {
+        Ok(ival) => match ival {
+            Item::Literal { push_type } => match push_type {
+                PushType::Int { val } => return val,
+                _ => (),
+            },
+            _ => (),
+        },
+        Err(()) => (),
+    };
+    return default;
+}
+
+/// Returns the first float that is contained in the item.
+/// If no such value exists it returns i32::NEG_INFINITY
+pub fn fval(item: &Item) -> f32 {
+    let default = 0.0;
+    match Item::find(item, &Item::float(0.0)) {
+        Ok(fval) => match fval {
+            Item::Literal { push_type } => match push_type {
+                PushType::Float { val } => return val,
+                _ => (),
+            },
+            _ => (),
+        },
+        Err(()) => (),
+    };
+    return default;
 }
 
 /// Generates a vector of items as specified by the top INTVECTOR.
@@ -111,6 +147,16 @@ pub fn list_add(push_state: &mut PushState, _instruction_set: &InstructionCache)
     }
 }
 
+/// LIST.REMOVE: Removes the list item at index i.
+/// The index i is taken from the top of the INTEGER stack and min-max corrected.
+pub fn list_remove(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        let size = push_state.code_stack.size() as i32;
+        let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
+        push_state.code_stack.remove(list_index);
+    }
+}
+
 /// LIST.GET: Pushes a copy of the items at the given stack position to the execution stack.
 /// The first element of the list (the id) is removed.
 /// The index i is taken from the top of the INTEGER stack and min-max corrected.
@@ -120,8 +166,7 @@ pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCach
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
         if let Some(list) = push_state.code_stack.copy(list_index) {
             match list {
-                Item::List { mut items } => {
-                    items.remove(0); // Remove ID
+                Item::List { items } => {
                     push_state.exec_stack.push(Item::List { items: items });
                 }
                 _ => (),
@@ -130,29 +175,26 @@ pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCach
     }
 }
 
-/// LIST.SVAL: Copies the sort value (i.e. the second sub item of the items at the given
-/// stack position to the FLOAT stack. If the INTEGER does not exist this instruction
-/// acts as a NOOP.
+/// LIST.IVAL: Pushes the first INTEGER contained in the list item at stack position i.
 /// The index i is taken from the top of the INTEGER stack and min-max corrected.
-pub fn list_sval(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+pub fn list_ival(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
-        if let Some(list) = push_state.code_stack.get(list_index) {
-            push_state.float_stack.push(list.sval(&true));
+        if let Some(list_item) = push_state.code_stack.get(list_index) {
+            push_state.int_stack.push(ival(list_item));
         }
     }
 }
 
-/// LIST.ID: Pushes a copy of the list ID at the given stack position. If no integer
-/// is found on top of the stack of the list item this instructions acts a NOOP.
-/// The stack position is taken from the top of the INTEGER stack and min-max corrected.
-pub fn list_id(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+/// LIST.FVAL: Pushes the first INTEGER contained in the list item at stack position i.
+/// The index i is taken from the top of the INTEGER stack and min-max corrected.
+pub fn list_fval(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
-        if let Some(id) = Sorting::extract_id(push_state, list_index) {
-            push_state.int_stack.push(id);
+        if let Some(list_item) = push_state.code_stack.get(list_index) {
+            push_state.float_stack.push(fval(list_item));
         }
     }
 }
@@ -176,24 +218,7 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
     }
 }
 
-/// LIST.SORT*ASC: Sorts the elements on the list stack in ascending order based on the second
-/// subitem found in the list (The first sub item is the id). If the second subitem is not of
-/// type FLOAT or INT the algorithm implcitly assumes i32::INFINITY as value which puts
-/// the item at the bottom of the stack.
-pub fn list_sort_ascending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    push_state.code_stack.sort(&true);
-    push_state.code_stack.reverse();
-}
-
-/// LIST.SORT*DESC: Sorts the elements on the list stack in descending orderbased on the
-/// second subitem found in the list (The first sub item is the id). If the second subitem
-/// is not of type FLOAT or INT the algorithm implcitly assumes f32::NEG_INFINITY as
-/// value which puts the item at the bottom of the stack.
-pub fn list_sort_descending(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    push_state.code_stack.sort(&false);
-}
-
-/// LIST.NEIGHBORS: Calculates the neighborhood for a given index element and length. It
+/// LIST.NEIGHBORS*ID: Calculates the neighborhood for a given index element and length. It
 /// pushes the indices that are contained in this neighborhood to the INTVECTOR stack.
 /// The size, the number of dimensions and index (vector topology) are taken from the INTEGER
 /// stack in that order. The radius is taken from the float stack. Distances are calculated using the
@@ -201,7 +226,7 @@ pub fn list_sort_descending(push_state: &mut PushState, _instruction_cache: &Ins
 /// of the dimensions the smallest hypercube that includes the indices is used to represent the
 /// topology, e.g. two dimensions and size = 38 is represented by[7,7]. Neighbor indices that
 /// do no exist (e.g. 40) are ignored.
-pub fn list_neighbors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+pub fn list_neighbor_ids(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(topology) = push_state.int_stack.pop_vec(3) {
         let size = i32::max(topology[2], 0);
         let index = i32::max(i32::min(size - 1, topology[1]), 0) as usize;
@@ -221,6 +246,54 @@ pub fn list_neighbors(push_state: &mut PushState, _instruction_cache: &Instructi
     }
 }
 
+/// LIST.NEIGHBOR*IVALS: Pushes the sorting value of the neighborhood for a given index to the
+/// INTVECTOR stack. The neighborhood is calculated as in LIST.NEIGHBOR*IDS.
+pub fn list_neighbor_ivals(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(topology) = push_state.int_stack.pop_vec(3) {
+        let size = i32::max(topology[2], 0);
+        let index = i32::max(i32::min(size - 1, topology[1]), 0) as usize;
+        let dimensions = i32::max(i32::min(size, topology[0]), 0) as usize;
+        if let Some(fval) = push_state.float_stack.pop() {
+            let radius = f32::max(fval, 0.0);
+            if let Some(neighbors) =
+                Topology::find_neighbors(&(size as usize), &dimensions, &index, &radius)
+            {
+                let mut result = vec![];
+                for n in neighbors.values.iter() {
+                    if let Some(item) = push_state.code_stack.get(*n as usize) {
+                        result.push(ival(item));
+                    }
+                }
+                push_state.int_vector_stack.push(IntVector::new(result));
+            }
+        }
+    }
+}
+
+/// LIST.NEIGHBOR*FVALS: Pushes the sorting value of the neighborhood for a given index to the
+/// FLOATVECTOR stack. The neighborhood is calculated as in LIST.NEIGHBOR*IDS.
+pub fn list_neighbor_fvals(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(topology) = push_state.int_stack.pop_vec(3) {
+        let size = i32::max(topology[2], 0);
+        let index = i32::max(i32::min(size - 1, topology[1]), 0) as usize;
+        let dimensions = i32::max(i32::min(size, topology[0]), 0) as usize;
+        if let Some(rval) = push_state.float_stack.pop() {
+            let radius = f32::max(rval, 0.0);
+            if let Some(neighbors) =
+                Topology::find_neighbors(&(size as usize), &dimensions, &index, &radius)
+            {
+                let mut result = vec![];
+                for n in neighbors.values.iter() {
+                    if let Some(item) = push_state.code_stack.get(*n as usize) {
+                        result.push(fval(item));
+                    }
+                }
+                push_state.float_vector_stack.push(FloatVector::new(result));
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -230,6 +303,12 @@ mod tests {
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
+    }
+
+    /// Creates a test list entry with the given
+    /// value to sort.
+    pub fn litem(i: i32) -> Item {
+        Item::list(vec![Item::int(i)])
     }
 
     #[test]
@@ -258,6 +337,25 @@ mod tests {
     }
 
     #[test]
+    fn list_remove_code_items() {
+        let mut test_state = PushState::new();
+        test_state.code_stack.push(Item::int(1));
+        test_state.code_stack.push(Item::list(vec![
+            Item::bool(true),
+            Item::int(2),
+            Item::int(3),
+            Item::float(2.3),
+        ]));
+        test_state.code_stack.push(Item::int(2));
+        test_state.int_stack.push(1);
+        list_remove(&mut test_state, &icache());
+        assert_eq!(
+            test_state.code_stack.to_string(),
+            "1:Literal(2); 2:Literal(1);"
+        );
+    }
+
+    #[test]
     fn list_get_pushes_code_items() {
         let mut test_state = PushState::new();
         test_state.code_stack.push(Item::int(1));
@@ -266,7 +364,6 @@ mod tests {
             Item::int(2),
             Item::int(3),
             Item::float(2.3),
-            Item::int(0), // We set the ID manually
         ]));
         test_state.code_stack.push(Item::int(2));
         test_state.int_stack.push(1);
@@ -278,25 +375,25 @@ mod tests {
     }
 
     #[test]
-    fn list_sval_returns_second_element() {
+    fn list_ival_returns_first_int_element() {
         let mut test_state = PushState::new();
         test_state
             .code_stack
             .push(Item::list(vec![Item::int(1), Item::int(2)]));
         test_state.int_stack.push(0);
-        list_sval(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.pop().unwrap(), 1.0);
+        list_ival(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.pop().unwrap(), 2);
     }
 
     #[test]
-    fn list_id_returns_first_element() {
+    fn list_fval_returns_first_float_element() {
         let mut test_state = PushState::new();
         test_state
             .code_stack
-            .push(Item::list(vec![Item::int(1), Item::int(2)]));
+            .push(Item::list(vec![Item::float(1.0), Item::int(2)]));
         test_state.int_stack.push(0);
-        list_id(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.pop().unwrap(), 2);
+        list_fval(&mut test_state, &icache());
+        assert_eq!(test_state.float_stack.pop().unwrap(), 1.0);
     }
 
     #[test]
@@ -319,13 +416,13 @@ mod tests {
     }
 
     #[test]
-    fn list_neighbors_pushes_result_for_valid_index() {
+    fn list_neighbor_ids_pushes_result_for_valid_index() {
         let mut test_state = PushState::new();
         test_state.float_stack.push(1.5); // Radius
         test_state.int_stack.push(2); // Dimensions
         test_state.int_stack.push(50); // Index
         test_state.int_stack.push(100); // Size
-        list_neighbors(&mut test_state, &icache());
+        list_neighbor_ids(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
             String::from("1:[40,41,50,51,60,61];")
@@ -333,13 +430,13 @@ mod tests {
     }
 
     #[test]
-    fn list_neighbors_corrects_out_of_bounds_index() {
+    fn list_neighbor_ids_corrects_out_of_bounds_index() {
         let mut test_state = PushState::new();
         test_state.float_stack.push(1.5); // Radius
         test_state.int_stack.push(2); // Dimensions
         test_state.int_stack.push(105); // Index
         test_state.int_stack.push(100); // Size
-        list_neighbors(&mut test_state, &icache());
+        list_neighbor_ids(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
             String::from("1:[88,89,98,99];")
@@ -349,7 +446,7 @@ mod tests {
         test_state.int_stack.push(2); // Dimensions
         test_state.int_stack.push(-10); // Index
         test_state.int_stack.push(100); // Size
-        list_neighbors(&mut test_state, &icache());
+        list_neighbor_ids(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
             String::from("1:[0,1,10,11];")
@@ -357,124 +454,29 @@ mod tests {
     }
 
     #[test]
-    fn list_sort_ascending_with_well_formed_items() {
+    fn list_neighbor_ivals_pushes_sort_values() {
         let mut test_state = PushState::new();
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(2), Item::int(5)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(1), Item::int(4)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(9), Item::int(3)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(7), Item::int(2)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(5), Item::int(1)]));
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:List: 1:Literal(4); 2:Literal(1);; 5:List: 1:Literal(5); 2:Literal(2);;");
-        list_sort_ascending(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(4); 2:Literal(1);; 2:List: 1:Literal(5); 2:Literal(2);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(2); 2:Literal(7);; 5:List: 1:Literal(3); 2:Literal(9);;");
-    }
-
-    #[test]
-    fn list_sort_descending_with_well_formed_items() {
-        let mut test_state = PushState::new();
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(2), Item::int(5)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(1), Item::int(4)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(9), Item::int(3)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(7), Item::int(2)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(5), Item::int(1)]));
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:List: 1:Literal(4); 2:Literal(1);; 5:List: 1:Literal(5); 2:Literal(2);;");
-        list_sort_descending(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(3); 2:Literal(9);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(5); 2:Literal(2);; 5:List: 1:Literal(4); 2:Literal(1);;");
-    }
-
-    #[test]
-    fn list_sort_ascending_with_non_list_items() {
-        let mut test_state = PushState::new();
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(2), Item::int(5)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(1), Item::int(4)]));
-        test_state
-            .code_stack
-            .push(Item::instruction("TEST1".to_string()));
-        test_state
-            .code_stack
-            .push(Item::instruction("TEST2".to_string()));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(9), Item::int(3)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(7), Item::int(2)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(5), Item::int(1)]));
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:InstructionMeta(TEST2); 5:InstructionMeta(TEST1); 6:List: 1:Literal(4); 2:Literal(1);; 7:List: 1:Literal(5); 2:Literal(2);;");
-        list_sort_ascending(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(4); 2:Literal(1);; 2:List: 1:Literal(5); 2:Literal(2);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(2); 2:Literal(7);; 5:List: 1:Literal(3); 2:Literal(9);; 6:InstructionMeta(TEST1); 7:InstructionMeta(TEST2);");
-    }
-
-    #[test]
-    fn list_sort_descending_with_non_list_items() {
-        let mut test_state = PushState::new();
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(2), Item::int(5)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(1), Item::int(4)]));
-        test_state
-            .code_stack
-            .push(Item::instruction("TEST1".to_string()));
-        test_state
-            .code_stack
-            .push(Item::instruction("TEST2".to_string()));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(9), Item::int(3)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(7), Item::int(2)]));
-        test_state
-            .code_stack
-            .push(Item::list(vec![Item::int(5), Item::int(1)]));
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal(5);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(3); 2:Literal(9);; 4:InstructionMeta(TEST2); 5:InstructionMeta(TEST1); 6:List: 1:Literal(4); 2:Literal(1);; 7:List: 1:Literal(5); 2:Literal(2);;");
-        list_sort_descending(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(3); 2:Literal(9);; 2:List: 1:Literal(2); 2:Literal(7);; 3:List: 1:Literal(1); 2:Literal(5);; 4:List: 1:Literal(5); 2:Literal(2);; 5:List: 1:Literal(4); 2:Literal(1);; 6:InstructionMeta(TEST1); 7:InstructionMeta(TEST2);");
-    }
-    #[test]
-    fn list_sort_large_list() {
-        let mut test_state = PushState::new();
-        let num_list_el = 1024;
-        let min = -200;
-        let max = 200;
-        let mut r = rand::thread_rng();
-        let start = Instant::now();
-
-        for i in 0..num_list_el {
-            test_state.code_stack.push(Item::list(vec![
-                Item::int(r.gen_range(min..max)), // Sorting value
-                Item::int(i),                     // ID
-            ]));
+        test_state.float_stack.push(1.0); // Radius
+        test_state.int_stack.push(2); // Dimensions
+        test_state.int_stack.push(0); // Index
+        test_state.int_stack.push(9); // Size
+        for i in 10..20 {
+            test_state.code_stack.push(litem(i));
         }
-        list_sort_descending(&mut test_state, &icache());
-        assert!(start.elapsed() < Duration::from_millis(test_state.configuration.eval_time_limit))
+        list_neighbor_ids(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            String::from("1:[0,1,3];")
+        );
+        test_state.int_vector_stack.flush();
+        test_state.float_stack.push(1.0); // Radius
+        test_state.int_stack.push(2); // Dimensions
+        test_state.int_stack.push(0); // Index
+        test_state.int_stack.push(9); // Size
+        list_neighbor_ivals(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            String::from("1:[19,18,16];")
+        );
     }
 }

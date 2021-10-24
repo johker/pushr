@@ -19,7 +19,7 @@ impl Topology {
 
     /// Calculates the index components in each dimension
     /// given the edgex length of the hypercube nedge and the number
-    /// of dimensions nd
+    /// of dimensions ndim
     pub fn decompose_index(index: &usize, nedge: &usize, ndim: &usize) -> Vec<usize> {
         let mut dindex = vec![0; *ndim];
         for i in 0..*ndim {

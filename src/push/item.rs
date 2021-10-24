@@ -213,6 +213,28 @@ impl<'a> Item {
             Err(())
         }
     }
+
+    /// Returns the first element that matches the pattern by shallow comparison.
+    pub fn find(item: &Item, pattern: &Item) -> Result<Item, ()> {
+        if pattern == item {
+            Ok(item.clone())
+        } else {
+            match item {
+                Item::List { items } => {
+                    for i in 0..items.size() {
+                        let next = Item::find(items.get(i).unwrap(), pattern);
+                        match next {
+                            Ok(item) => return Ok(item),
+                            Err(()) => (),
+                        }
+                    }
+                }
+                _ => (),
+            }
+            Err(())
+        }
+    }
+
     /// Returns the container of pattern within item, i.e. its smallest sublist that contains but
     /// is not equal to pattern. It returns Err if pattern is not part of item
     pub fn container(item: &Item, pattern: &Item) -> Result<Item, bool> {
@@ -273,6 +295,8 @@ impl<'a> Item {
     }
 }
 
+/// Shallow comparison that returns true when the type matches
+/// ignoring differences in the value.
 impl<'a> PartialEq for Item {
     fn eq(&self, other: &Self) -> bool {
         match &*self {
@@ -284,8 +308,43 @@ impl<'a> PartialEq for Item {
                 Item::InstructionMeta { name: _ } => return true,
                 _ => return false,
             },
-            Item::Literal { push_type: _ } => match &*other {
-                Item::Literal { push_type: _ } => return true,
+            Item::Literal {
+                push_type: this_type,
+            } => match &*other {
+                Item::Literal {
+                    push_type: other_type,
+                } => {
+                    match this_type {
+                        PushType::Bool { val: _ } => match other_type {
+                            PushType::Bool { val: _ } => return true,
+                            _ => return false,
+                        },
+                        PushType::Int { val: _ } => match other_type {
+                            PushType::Int { val: _ } => return true,
+                            _ => return false,
+                        },
+                        PushType::Index { val: _ } => match other_type {
+                            PushType::Index { val: _ } => return true,
+                            _ => return false,
+                        },
+                        PushType::Float { val: _ } => match other_type {
+                            PushType::Float { val: _ } => return true,
+                            _ => return false,
+                        },
+                        PushType::BoolVector { val: _ } => match other_type {
+                            PushType::BoolVector { val: _ } => return true,
+                            _ => return false,
+                        },
+                        PushType::IntVector { val: _ } => match other_type {
+                            PushType::IntVector { val: _ } => return true,
+                            _ => return false,
+                        },
+                        PushType::FloatVector { val: _ } => match other_type {
+                            PushType::FloatVector { val: _ } => return true,
+                            _ => return false,
+                        },
+                    };
+                }
                 _ => return false,
             },
             Item::Identifier { name: _ } => match &*other {
@@ -402,6 +461,21 @@ mod tests {
             "Literal(3)"
         );
     }
+
+    #[test]
+    fn find_returns_integer_pattern() {
+        let test_item = Item::list(vec![
+            Item::float(4.0),
+            Item::list(vec![Item::float(3.0)]),
+            Item::int(2),
+            Item::float(1.0),
+        ]);
+        assert_eq!(
+            Item::find(&test_item, &Item::int(28)).unwrap().to_string(),
+            "Literal(2)"
+        );
+    }
+
     #[test]
     fn insert_replaces_element_at_given_index() {
         let mut test_item = Item::list(vec![
