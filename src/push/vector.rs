@@ -528,6 +528,21 @@ pub fn bool_vector_rand(push_state: &mut PushState, _instruction_cache: &Instruc
     }
 }
 
+/// BOOLVECTOR.SORT*ASC: Sorts the top BOOLVECTOR item in ascending order.
+pub fn bool_vector_sort_asc(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(bvec) = push_state.bool_vector_stack.get_mut(0) {
+        bvec.values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    }
+}
+
+/// BOOLVECTOR.SORT*DESC: Sorts the top BOOLVECTOR item in descending order.
+pub fn bool_vector_sort_desc(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(bvec) = push_state.bool_vector_stack.get_mut(0) {
+        bvec.values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        bvec.values.reverse();
+    }
+}
+
 /// BOOLVECTOR.SHOVE: Inserts the second INTEGER "deep" in the stack, at the position indexed by the
 /// top INTEGER. The index position is calculated after the index is removed.
 pub fn bool_vector_shove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -837,6 +852,21 @@ pub fn int_vector_shove(push_state: &mut PushState, _instruction_cache: &Instruc
     }
 }
 
+/// INTVECTOR.SORT*ASC: Sorts the top INTVECTOR item in ascending order.
+pub fn int_vector_sort_asc(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(ivec) = push_state.int_vector_stack.get_mut(0) {
+        ivec.values.sort();
+    }
+}
+
+/// INTVECTOR.SORT*DESC: Sorts the top INTVECTOR item in descending order.
+pub fn int_vector_sort_desc(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(ivec) = push_state.int_vector_stack.get_mut(0) {
+        ivec.values.sort();
+        ivec.values.reverse();
+    }
+}
+
 /// INTVECTOR.STACKDEPTH: Pushes the stack depth onto the INTEGER stack (thereby increasing it!).
 pub fn int_vector_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state
@@ -1116,6 +1146,21 @@ pub fn float_vector_shove(push_state: &mut PushState, _instruction_cache: &Instr
             0,
         ) as usize;
         push_state.float_vector_stack.shove(corr_index as usize);
+    }
+}
+
+/// FLOATVECTOR.SORT*ASC: Sorts the top FLOATVECTOR item in ascending order.
+pub fn float_vector_sort_asc(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(fvec) = push_state.float_vector_stack.get_mut(0) {
+        fvec.values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    }
+}
+
+/// FLOATVECTOR.SORT*DESC: Sorts the top FLOATVECTOR item in descending order.
+pub fn float_vector_sort_desc(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(fvec) = push_state.float_vector_stack.get_mut(0) {
+        fvec.values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        fvec.values.reverse();
     }
 }
 
@@ -1451,6 +1496,18 @@ mod tests {
             test_state.bool_vector_stack.to_string(),
             "1:[1]; 2:[0]; 3:[0]; 4:[1]; 5:[0]; 6:[1];"
         );
+    }
+
+    #[test]
+    fn bool_vector_sort_top_item() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true, false, false, true, false]));
+        bool_vector_sort_asc(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.to_string(), "1:[0,0,0,1,1];");
+        bool_vector_sort_desc(&mut test_state, &icache());
+        assert_eq!(test_state.bool_vector_stack.to_string(), "1:[1,1,0,0,0];");
     }
 
     #[test]
@@ -1821,6 +1878,23 @@ mod tests {
     }
 
     #[test]
+    fn int_vector_sort_top_item() {
+        let mut test_state = PushState::new();
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![34, 0, -28, 111, -1]));
+        int_vector_sort_asc(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            "1:[-28,-1,0,34,111];"
+        );
+        int_vector_sort_desc(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.to_string(),
+            "1:[111,34,0,-1,-28];"
+        );
+    }
+    #[test]
     fn int_vector_stack_depth_returns_size() {
         let mut test_state = PushState::new();
         test_state.int_vector_stack.push(IntVector::new(vec![4]));
@@ -2117,6 +2191,24 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn float_vector_sort_top_item() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![34.2, 0.0, -28.1, 111.1, -1.5]));
+        float_vector_sort_asc(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.to_string(),
+            "1:[-28.1,-1.5,0,34.2,111.1];"
+        );
+        float_vector_sort_desc(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.to_string(),
+            "1:[111.1,34.2,0,-1.5,-28.1];"
+        );
     }
 
     #[test]

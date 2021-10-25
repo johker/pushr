@@ -1,4 +1,3 @@
-use crate::push::sorting::{SortValue, Sorting};
 use std::fmt;
 
 #[derive(Clone, Debug)]
@@ -8,7 +7,7 @@ pub struct PushStack<T> {
 
 impl<T> PushStack<T>
 where
-    T: Clone + fmt::Display + PartialEq + SortValue,
+    T: Clone + fmt::Display + PartialEq,
 {
     pub fn new() -> Self {
         Self {
@@ -150,12 +149,6 @@ where
     /// Swaps vector elements
     pub fn swap(&mut self, i: usize, j: usize) {
         self.elements.swap(i, j);
-    }
-
-    /// Sort vector elements in ascending order if
-    /// argument is true, in descending order otherwise.
-    pub fn sort(&mut self, ascending: &bool) {
-        Sorting::heap_sort(&mut self.elements, ascending);
     }
 
     /// Removes the bottom element from the stack and returns it.

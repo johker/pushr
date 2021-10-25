@@ -1,12 +1,9 @@
-use crate::push::instructions::Instruction;
-use crate::push::instructions::InstructionCache;
+use crate::push::instructions::{Instruction, InstructionCache};
 use crate::push::item::Item;
 use crate::push::item::PushType;
-use crate::push::sorting::Sorting;
 use crate::push::state::*;
 use crate::push::topology::Topology;
-use crate::push::vector::FloatVector;
-use crate::push::vector::IntVector;
+use crate::push::vector::{BoolVector, FloatVector, IntVector};
 use std::collections::HashMap;
 
 /// Integer numbers (that is, numbers without decimal points).
@@ -15,11 +12,16 @@ pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("LIST.REMOVE"), Instruction::new(list_add));
     map.insert(String::from("LIST.GET"), Instruction::new(list_get));
     map.insert(String::from("LIST.SET"), Instruction::new(list_set));
+    map.insert(String::from("LIST.BVAL"), Instruction::new(list_bval));
     map.insert(String::from("LIST.IVAL"), Instruction::new(list_ival));
     map.insert(String::from("LIST.FVAL"), Instruction::new(list_fval));
     map.insert(
         String::from("LIST.NEIGHBOR*IDS"),
         Instruction::new(list_neighbor_ids),
+    );
+    map.insert(
+        String::from("LIST.NEIGHBOR*BVALS"),
+        Instruction::new(list_neighbor_bvals),
     );
     map.insert(
         String::from("LIST.NEIGHBOR*IVALS"),
@@ -32,7 +34,24 @@ pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
 }
 
 /// Returns the first integer that is contained in the item.
-/// If no such value exists it returns i32::NEG_INFINITY
+/// If no such value exists it returns 0
+pub fn bval(item: &Item) -> bool {
+    let default = false;
+    match Item::find(item, &Item::bool(false)) {
+        Ok(bval) => match bval {
+            Item::Literal { push_type } => match push_type {
+                PushType::Bool { val } => return val,
+                _ => (),
+            },
+            _ => (),
+        },
+        Err(()) => (),
+    };
+    return default;
+}
+
+/// Returns the first integer that is contained in the item.
+/// If no such value exists it returns 0
 pub fn ival(item: &Item) -> i32 {
     let default = 0;
     match Item::find(item, &Item::int(0)) {
@@ -49,7 +68,7 @@ pub fn ival(item: &Item) -> i32 {
 }
 
 /// Returns the first float that is contained in the item.
-/// If no such value exists it returns i32::NEG_INFINITY
+/// If no such value exists it returns 0
 pub fn fval(item: &Item) -> f32 {
     let default = 0.0;
     match Item::find(item, &Item::float(0.0)) {
@@ -128,10 +147,8 @@ pub fn load_items(push_state: &mut PushState) -> Option<Vec<Item>> {
 }
 
 /// Generates a new list using the items specified on top of the INTVECTOR stack.
-/// It adds an unique id at the end of the items.
 pub fn new_list(push_state: &mut PushState) -> Option<Vec<Item>> {
-    if let Some(mut items) = load_items(push_state) {
-        items.push(Item::int(Sorting::generate_id(push_state)));
+    if let Some(items) = load_items(push_state) {
         return Some(items);
     }
     return None;
@@ -175,6 +192,18 @@ pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCach
     }
 }
 
+/// LIST.BVAL: Pushes the first BOOLEAN contained in the list item at stack position i.
+/// The index i is taken from the top of the INTEGER stack and min-max corrected.
+pub fn list_bval(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(index) = push_state.int_stack.pop() {
+        let size = push_state.code_stack.size() as i32;
+        let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
+        if let Some(list_item) = push_state.code_stack.get(list_index) {
+            push_state.bool_stack.push(bval(list_item));
+        }
+    }
+}
+
 /// LIST.IVAL: Pushes the first INTEGER contained in the list item at stack position i.
 /// The index i is taken from the top of the INTEGER stack and min-max corrected.
 pub fn list_ival(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -208,12 +237,9 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
     if let Some(index) = push_state.int_stack.pop() {
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
-        if let Some(id) = Sorting::extract_id(push_state, list_index) {
-            if let Some(mut items) = load_items(push_state) {
-                items.push(Item::int(id));
-                let list_item = Item::list(items);
-                let _res = push_state.code_stack.replace(list_index, list_item);
-            }
+        if let Some(items) = load_items(push_state) {
+            let list_item = Item::list(items);
+            let _res = push_state.code_stack.replace(list_index, list_item);
         }
     }
 }
@@ -241,6 +267,30 @@ pub fn list_neighbor_ids(push_state: &mut PushState, _instruction_cache: &Instru
                     result.push(*n);
                 }
                 push_state.int_vector_stack.push(IntVector::new(result));
+            }
+        }
+    }
+}
+
+/// LIST.NEIGHBOR*BVALS: Pushes the sorting value of the neighborhood for a given index to the
+/// BOOLVECTOR stack. The neighborhood is calculated as in LIST.NEIGHBOR*IDS.
+pub fn list_neighbor_bvals(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(topology) = push_state.int_stack.pop_vec(3) {
+        let size = i32::max(topology[2], 0);
+        let index = i32::max(i32::min(size - 1, topology[1]), 0) as usize;
+        let dimensions = i32::max(i32::min(size, topology[0]), 0) as usize;
+        if let Some(fval) = push_state.float_stack.pop() {
+            let radius = f32::max(fval, 0.0);
+            if let Some(neighbors) =
+                Topology::find_neighbors(&(size as usize), &dimensions, &index, &radius)
+            {
+                let mut result = vec![];
+                for n in neighbors.values.iter() {
+                    if let Some(item) = push_state.code_stack.get(*n as usize) {
+                        result.push(bval(item));
+                    }
+                }
+                push_state.bool_vector_stack.push(BoolVector::new(result));
             }
         }
     }
@@ -298,8 +348,6 @@ pub fn list_neighbor_fvals(push_state: &mut PushState, _instruction_cache: &Inst
 mod tests {
     use super::*;
     use crate::push::vector::*;
-    use rand::Rng;
-    use std::time::{Duration, Instant};
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
@@ -333,7 +381,7 @@ mod tests {
             INT_STACK_ID,
         ]));
         list_add(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(0); 2:Literal(1); 3:Literal([22]); 4:Literal([1]); 5:Literal([3]); 6:Literal(1f); 7:Literal(true);;");
+        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal([22]); 3:Literal([1]); 4:Literal([3]); 5:Literal(1f); 6:Literal(true);;");
     }
 
     #[test]
@@ -375,6 +423,17 @@ mod tests {
     }
 
     #[test]
+    fn list_bval_returns_first_int_element() {
+        let mut test_state = PushState::new();
+        test_state
+            .code_stack
+            .push(Item::list(vec![Item::bool(true), Item::int(2)]));
+        test_state.int_stack.push(0);
+        list_bval(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+    }
+
+    #[test]
     fn list_ival_returns_first_int_element() {
         let mut test_state = PushState::new();
         test_state
@@ -410,8 +469,7 @@ mod tests {
         list_set(&mut test_state, &icache());
         assert_eq!(
             test_state.code_stack.to_string(),
-            "1:Literal(33); 2:List: 1:Literal(22); 2:Literal(true);; 3:Literal(11);",
-            "List set should replace content while maintaining list ID"
+            "1:Literal(33); 2:List: 1:Literal(true);; 3:Literal(11);"
         );
     }
 

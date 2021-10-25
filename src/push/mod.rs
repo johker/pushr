@@ -13,7 +13,6 @@ pub mod list;
 pub mod name;
 pub mod parser;
 pub mod random;
-pub mod sorting;
 pub mod stack;
 pub mod state;
 pub mod topology;
