@@ -166,6 +166,14 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(bool_vector_shove),
     );
     map.insert(
+        String::from("BOOLVECTOR.SORT*ASC"),
+        Instruction::new(bool_vector_sort_asc),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.SORT*DESC"),
+        Instruction::new(bool_vector_sort_desc),
+    );
+    map.insert(
         String::from("BOOLVECTOR.SWAP"),
         Instruction::new(bool_vector_swap),
     );
@@ -259,6 +267,14 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(int_vector_shove),
     );
     map.insert(
+        String::from("INTVECTOR.SORT*ASC"),
+        Instruction::new(int_vector_sort_asc),
+    );
+    map.insert(
+        String::from("INTVECTOR.SORT*DESC"),
+        Instruction::new(int_vector_sort_desc),
+    );
+    map.insert(
         String::from("INTVECTOR.SWAP"),
         Instruction::new(int_vector_swap),
     );
@@ -342,6 +358,14 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("FLOATVECTOR.SHOVE"),
         Instruction::new(float_vector_shove),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.SORT*ASC"),
+        Instruction::new(float_vector_sort_asc),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.SORT*DESC"),
+        Instruction::new(float_vector_sort_desc),
     );
     map.insert(
         String::from("FLOATVECTOR.SWAP"),
