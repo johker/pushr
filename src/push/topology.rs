@@ -20,12 +20,16 @@ impl Topology {
     /// Calculates the index components in each dimension
     /// given the edgex length of the hypercube nedge and the number
     /// of dimensions ndim
-    pub fn decompose_index(index: &usize, nedge: &usize, ndim: &usize) -> Vec<usize> {
+    pub fn decompose_index(index: &usize, nedge: &usize, ndim: &usize) -> Option<Vec<usize>> {
         let mut dindex = vec![0; *ndim];
         for i in 0..*ndim {
-            dindex[i] = (index / nedge.pow(i as u32)) % nedge;
+            if let Some(cp) = (*nedge).checked_pow(i as u32) {
+                dindex[i] = index / cp % *nedge;
+            } else {
+                return None;
+            }
         }
-        dindex
+        Some(dindex)
     }
 
     /// Calculates the indices of the neighbors for a vector of the the total
@@ -41,21 +45,25 @@ impl Topology {
         index: &usize,
         radius: &f32,
     ) -> Option<IntVector> {
-        if *radius < 0.0 || *ndim < 1 || *index > *ntotal {
+        if *radius < 0.0 || *ndim < 1 || *ntotal < 1 || *index > *ntotal {
             return None;
         }
         let nedge = f32::ceil((*ntotal as f32).powf(1.0 / *ndim as f32)) as usize;
-        let dindex = Topology::decompose_index(index, &nedge, ndim);
-        let mut neighbors = vec![];
-        for i in 0..*ntotal {
-            let di = Topology::decompose_index(&i, &nedge, ndim);
-            if let Some(dist) = Topology::euclidean_distance(&dindex, &di) {
-                if dist <= *radius {
-                    neighbors.push(i as i32);
+        if let Some(dindex) = Topology::decompose_index(index, &nedge, ndim) {
+            let mut neighbors = vec![];
+            for i in 0..*ntotal {
+                if let Some(di) = Topology::decompose_index(&i, &nedge, ndim) {
+                    if let Some(dist) = Topology::euclidean_distance(&dindex, &di) {
+                        if dist <= *radius {
+                            neighbors.push(i as i32);
+                        }
+                    }
                 }
             }
+            return Some(IntVector::new(neighbors));
+        } else {
+            return None;
         }
-        return Some(IntVector::new(neighbors));
     }
 }
 
@@ -65,11 +73,23 @@ mod tests {
 
     #[test]
     fn decompose_index_without_overhang() {
-        assert_eq!(Topology::decompose_index(&14, &6, &2), vec![2, 2]);
-        assert_eq!(Topology::decompose_index(&4, &2, &3), vec![0, 0, 1]);
-        assert_eq!(Topology::decompose_index(&13, &3, &3), vec![1, 1, 1]);
-        assert_eq!(Topology::decompose_index(&26, &3, &3), vec![2, 2, 2]);
-        assert_eq!(Topology::decompose_index(&80, &3, &4), vec![2, 2, 2, 2]);
+        assert_eq!(Topology::decompose_index(&14, &6, &2).unwrap(), vec![2, 2]);
+        assert_eq!(
+            Topology::decompose_index(&4, &2, &3).unwrap(),
+            vec![0, 0, 1]
+        );
+        assert_eq!(
+            Topology::decompose_index(&13, &3, &3).unwrap(),
+            vec![1, 1, 1]
+        );
+        assert_eq!(
+            Topology::decompose_index(&26, &3, &3).unwrap(),
+            vec![2, 2, 2]
+        );
+        assert_eq!(
+            Topology::decompose_index(&80, &3, &4).unwrap(),
+            vec![2, 2, 2, 2]
+        );
     }
 
     #[test]
@@ -109,6 +129,10 @@ mod tests {
                 23, 24, 25, 26
             ])
         );
+    }
+    #[test]
+    fn find_neighbors_empty() {
+        assert_eq!(Topology::find_neighbors(&0, &2, &0, &1.0), None);
     }
 
     #[test]

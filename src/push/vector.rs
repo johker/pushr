@@ -126,16 +126,16 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(bool_vector_not),
     );
     map.insert(
+        String::from("BOOLVECTOR.COUNT"),
+        Instruction::new(bool_vector_count),
+    );
+    map.insert(
         String::from("BOOLVECTOR.DEFINE"),
         Instruction::new(bool_vector_define),
     );
     map.insert(
         String::from("BOOLVECTOR.DUP"),
         Instruction::new(bool_vector_dup),
-    );
-    map.insert(
-        String::from("BOOLVECTOR.COUNT"),
-        Instruction::new(bool_vector_count),
     );
     map.insert(
         String::from("BOOLVECTOR.EQUAL"),
@@ -159,6 +159,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     );
     map.insert(
         String::from("BOOLVECTOR.RAND"),
+        Instruction::new(bool_vector_rand),
+    );
+    map.insert(
+        String::from("BOOLVECTOR.ROTATE"),
         Instruction::new(bool_vector_rand),
     );
     map.insert(
@@ -255,12 +259,20 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(int_vector_ones),
     );
     map.insert(
+        String::from("INTVECTOR.MEAN"),
+        Instruction::new(int_vector_mean),
+    );
+    map.insert(
         String::from("INTVECTOR.POP"),
         Instruction::new(int_vector_pop),
     );
     map.insert(
         String::from("INTVECTOR.RAND"),
         Instruction::new(int_vector_rand),
+    );
+    map.insert(
+        String::from("INTVECTOR.ROTATE"),
+        Instruction::new(int_vector_rotate),
     );
     map.insert(
         String::from("INTVECTOR.SHOVE"),
@@ -281,6 +293,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("INTVECTOR.STACKDEPTH"),
         Instruction::new(int_vector_stack_depth),
+    );
+    map.insert(
+        String::from("INTVECTOR.SUM"),
+        Instruction::new(int_vector_sum),
     );
     map.insert(
         String::from("INTVECTOR.YANK"),
@@ -316,6 +332,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(float_vector_multiply),
     );
     map.insert(
+        String::from("FLOATVECTOR.*SCALAR"),
+        Instruction::new(float_vector_multiply_scalar),
+    );
+    map.insert(
         String::from("FLOATVECTOR./"),
         Instruction::new(float_vector_divide),
     );
@@ -340,6 +360,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(float_vector_id),
     );
     map.insert(
+        String::from("FLOATVECTOR.MEAN"),
+        Instruction::new(float_vector_mean),
+    );
+    map.insert(
         String::from("FLOATVECTOR.ONES"),
         Instruction::new(float_vector_ones),
     );
@@ -350,6 +374,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("FLOATVECTOR.RAND"),
         Instruction::new(float_vector_rand),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.ROTATE"),
+        Instruction::new(float_vector_rotate),
     );
     map.insert(
         String::from("FLOATVECTOR.SINE"),
@@ -373,6 +401,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     );
     map.insert(
         String::from("FLOATVECTOR.STACKDEPTH"),
+        Instruction::new(float_vector_stack_depth),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.SUM"),
         Instruction::new(float_vector_stack_depth),
     );
     map.insert(
@@ -508,15 +540,6 @@ fn bool_vector_equal(push_state: &mut PushState, _instruction_cache: &Instructio
     }
 }
 
-/// BOOLVECTOR.COUNT: Pushes the sum of all flipped bits to the INTEGER stack
-pub fn bool_vector_count(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(bv) = push_state.bool_vector_stack.pop() {
-        push_state
-            .int_stack
-            .push(bv.values.iter().filter(|&n| *n == true).count() as i32);
-    }
-}
-
 /// BOOLVECTOR.FLUSH: Empties the BOOLVECTOR stack.
 pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.bool_vector_stack.flush();
@@ -552,6 +575,18 @@ pub fn bool_vector_rand(push_state: &mut PushState, _instruction_cache: &Instruc
     }
 }
 
+/// BOOLVECTOR.ROTATE: Moves all elements of the top item to the adjacent position on the left.
+/// The first item is removed while the last element of the vector is taken from the BOOLEAN stack.
+pub fn bool_vector_rotate(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(b) = push_state.bool_stack.pop() {
+        if let Some(bv) = push_state.bool_vector_stack.get_mut(0) {
+            bv.values.rotate_left(1);
+            let n = bv.values.len();
+            bv.values[n - 1] = b;
+        }
+    }
+}
+
 /// BOOLVECTOR.SORT*ASC: Sorts the top BOOLVECTOR item in ascending order.
 pub fn bool_vector_sort_asc(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(bvec) = push_state.bool_vector_stack.get_mut(0) {
@@ -564,6 +599,15 @@ pub fn bool_vector_sort_desc(push_state: &mut PushState, _instruction_cache: &In
     if let Some(bvec) = push_state.bool_vector_stack.get_mut(0) {
         bvec.values.sort_by(|a, b| a.partial_cmp(b).unwrap());
         bvec.values.reverse();
+    }
+}
+
+/// BOOLVECTOR.COUNT Pushes the count of true elements to the INTEGER stack.
+pub fn bool_vector_count(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(bvec) = push_state.bool_vector_stack.get(0) {
+        push_state
+            .int_stack
+            .push(bvec.values.iter().filter(|&n| *n == true).count() as i32);
     }
 }
 
@@ -636,6 +680,15 @@ pub fn bool_vector_zeros(push_state: &mut PushState, _instruction_cache: &Instru
 
 /////////////////////////////////////// INTVECTOR //////////////////////////////////////////
 
+/// INTVECTOR.APPEND: Appends the top integer item to the top intvector item.
+pub fn int_vector_append(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    if let Some(item) = push_state.int_vector_stack.get_mut(0) {
+        if let Some(to_append) = push_state.int_stack.pop() {
+            item.values.push(to_append);
+        }
+    }
+}
+
 /// INTVECTOR.ID: Pushes the ID of the INTVECTOR stack to the INTEGER stack.
 pub fn int_vector_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
     push_state.int_stack.push(INT_VECTOR_STACK_ID);
@@ -664,7 +717,9 @@ pub fn int_vector_get(push_state: &mut PushState, _instruction_cache: &Instructi
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.int_vector_stack.get(0) {
             let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
-            push_state.int_stack.push(element.values[i].clone());
+            if i < element.values.len() {
+                push_state.int_stack.push(element.values[i].clone());
+            }
         }
     }
 }
@@ -834,6 +889,15 @@ pub fn int_vector_from_int(push_state: &mut PushState, _instruction_cache: &Inst
     }
 }
 
+/// INTVECTOR.MEAN: Pushes the mean of the top INTVECTOR to the float stack
+pub fn int_vector_mean(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(numbers) = push_state.int_vector_stack.get(0) {
+        let sum = numbers.values.iter().sum::<i32>() as f32;
+        let size = numbers.values.len() as f32;
+        push_state.float_stack.push(sum / size);
+    }
+}
+
 /// INTVECTOR.ONES: Pushes a newly generated INTVECTOR with all elements set to 1. The size
 /// is taken from the INTEGER stack
 pub fn int_vector_ones(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -860,6 +924,18 @@ pub fn int_vector_rand(push_state: &mut PushState, _instruction_cache: &Instruct
         // 3 params[0] -> min
         if let Some(rbvval) = CodeGenerator::random_int_vector(params[2], params[0], params[1]) {
             push_state.int_vector_stack.push(rbvval);
+        }
+    }
+}
+
+/// INTVECTOR.ROTATE: Moves all elements of the top item to the adjacent position on the left.
+/// The first item is removed while the last element of the vector is taken from the INTEGER stack.
+pub fn int_vector_rotate(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(i) = push_state.int_stack.pop() {
+        if let Some(iv) = push_state.int_vector_stack.get_mut(0) {
+            iv.values.rotate_left(1);
+            let n = iv.values.len();
+            iv.values[n - 1] = i;
         }
     }
 }
@@ -896,6 +972,13 @@ pub fn int_vector_stack_depth(push_state: &mut PushState, _instruction_cache: &I
     push_state
         .int_stack
         .push(push_state.int_vector_stack.size() as i32);
+}
+
+/// INTVECTOR.SUM Pushes the sum of the elements to the INTEGER stack.
+pub fn int_vector_sum(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(ivec) = push_state.int_vector_stack.get(0) {
+        push_state.int_stack.push(ivec.values.iter().sum());
+    }
 }
 
 /// INTVECTOR.SWAP: Swaps the top two INTVECTORs.
@@ -1102,6 +1185,28 @@ pub fn float_vector_flush(push_state: &mut PushState, _instruction_cache: &Instr
     push_state.float_vector_stack.flush();
 }
 
+/// FLOATVECTOR.MEAN: Pushes the mean of the top FLOATVECTOR to the float stack
+pub fn float_vector_mean(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(numbers) = push_state.float_vector_stack.get(0) {
+        let sum = numbers.values.iter().sum::<f32>();
+        let size = numbers.values.len() as f32;
+        push_state.float_stack.push(sum / size);
+    }
+}
+
+/// FLOATVECTOR.*SCALAR: Multiplies the top item of the FLOAT stack with each element of the
+/// top FLOATVECTOR element.
+pub fn float_vector_multiply_scalar(
+    push_state: &mut PushState,
+    _instruction_cache: &InstructionCache,
+) {
+    if let Some(f) = push_state.float_stack.pop() {
+        if let Some(fv) = push_state.float_vector_stack.get_mut(0) {
+            fv.values.iter_mut().for_each(|x| *x *= f);
+        }
+    }
+}
+
 /// FLOATVECTOR.ONES: Pushes a newly generated FLOATVECTOR with all elements set to 1. The size
 /// is taken from the INTEGER stack
 pub fn float_vector_ones(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -1132,6 +1237,18 @@ pub fn float_vector_rand(push_state: &mut PushState, _instruction_cache: &Instru
             {
                 push_state.float_vector_stack.push(rfvval);
             }
+        }
+    }
+}
+
+/// FLOATVECTOR.ROTATE: Moves all elements of the top item to the adjacent position on the left.
+/// The first item is removed while the last element of the vector is taken from the FLOAT stack.
+pub fn float_vector_rotate(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(f) = push_state.float_stack.pop() {
+        if let Some(fv) = push_state.float_vector_stack.get_mut(0) {
+            fv.values.rotate_left(1);
+            let n = fv.values.len();
+            fv.values[n - 1] = f;
         }
     }
 }
@@ -1193,6 +1310,13 @@ pub fn float_vector_stack_depth(push_state: &mut PushState, _instruction_cache: 
     push_state
         .int_stack
         .push(push_state.float_vector_stack.size() as i32);
+}
+
+/// FLOATVECTOR.SUM Pushes the sum of the elements to the FLOAT stack.
+pub fn float_vector_sum(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(fvec) = push_state.float_vector_stack.get(0) {
+        push_state.float_stack.push(fvec.values.iter().sum());
+    }
 }
 
 /// FLOATVECTOR.SWAP: Swaps the top two FLOATVECTORs.
@@ -1296,16 +1420,6 @@ mod tests {
             test_state.bool_vector_stack.pop().unwrap(),
             BoolVector::from_int_array(vec![1, 0, 1, 0, 1, 0, 1, 0])
         );
-    }
-
-    #[test]
-    fn bool_vector_count_pushes_number_of_true() {
-        let mut test_state = PushState::new();
-        test_state
-            .bool_vector_stack
-            .push(BoolVector::from_int_array(vec![1, 0, 0, 1, 1, 0, 1, 0]));
-        bool_vector_count(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.pop().unwrap(), 4);
     }
 
     #[test]
@@ -1479,6 +1593,26 @@ mod tests {
     }
 
     #[test]
+    fn bool_vector_rotate_shifts_elements_left() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::from_int_array(vec![1, 1, 1, 1, 0, 0, 0, 0]));
+        test_state.bool_stack.push(true);
+        bool_vector_rotate(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.get(0).unwrap(),
+            &BoolVector::from_int_array(vec![1, 1, 1, 0, 0, 0, 0, 1])
+        );
+        test_state.bool_stack.push(false);
+        bool_vector_rotate(&mut test_state, &icache());
+        assert_eq!(
+            test_state.bool_vector_stack.get(0).unwrap(),
+            &BoolVector::from_int_array(vec![1, 1, 0, 0, 0, 0, 1, 0])
+        );
+    }
+
+    #[test]
     fn bool_vector_shove_inserts_at_right_position() {
         let mut test_state = PushState::new();
         test_state
@@ -1551,6 +1685,16 @@ mod tests {
             .push(BoolVector::new(vec![true]));
         bool_vector_stack_depth(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.to_string(), "1:4;");
+    }
+
+    #[test]
+    fn bool_vector_count_pushes_aggregation_value() {
+        let mut test_state = PushState::new();
+        test_state
+            .bool_vector_stack
+            .push(BoolVector::new(vec![true, false, false, true, false]));
+        bool_vector_count(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "1:2;");
     }
 
     #[test]
@@ -1858,6 +2002,21 @@ mod tests {
             IntVector::new(vec![1; test_size as usize])
         );
     }
+
+    #[test]
+    fn int_vector_rotate_shifts_elements_left() {
+        let mut test_state = PushState::new();
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![1, 2, 3, 4, 0, 0, 0, 0]));
+        test_state.int_stack.push(5);
+        int_vector_rotate(&mut test_state, &icache());
+        assert_eq!(
+            test_state.int_vector_stack.get(0).unwrap(),
+            &IntVector::new(vec![2, 3, 4, 0, 0, 0, 0, 5])
+        );
+    }
+
     #[test]
     fn int_vector_rand_pushes_new_item() {
         let mut test_state = PushState::new();
@@ -1937,6 +2096,16 @@ mod tests {
         assert_eq!(test_state.int_vector_stack.to_string(), "1:[1]; 2:[0];");
         int_vector_swap(&mut test_state, &icache());
         assert_eq!(test_state.int_vector_stack.to_string(), "1:[0]; 2:[1];");
+    }
+
+    #[test]
+    fn int_vector_sum_pushes_aggregation_value() {
+        let mut test_state = PushState::new();
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![1, 3, -2, 5, 7]));
+        int_vector_sum(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.to_string(), "1:14;");
     }
 
     #[test]
@@ -2107,6 +2276,19 @@ mod tests {
     }
 
     #[test]
+    fn float_vector_multiply_scalar_to_each_element() {
+        let mut test_state = PushState::new();
+        test_state.int_stack.push(4);
+        float_vector_ones(&mut test_state, &icache());
+        test_state.float_stack.push(3.0);
+        float_vector_multiply_scalar(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.pop().unwrap(),
+            FloatVector::new(vec![3.0, 3.0, 3.0, 3.0])
+        );
+    }
+
+    #[test]
     fn float_vector_divide_with_partial_overlap() {
         let test_vec1 = FloatVector::new(vec![2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0]);
         let test_vec2 = FloatVector::new(vec![6.0, 4.0, 6.0, 4.0, 6.0, 4.0, 6.0, 4.0]);
@@ -2236,6 +2418,20 @@ mod tests {
     }
 
     #[test]
+    fn float_vector_rotate_shifts_elements_left() {
+        let mut test_state = PushState::new();
+        test_state.float_vector_stack.push(FloatVector::new(vec![
+            1.0, 2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0,
+        ]));
+        test_state.float_stack.push(5.0);
+        float_vector_rotate(&mut test_state, &icache());
+        assert_eq!(
+            test_state.float_vector_stack.get(0).unwrap(),
+            &FloatVector::new(vec![2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0, 5.0])
+        );
+    }
+
+    #[test]
     fn float_vector_stack_depth_returns_size() {
         let mut test_state = PushState::new();
         test_state
@@ -2252,6 +2448,16 @@ mod tests {
             .push(FloatVector::new(vec![1.0]));
         float_vector_stack_depth(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.to_string(), "1:4;");
+    }
+
+    #[test]
+    fn float_vector_sum_pushes_aggregation_value() {
+        let mut test_state = PushState::new();
+        test_state
+            .float_vector_stack
+            .push(FloatVector::new(vec![1.0, 3.0, -2.0, 5.0, 7.0]));
+        float_vector_sum(&mut test_state, &icache());
+        assert_eq!(test_state.float_stack.to_string(), "1:14;");
     }
 
     #[test]

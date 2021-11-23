@@ -129,7 +129,7 @@ where
     /// Removes an indexed item from stack position i counting from the top and
     /// pushes it on top of the stack.
     pub fn yank(&mut self, index: usize) {
-        if index < self.size() {
+        if index > 0 && index < self.size() {
             let el = self.elements.remove(self.size() - (index + 1));
             self.elements.push(el);
         }
@@ -138,7 +138,7 @@ where
     /// Removes the top element from the stack and inserts it at
     /// position index counting from the top.
     pub fn shove(&mut self, index: usize) {
-        if index < self.size() {
+        if index > 0 && index < self.size() {
             if let Some(el) = self.elements.pop() {
                 let top_down_index = self.size() - index;
                 self.elements.insert(top_down_index, el);

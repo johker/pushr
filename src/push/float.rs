@@ -18,6 +18,7 @@ pub fn load_float_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("FLOAT.>"), Instruction::new(float_greater));
     map.insert(String::from("FLOAT.COS"), Instruction::new(float_cosine));
     map.insert(String::from("FLOAT.DEFINE"), Instruction::new(float_define));
+    map.insert(String::from("FLOAT.EXP"), Instruction::new(float_exp));
     map.insert(String::from("FLOAT.DUP"), Instruction::new(float_dup));
     map.insert(String::from("FLOAT.FLUSH"), Instruction::new(float_flush));
     map.insert(
@@ -95,6 +96,13 @@ fn float_divide(push_state: &mut PushState, _instruction_cache: &InstructionCach
         if fvals[1] != 0f32 {
             push_state.float_stack.push(fvals[0] / fvals[1]);
         }
+    }
+}
+
+/// FLOAT.EXP: Pushes exp(i) to the float stack where i is taken from the top item on the FLOAT stack.
+fn float_exp(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(fval) = push_state.float_stack.pop() {
+        push_state.float_stack.push(fval.exp());
     }
 }
 

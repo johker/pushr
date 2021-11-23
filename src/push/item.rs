@@ -214,25 +214,27 @@ impl<'a> Item {
         }
     }
 
-    /// Returns the first element that matches the pattern by shallow comparison.
-    pub fn find(item: &Item, pattern: &Item) -> Result<Item, ()> {
+    /// Returns the nth element that matches the pattern by shallow comparison.
+    pub fn find(item: &Item, pattern: &Item, cnt: &mut usize, n: &usize) -> Result<Item, usize> {
         if pattern == item {
-            Ok(item.clone())
-        } else {
-            match item {
-                Item::List { items } => {
-                    for i in 0..items.size() {
-                        let next = Item::find(items.get(i).unwrap(), pattern);
-                        match next {
-                            Ok(item) => return Ok(item),
-                            Err(()) => (),
-                        }
+            if cnt == n {
+                return Ok(item.clone());
+            }
+            *cnt += 1;
+        }
+        match item {
+            Item::List { items } => {
+                for i in 0..items.size() {
+                    let next = Item::find(items.get(i).unwrap(), pattern, cnt, n);
+                    match next {
+                        Ok(item) => return Ok(item),
+                        Err(rcnt) => *cnt = rcnt,
                     }
                 }
-                _ => (),
             }
-            Err(())
+            _ => (),
         }
+        return Err(*cnt);
     }
 
     /// Returns the container of pattern within item, i.e. its smallest sublist that contains but
@@ -468,10 +470,19 @@ mod tests {
             Item::float(4.0),
             Item::list(vec![Item::float(3.0)]),
             Item::int(2),
+            Item::int(3),
             Item::float(1.0),
         ]);
         assert_eq!(
-            Item::find(&test_item, &Item::int(28)).unwrap().to_string(),
+            Item::find(&test_item, &Item::int(28), &mut 0, &0)
+                .unwrap()
+                .to_string(),
+            "Literal(3)"
+        );
+        assert_eq!(
+            Item::find(&test_item, &Item::int(28), &mut 0, &1)
+                .unwrap()
+                .to_string(),
             "Literal(2)"
         );
     }

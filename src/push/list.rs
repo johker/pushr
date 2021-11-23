@@ -9,7 +9,7 @@ use std::collections::HashMap;
 /// Integer numbers (that is, numbers without decimal points).
 pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("LIST.ADD"), Instruction::new(list_add));
-    map.insert(String::from("LIST.REMOVE"), Instruction::new(list_add));
+    map.insert(String::from("LIST.REMOVE"), Instruction::new(list_remove));
     map.insert(String::from("LIST.GET"), Instruction::new(list_get));
     map.insert(String::from("LIST.SET"), Instruction::new(list_set));
     map.insert(String::from("LIST.BVAL"), Instruction::new(list_bval));
@@ -33,11 +33,11 @@ pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
     );
 }
 
-/// Returns the first integer that is contained in the item.
+/// Returns the nth integer that is contained in the item.
 /// If no such value exists it returns 0
-pub fn bval(item: &Item) -> bool {
+pub fn bval(item: &Item, n: &usize) -> bool {
     let default = false;
-    match Item::find(item, &Item::bool(false)) {
+    match Item::find(item, &Item::bool(false), &mut 0, n) {
         Ok(bval) => match bval {
             Item::Literal { push_type } => match push_type {
                 PushType::Bool { val } => return val,
@@ -45,16 +45,16 @@ pub fn bval(item: &Item) -> bool {
             },
             _ => (),
         },
-        Err(()) => (),
+        Err(_cnt) => (),
     };
     return default;
 }
 
 /// Returns the first integer that is contained in the item.
 /// If no such value exists it returns 0
-pub fn ival(item: &Item) -> i32 {
+pub fn ival(item: &Item, n: &usize) -> i32 {
     let default = 0;
-    match Item::find(item, &Item::int(0)) {
+    match Item::find(item, &Item::int(0), &mut 0, n) {
         Ok(ival) => match ival {
             Item::Literal { push_type } => match push_type {
                 PushType::Int { val } => return val,
@@ -62,16 +62,16 @@ pub fn ival(item: &Item) -> i32 {
             },
             _ => (),
         },
-        Err(()) => (),
+        Err(_cnt) => (),
     };
     return default;
 }
 
 /// Returns the first float that is contained in the item.
 /// If no such value exists it returns 0
-pub fn fval(item: &Item) -> f32 {
+pub fn fval(item: &Item, n: &usize) -> f32 {
     let default = 0.0;
-    match Item::find(item, &Item::float(0.0)) {
+    match Item::find(item, &Item::float(0.0), &mut 0, n) {
         Ok(fval) => match fval {
             Item::Literal { push_type } => match push_type {
                 PushType::Float { val } => return val,
@@ -79,7 +79,7 @@ pub fn fval(item: &Item) -> f32 {
             },
             _ => (),
         },
-        Err(()) => (),
+        Err(_cnt) => (),
     };
     return default;
 }
@@ -149,6 +149,7 @@ pub fn load_items(push_state: &mut PushState) -> Option<Vec<Item>> {
 /// Generates a new list using the items specified on top of the INTVECTOR stack.
 pub fn new_list(push_state: &mut PushState) -> Option<Vec<Item>> {
     if let Some(items) = load_items(push_state) {
+        // items.reverse();
         return Some(items);
     }
     return None;
@@ -184,6 +185,7 @@ pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCach
         if let Some(list) = push_state.code_stack.copy(list_index) {
             match list {
                 Item::List { items } => {
+                    // items.reverse();
                     push_state.exec_stack.push(Item::List { items: items });
                 }
                 _ => (),
@@ -192,38 +194,44 @@ pub fn list_get(push_state: &mut PushState, _instruction_cache: &InstructionCach
     }
 }
 
-/// LIST.BVAL: Pushes the first BOOLEAN contained in the list item at stack position i.
+/// LIST.BVAL: Pushes the nth BOOLEAN contained in the list item at stack position i.
 /// The index i is taken from the top of the INTEGER stack and min-max corrected.
 pub fn list_bval(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(index) = push_state.int_stack.pop() {
+    if let Some(index) = push_state.int_stack.pop_vec(2) {
         let size = push_state.code_stack.size() as i32;
-        let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
+        let list_index = i32::max(i32::min(size - 1, index[0]), 0) as usize;
         if let Some(list_item) = push_state.code_stack.get(list_index) {
-            push_state.bool_stack.push(bval(list_item));
+            push_state
+                .bool_stack
+                .push(bval(list_item, &(index[1] as usize)));
         }
     }
 }
 
-/// LIST.IVAL: Pushes the first INTEGER contained in the list item at stack position i.
+/// LIST.IVAL: Pushes the nth INTEGER contained in the list item at stack position i.
 /// The index i is taken from the top of the INTEGER stack and min-max corrected.
 pub fn list_ival(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(index) = push_state.int_stack.pop() {
+    if let Some(index) = push_state.int_stack.pop_vec(2) {
         let size = push_state.code_stack.size() as i32;
-        let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
+        let list_index = i32::max(i32::min(size - 1, index[0]), 0) as usize;
         if let Some(list_item) = push_state.code_stack.get(list_index) {
-            push_state.int_stack.push(ival(list_item));
+            push_state
+                .int_stack
+                .push(ival(list_item, &(index[1] as usize)));
         }
     }
 }
 
-/// LIST.FVAL: Pushes the first INTEGER contained in the list item at stack position i.
+/// LIST.FVAL: Pushes the nth INTEGER contained in the list item at stack position i.
 /// The index i is taken from the top of the INTEGER stack and min-max corrected.
 pub fn list_fval(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(index) = push_state.int_stack.pop() {
+    if let Some(index) = push_state.int_stack.pop_vec(2) {
         let size = push_state.code_stack.size() as i32;
-        let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
+        let list_index = i32::max(i32::min(size - 1, index[0]), 0) as usize;
         if let Some(list_item) = push_state.code_stack.get(list_index) {
-            push_state.float_stack.push(fval(list_item));
+            push_state
+                .float_stack
+                .push(fval(list_item, &(index[1] as usize)));
         }
     }
 }
@@ -238,6 +246,7 @@ pub fn list_set(push_state: &mut PushState, _instruction_cache: &InstructionCach
         let size = push_state.code_stack.size() as i32;
         let list_index = i32::max(i32::min(size - 1, index), 0) as usize;
         if let Some(items) = load_items(push_state) {
+            // items.reverse();
             let list_item = Item::list(items);
             let _res = push_state.code_stack.replace(list_index, list_item);
         }
@@ -275,7 +284,8 @@ pub fn list_neighbor_ids(push_state: &mut PushState, _instruction_cache: &Instru
 /// LIST.NEIGHBOR*BVALS: Pushes the sorting value of the neighborhood for a given index to the
 /// BOOLVECTOR stack. The neighborhood is calculated as in LIST.NEIGHBOR*IDS.
 pub fn list_neighbor_bvals(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(topology) = push_state.int_stack.pop_vec(3) {
+    if let Some(topology) = push_state.int_stack.pop_vec(4) {
+        let position = topology[3] as usize;
         let size = i32::max(topology[2], 0);
         let index = i32::max(i32::min(size - 1, topology[1]), 0) as usize;
         let dimensions = i32::max(i32::min(size, topology[0]), 0) as usize;
@@ -287,7 +297,7 @@ pub fn list_neighbor_bvals(push_state: &mut PushState, _instruction_cache: &Inst
                 let mut result = vec![];
                 for n in neighbors.values.iter() {
                     if let Some(item) = push_state.code_stack.get(*n as usize) {
-                        result.push(bval(item));
+                        result.push(bval(item, &position));
                     }
                 }
                 push_state.bool_vector_stack.push(BoolVector::new(result));
@@ -299,7 +309,8 @@ pub fn list_neighbor_bvals(push_state: &mut PushState, _instruction_cache: &Inst
 /// LIST.NEIGHBOR*IVALS: Pushes the sorting value of the neighborhood for a given index to the
 /// INTVECTOR stack. The neighborhood is calculated as in LIST.NEIGHBOR*IDS.
 pub fn list_neighbor_ivals(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(topology) = push_state.int_stack.pop_vec(3) {
+    if let Some(topology) = push_state.int_stack.pop_vec(4) {
+        let position = topology[3] as usize;
         let size = i32::max(topology[2], 0);
         let index = i32::max(i32::min(size - 1, topology[1]), 0) as usize;
         let dimensions = i32::max(i32::min(size, topology[0]), 0) as usize;
@@ -311,7 +322,7 @@ pub fn list_neighbor_ivals(push_state: &mut PushState, _instruction_cache: &Inst
                 let mut result = vec![];
                 for n in neighbors.values.iter() {
                     if let Some(item) = push_state.code_stack.get(*n as usize) {
-                        result.push(ival(item));
+                        result.push(ival(item, &position));
                     }
                 }
                 push_state.int_vector_stack.push(IntVector::new(result));
@@ -323,7 +334,8 @@ pub fn list_neighbor_ivals(push_state: &mut PushState, _instruction_cache: &Inst
 /// LIST.NEIGHBOR*FVALS: Pushes the sorting value of the neighborhood for a given index to the
 /// FLOATVECTOR stack. The neighborhood is calculated as in LIST.NEIGHBOR*IDS.
 pub fn list_neighbor_fvals(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(topology) = push_state.int_stack.pop_vec(3) {
+    if let Some(topology) = push_state.int_stack.pop_vec(4) {
+        let position = topology[3] as usize;
         let size = i32::max(topology[2], 0);
         let index = i32::max(i32::min(size - 1, topology[1]), 0) as usize;
         let dimensions = i32::max(i32::min(size, topology[0]), 0) as usize;
@@ -335,7 +347,7 @@ pub fn list_neighbor_fvals(push_state: &mut PushState, _instruction_cache: &Inst
                 let mut result = vec![];
                 for n in neighbors.values.iter() {
                     if let Some(item) = push_state.code_stack.get(*n as usize) {
-                        result.push(fval(item));
+                        result.push(fval(item, &position));
                     }
                 }
                 push_state.float_vector_stack.push(FloatVector::new(result));
@@ -347,6 +359,8 @@ pub fn list_neighbor_fvals(push_state: &mut PushState, _instruction_cache: &Inst
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::push::instructions::InstructionSet;
+    use crate::push::interpreter::{PushInterpreter, PushInterpreterState};
     use crate::push::vector::*;
 
     pub fn icache() -> InstructionCache {
@@ -418,7 +432,8 @@ mod tests {
         list_get(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:List: 1:Literal(2.3f); 2:Literal(3); 3:Literal(2); 4:Literal(true);;"
+            "1:List: 1:Literal(2.3f); 2:Literal(3); 3:Literal(2); 4:Literal(true);;",
+            "Order of elements should be reversed"
         );
     }
 
@@ -428,7 +443,8 @@ mod tests {
         test_state
             .code_stack
             .push(Item::list(vec![Item::bool(true), Item::int(2)]));
-        test_state.int_stack.push(0);
+        test_state.int_stack.push(0); // Stack Position
+        test_state.int_stack.push(0); // Item Position
         list_bval(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
     }
@@ -439,7 +455,8 @@ mod tests {
         test_state
             .code_stack
             .push(Item::list(vec![Item::int(1), Item::int(2)]));
-        test_state.int_stack.push(0);
+        test_state.int_stack.push(0); // Stack Position
+        test_state.int_stack.push(0); // Item Position
         list_ival(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.pop().unwrap(), 2);
     }
@@ -450,7 +467,8 @@ mod tests {
         test_state
             .code_stack
             .push(Item::list(vec![Item::float(1.0), Item::int(2)]));
-        test_state.int_stack.push(0);
+        test_state.int_stack.push(0); // Stack Position
+        test_state.int_stack.push(0); // Item Position
         list_fval(&mut test_state, &icache());
         assert_eq!(test_state.float_stack.pop().unwrap(), 1.0);
     }
@@ -459,9 +477,10 @@ mod tests {
     fn list_set_replaces_code_item() {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(true);
+        test_state.bool_stack.push(false);
         test_state
             .int_vector_stack
-            .push(IntVector::new(vec![BOOL_STACK_ID]));
+            .push(IntVector::new(vec![BOOL_STACK_ID, BOOL_STACK_ID]));
         test_state.int_stack.push(1);
         test_state.code_stack.push(Item::int(11));
         test_state.code_stack.push(Item::int(22));
@@ -469,7 +488,71 @@ mod tests {
         list_set(&mut test_state, &icache());
         assert_eq!(
             test_state.code_stack.to_string(),
-            "1:Literal(33); 2:List: 1:Literal(true);; 3:Literal(11);"
+            "1:Literal(33); 2:List: 1:Literal(true); 2:Literal(false);; 3:Literal(11);",
+            "Order of new list element reversed"
+        );
+    }
+
+    #[test]
+    fn list_add_get_preserves_stack_positions() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(true);
+        test_state.bool_stack.push(false);
+        assert_eq!(
+            test_state.bool_stack.to_string(),
+            "1:false; 2:true;",
+            "Initial order of items"
+        );
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![BOOL_STACK_ID, BOOL_STACK_ID]));
+        list_add(&mut test_state, &icache());
+        test_state.int_stack.push(0);
+        list_get(&mut test_state, &icache());
+        // Run execution
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        assert_eq!(
+            PushInterpreter::run(&mut test_state, &mut instruction_set),
+            PushInterpreterState::NoErrors
+        );
+        assert_eq!(
+            test_state.bool_stack.to_string(),
+            "1:false; 2:true;",
+            "Push/Pull of list preserves order of items"
+        );
+    }
+    #[test]
+    fn list_set_get_preserves_stack_positions() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(true);
+        test_state.bool_stack.push(false);
+        assert_eq!(
+            test_state.bool_stack.to_string(),
+            "1:false; 2:true;",
+            "Initial order of items"
+        );
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![BOOL_STACK_ID, BOOL_STACK_ID]));
+        test_state.int_stack.push(1);
+        test_state.code_stack.push(Item::int(11));
+        test_state.code_stack.push(Item::int(22));
+        test_state.code_stack.push(Item::int(33));
+        list_set(&mut test_state, &icache());
+        test_state.int_stack.push(1);
+        list_get(&mut test_state, &icache());
+        // Run execution
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        assert_eq!(
+            PushInterpreter::run(&mut test_state, &mut instruction_set),
+            PushInterpreterState::NoErrors
+        );
+        assert_eq!(
+            test_state.bool_stack.to_string(),
+            "1:false; 2:true;",
+            "Push/Pull of list preserves order of items"
         );
     }
 
@@ -531,6 +614,7 @@ mod tests {
         test_state.int_stack.push(2); // Dimensions
         test_state.int_stack.push(0); // Index
         test_state.int_stack.push(9); // Size
+        test_state.int_stack.push(0); // Position
         list_neighbor_ivals(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
