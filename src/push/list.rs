@@ -35,7 +35,7 @@ pub fn load_list_instructions(map: &mut HashMap<String, Instruction>) {
 
 /// Returns the nth integer that is contained in the item.
 /// If no such value exists it returns 0
-pub fn bval(item: &Item, n: &usize) -> bool {
+pub fn bval<'a>(item: &Item, n: &usize) -> bool {
     let default = false;
     match Item::find(item, &Item::bool(false), &mut 0, n) {
         Ok(bval) => match bval {
@@ -52,7 +52,7 @@ pub fn bval(item: &Item, n: &usize) -> bool {
 
 /// Returns the first integer that is contained in the item.
 /// If no such value exists it returns 0
-pub fn ival(item: &Item, n: &usize) -> i32 {
+pub fn ival<'a>(item: &Item<'a>, n: &usize) -> i32 {
     let default = 0;
     match Item::find(item, &Item::int(0), &mut 0, n) {
         Ok(ival) => match ival {
@@ -69,7 +69,7 @@ pub fn ival(item: &Item, n: &usize) -> i32 {
 
 /// Returns the first float that is contained in the item.
 /// If no such value exists it returns 0
-pub fn fval(item: &Item, n: &usize) -> f32 {
+pub fn fval<'a>(item: &Item<'a>, n: &usize) -> f32 {
     let default = 0.0;
     match Item::find(item, &Item::float(0.0), &mut 0, n) {
         Ok(fval) => match fval {
@@ -88,7 +88,7 @@ pub fn fval(item: &Item, n: &usize) -> f32 {
 /// Each entry is matched against the stack ids. If there is a match the item
 /// of the stack is popped and added to the new list item. As last entry
 /// it adds a auto-generated ID.
-pub fn load_items(push_state: &mut PushState) -> Option<Vec<Item>> {
+pub fn load_items<'a>(push_state: &mut PushState<'a>) -> Option<Vec<Item<'a>>> {
     if let Some(stack_ids) = push_state.int_vector_stack.pop() {
         let mut items = vec![];
         for &sid in &stack_ids.values {
@@ -147,7 +147,7 @@ pub fn load_items(push_state: &mut PushState) -> Option<Vec<Item>> {
 }
 
 /// Generates a new list using the items specified on top of the INTVECTOR stack.
-pub fn new_list(push_state: &mut PushState) -> Option<Vec<Item>> {
+pub fn new_list<'a>(push_state: &mut PushState<'a>) -> Option<Vec<Item<'a>>> {
     if let Some(items) = load_items(push_state) {
         // items.reverse();
         return Some(items);

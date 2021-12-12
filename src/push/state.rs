@@ -1,6 +1,7 @@
 use crate::push::configuration::PushConfiguration;
 use crate::push::index::Index;
 use crate::push::item::Item;
+use crate::push::memory::TemporalMemory;
 use crate::push::stack::PushStack;
 use crate::push::vector::{BoolVector, FloatVector, IntVector};
 use std::collections::HashMap;
@@ -19,11 +20,11 @@ pub const INT_VECTOR_STACK_ID: i32 = 10;
 pub const NAME_STACK_ID: i32 = 11;
 pub const OUTPUT_STACK_ID: i32 = 12;
 
-pub struct PushState {
+pub struct PushState<'a> {
     // Scalar Types
     pub bool_stack: PushStack<bool>,
-    pub code_stack: PushStack<Item>, // Change this to reference for speedup
-    pub exec_stack: PushStack<Item>,
+    pub code_stack: PushStack<Item<'a>>, // Change this to reference for speedup
+    pub exec_stack: PushStack<Item<'a>>,
     pub float_stack: PushStack<f32>,
     pub index_stack: PushStack<Index>,
     pub int_stack: PushStack<i32>,
@@ -38,15 +39,17 @@ pub struct PushState {
     pub input_stack: PushStack<BoolVector>,
     pub output_stack: PushStack<BoolVector>,
 
+    // Memory
+    pub tmem_stack: PushStack<&'a TemporalMemory>,
+
     // Bindings
-    pub name_bindings: HashMap<String, Item>,
+    pub name_bindings: HashMap<String, Item<'a>>,
 
     pub configuration: PushConfiguration,
     pub quote_name: bool,
-    pub list_uid: i32,
 }
 
-impl PushState {
+impl<'a> PushState<'a> {
     pub fn new() -> Self {
         Self {
             bool_stack: PushStack::new(),
@@ -61,10 +64,10 @@ impl PushState {
             int_vector_stack: PushStack::new(),
             input_stack: PushStack::new(),
             output_stack: PushStack::new(),
+            tmem_stack: PushStack::new(),
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
             quote_name: false,
-            list_uid: -1,
         }
     }
 
@@ -82,7 +85,7 @@ impl PushState {
     }
 }
 
-impl fmt::Display for PushState {
+impl<'a> fmt::Display for PushState<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut nb = "".to_string();
         let mut sorted: Vec<_> = self.name_bindings.iter().collect();

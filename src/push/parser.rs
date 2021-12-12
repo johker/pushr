@@ -16,7 +16,7 @@ pub enum VectorType {
 impl<'a> PushParser {
     /// Recursivley performs a front push to the stack. It keeps track of the open sublist by a depth
     /// parameter. Returns true if the operation was sucessful
-    pub fn rec_push(stack: &mut PushStack<Item>, item: Item, depth: usize) -> bool {
+    pub fn rec_push(stack: &mut PushStack<Item<'a>>, item: Item<'a>, depth: usize) -> bool {
         if depth == 0 {
             // Push at this level
             stack.push_front(item);

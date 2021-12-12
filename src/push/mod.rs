@@ -10,6 +10,7 @@ pub mod interpreter;
 pub mod io;
 pub mod item;
 pub mod list;
+pub mod memory;
 pub mod name;
 pub mod parser;
 pub mod random;

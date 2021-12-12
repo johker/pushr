@@ -37,11 +37,11 @@ pub struct CodeGenerator {}
 
 impl CodeGenerator {
     /// Returns random code of random size but smaller than max_points
-    pub fn random_code(
-        push_state: &PushState,
+    pub fn random_code<'a>(
+        push_state: &PushState<'a>,
         instructions: &InstructionCache,
         max_points: usize,
-    ) -> Option<Item> {
+    ) -> Option<Item<'a>> {
         if max_points > 0 {
             let mut rng = rand::thread_rng();
             let actual_points = Uniform::from(1..max_points).sample(&mut rng);
@@ -162,11 +162,11 @@ impl CodeGenerator {
     }
 
     /// Return random code of size points
-    pub fn random_code_with_size(
-        push_state: &PushState,
+    pub fn random_code_with_size<'a>(
+        push_state: &PushState<'a>,
         instructions: &InstructionCache,
         points: usize,
-    ) -> Item {
+    ) -> Item<'a> {
         let number_instructions = instructions.list.len();
         if points == 1 {
             let mut rng = rand::thread_rng();
