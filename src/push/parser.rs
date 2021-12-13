@@ -13,10 +13,10 @@ pub enum VectorType {
     Float,
 }
 
-impl<'a> PushParser {
+impl PushParser {
     /// Recursivley performs a front push to the stack. It keeps track of the open sublist by a depth
     /// parameter. Returns true if the operation was sucessful
-    pub fn rec_push(stack: &mut PushStack<Item<'a>>, item: Item<'a>, depth: usize) -> bool {
+    pub fn rec_push(stack: &mut PushStack<Item>, item: Item, depth: usize) -> bool {
         if depth == 0 {
             // Push at this level
             stack.push_front(item);
@@ -46,7 +46,7 @@ impl<'a> PushParser {
         push_state: &mut PushState,
         depth: usize,
         vector_type: &VectorType,
-        vector_token: &'a str,
+        vector_token: &str,
     ) {
         match vector_type {
             VectorType::Bool => {
@@ -99,11 +99,7 @@ impl<'a> PushParser {
 
     /// Splits a string into tokens and front pushes it to the stack s.t. the
     /// end of the string ends up at the top of the stack.
-    pub fn parse_program(
-        push_state: &mut PushState,
-        instruction_set: &InstructionSet,
-        code: &'a str,
-    ) {
+    pub fn parse_program(push_state: &mut PushState, instruction_set: &InstructionSet, code: &str) {
         let mut depth = 0;
         for token in code.split_whitespace() {
             if token.starts_with("INT[") {

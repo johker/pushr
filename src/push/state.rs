@@ -20,11 +20,11 @@ pub const INT_VECTOR_STACK_ID: i32 = 10;
 pub const NAME_STACK_ID: i32 = 11;
 pub const OUTPUT_STACK_ID: i32 = 12;
 
-pub struct PushState<'a> {
+pub struct PushState {
     // Scalar Types
     pub bool_stack: PushStack<bool>,
-    pub code_stack: PushStack<Item<'a>>, // Change this to reference for speedup
-    pub exec_stack: PushStack<Item<'a>>,
+    pub code_stack: PushStack<Item>, // Change this to reference for speedup
+    pub exec_stack: PushStack<Item>,
     pub float_stack: PushStack<f32>,
     pub index_stack: PushStack<Index>,
     pub int_stack: PushStack<i32>,
@@ -40,16 +40,16 @@ pub struct PushState<'a> {
     pub output_stack: PushStack<BoolVector>,
 
     // Memory
-    pub tmem_stack: PushStack<&'a TemporalMemory>,
+    pub tmem_stack: PushStack<TemporalMemory>,
 
     // Bindings
-    pub name_bindings: HashMap<String, Item<'a>>,
+    pub name_bindings: HashMap<String, Item>,
 
     pub configuration: PushConfiguration,
     pub quote_name: bool,
 }
 
-impl<'a> PushState<'a> {
+impl PushState {
     pub fn new() -> Self {
         Self {
             bool_stack: PushStack::new(),
@@ -85,7 +85,7 @@ impl<'a> PushState<'a> {
     }
 }
 
-impl<'a> fmt::Display for PushState<'a> {
+impl fmt::Display for PushState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut nb = "".to_string();
         let mut sorted: Vec<_> = self.name_bindings.iter().collect();

@@ -8,15 +8,15 @@ use crate::push::vector::{BoolVector, FloatVector, IntVector};
 // Items
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
-pub enum Item<'a> {
-    List { items: PushStack<Item<'a>> },
+pub enum Item {
+    List { items: PushStack<Item> },
     InstructionMeta { name: String },
-    Literal { push_type: PushType<'a> },
+    Literal { push_type: PushType },
     Identifier { name: String },
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum PushType<'a> {
+pub enum PushType {
     Bool { val: bool },
     Int { val: i32 },
     Index { val: Index },
@@ -24,80 +24,80 @@ pub enum PushType<'a> {
     BoolVector { val: BoolVector },
     IntVector { val: IntVector },
     FloatVector { val: FloatVector },
-    TemporalMemory { val: &'a TemporalMemory },
+    TemporalMemory { val: TemporalMemory },
 }
 
 #[allow(dead_code)]
-impl<'a> Item<'a> {
-    pub fn int(arg: i32) -> Item<'a> {
+impl Item {
+    pub fn int(arg: i32) -> Item {
         Item::Literal {
             push_type: PushType::Int { val: arg },
         }
     }
-    pub fn index(arg: Index) -> Item<'a> {
+    pub fn index(arg: Index) -> Item {
         Item::Literal {
             push_type: PushType::Index { val: arg },
         }
     }
-    pub fn float(arg: f32) -> Item<'a> {
+    pub fn float(arg: f32) -> Item {
         Item::Literal {
             push_type: PushType::Float { val: arg },
         }
     }
-    pub fn bool(arg: bool) -> Item<'a> {
+    pub fn bool(arg: bool) -> Item {
         Item::Literal {
             push_type: PushType::Bool { val: arg },
         }
     }
 
-    pub fn boolvec(arg: BoolVector) -> Item<'a> {
+    pub fn boolvec(arg: BoolVector) -> Item {
         Item::Literal {
             push_type: PushType::BoolVector { val: arg },
         }
     }
 
-    pub fn floatvec(arg: FloatVector) -> Item<'a> {
+    pub fn floatvec(arg: FloatVector) -> Item {
         Item::Literal {
             push_type: PushType::FloatVector { val: arg },
         }
     }
 
-    pub fn intvec(arg: IntVector) -> Item<'a> {
+    pub fn intvec(arg: IntVector) -> Item {
         Item::Literal {
             push_type: PushType::IntVector { val: arg },
         }
     }
 
-    pub fn instruction(arg: String) -> Item<'a> {
+    pub fn instruction(arg: String) -> Item {
         Item::InstructionMeta { name: arg }
     }
 
-    pub fn name(arg: String) -> Item<'a> {
+    pub fn name(arg: String) -> Item {
         Item::Identifier { name: arg }
     }
 
-    pub fn noop() -> Item<'a> {
+    pub fn noop() -> Item {
         Item::InstructionMeta {
             name: "NOOP".to_string(),
         }
     }
-    pub fn empty_list() -> Item<'a> {
+    pub fn empty_list() -> Item {
         Item::List {
             items: PushStack::new(),
         }
     }
-    pub fn list(arg: Vec<Item<'a>>) -> Item<'a> {
+    pub fn list(arg: Vec<Item>) -> Item {
         Item::List {
             items: PushStack::from_vec(arg),
         }
     }
-    pub fn id(arg: String) -> Item<'a> {
+    pub fn id(arg: String) -> Item {
         Item::Identifier { name: arg }
     }
 
     /// Returns the number of elements where each parenthesized expression and each
     /// literal/instruction is considered a point. It proceeds in depth first order.
-    pub fn size(item: &Item<'a>) -> usize {
+    pub fn size(item: &Item) -> usize {
         let mut size = 0;
         match item {
             Item::List { items } => {
@@ -112,7 +112,7 @@ impl<'a> Item<'a> {
     }
 
     /// Returns the number of elements the items cotains up to a depth of 1.
-    pub fn shallow_size(item: &Item<'a>) -> usize {
+    pub fn shallow_size(item: &Item) -> usize {
         let mut size = 0;
         match item {
             Item::List { items } => {
@@ -124,7 +124,7 @@ impl<'a> Item<'a> {
     }
 
     /// Returns a nested element of a list using depth first traversal.
-    pub fn traverse(item: &Item<'a>, mut depth: usize) -> Result<Item<'a>, usize> {
+    pub fn traverse(item: &Item, mut depth: usize) -> Result<Item, usize> {
         if depth == 0 {
             Ok(item.clone())
         } else {
@@ -146,7 +146,7 @@ impl<'a> Item<'a> {
     }
 
     /// Replaces a nested element of a list using depth first traversal.
-    pub fn insert(item: &mut Item<'a>, new_el: &Item<'a>, mut depth: usize) -> Result<bool, usize> {
+    pub fn insert(item: &mut Item, new_el: &Item, mut depth: usize) -> Result<bool, usize> {
         if depth == 0 {
             Ok(true)
         } else {
@@ -175,7 +175,7 @@ impl<'a> Item<'a> {
 
     /// Substitute all occurrences of 'pattern' with 'substitute' in 'item' using depth first
     /// traversal.
-    pub fn substitute(item: &mut Item<'a>, pattern: &Item<'a>, substitute: &Item<'a>) -> bool {
+    pub fn substitute(item: &mut Item, pattern: &Item, substitute: &Item) -> bool {
         if Item::equals(item, pattern) {
             return true;
         } else {
@@ -195,7 +195,7 @@ impl<'a> Item<'a> {
 
     /// Returns the position of pattern within item or Err if pattern is not
     /// part of item
-    pub fn contains(item: &Item<'a>, pattern: &Item<'a>, mut depth: usize) -> Result<usize, ()> {
+    pub fn contains(item: &Item, pattern: &Item, mut depth: usize) -> Result<usize, ()> {
         if Item::equals(item, pattern) {
             Ok(depth)
         } else {
@@ -217,12 +217,7 @@ impl<'a> Item<'a> {
     }
 
     /// Returns the nth element that matches the pattern by shallow comparison.
-    pub fn find(
-        item: &Item<'a>,
-        pattern: &Item<'a>,
-        cnt: &mut usize,
-        n: &usize,
-    ) -> Result<Item<'a>, usize> {
+    pub fn find(item: &Item, pattern: &Item, cnt: &mut usize, n: &usize) -> Result<Item, usize> {
         if pattern == item {
             if cnt == n {
                 return Ok(item.clone());
@@ -246,7 +241,7 @@ impl<'a> Item<'a> {
 
     /// Returns the container of pattern within item, i.e. its smallest sublist that contains but
     /// is not equal to pattern. It returns Err if pattern is not part of item
-    pub fn container(item: &Item<'a>, pattern: &Item<'a>) -> Result<Item<'a>, bool> {
+    pub fn container(item: &Item, pattern: &Item) -> Result<Item, bool> {
         if Item::equals(item, pattern) {
             Err(true)
         } else {
@@ -272,7 +267,7 @@ impl<'a> Item<'a> {
 
     /// Executes a deep comparison between two item. Returns true if
     /// the items and all their elements are equal.
-    pub fn equals(item: &Item<'a>, pattern: &Item<'a>) -> bool {
+    pub fn equals(item: &Item, pattern: &Item) -> bool {
         match item {
             Item::List { items } => match pattern {
                 Item::List { items: pitems } => {
@@ -306,7 +301,7 @@ impl<'a> Item<'a> {
 
 /// Shallow comparison that returns true when the type matches
 /// ignoring differences in the value.
-impl<'a> PartialEq for Item<'a> {
+impl PartialEq for Item {
     fn eq(&self, other: &Self) -> bool {
         match &*self {
             Item::List { items: _ } => match &*other {
@@ -368,7 +363,7 @@ impl<'a> PartialEq for Item<'a> {
     }
 }
 
-impl<'a> fmt::Display for Item<'a> {
+impl fmt::Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &*self {
             Item::List { items } => write!(f, "List: {}", items.to_string()),
@@ -399,7 +394,7 @@ impl<'a> fmt::Display for Item<'a> {
     }
 }
 
-impl<'a> PushType<'a> {
+impl PushType {
     /// Returns true if type and value are equal
     pub fn equals(&self, other: &PushType) -> bool {
         match &*self {
