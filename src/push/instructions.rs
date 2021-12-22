@@ -9,6 +9,7 @@ use crate::push::index::*;
 use crate::push::integer::*;
 use crate::push::io::*;
 use crate::push::list::*;
+use crate::push::memory::*;
 use crate::push::name::*;
 use crate::push::vector::*;
 
@@ -38,6 +39,7 @@ impl InstructionSet {
         load_name_instructions(&mut self.map);
         load_vector_instructions(&mut self.map);
         load_io_instructions(&mut self.map);
+        load_memory_instructions(&mut self.map);
     }
 
     /// Create a snapshot of the current instruction names

@@ -40,7 +40,7 @@ pub struct PushState {
     pub output_stack: PushStack<BoolVector>,
 
     // Memory
-    pub tmem_stack: PushStack<TemporalMemory>,
+    pub memory_stack: PushStack<TemporalMemory>,
 
     // Bindings
     pub name_bindings: HashMap<String, Item>,
@@ -64,7 +64,7 @@ impl PushState {
             int_vector_stack: PushStack::new(),
             input_stack: PushStack::new(),
             output_stack: PushStack::new(),
-            tmem_stack: PushStack::new(),
+            memory_stack: PushStack::new(),
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
             quote_name: false,

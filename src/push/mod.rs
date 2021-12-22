@@ -3,6 +3,7 @@ pub mod code;
 pub mod configuration;
 pub mod execution;
 pub mod float;
+pub mod graph;
 pub mod index;
 pub mod instructions;
 pub mod integer;

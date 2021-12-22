@@ -40,7 +40,7 @@ impl PushInterpreter {
                     PushType::BoolVector { val } => push_state.bool_vector_stack.push(val),
                     PushType::FloatVector { val } => push_state.float_vector_stack.push(val),
                     PushType::IntVector { val } => push_state.int_vector_stack.push(val),
-                    PushType::TemporalMemory { val } => push_state.tmem_stack.push(val),
+                    PushType::Memory { val } => push_state.memory_stack.push(val),
                 }
                 false
             }

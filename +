@@ -78,8 +78,8 @@ impl Column {
 
 #[derive(Clone, Debug)]
 pub struct TemporalMemory {
-    pub columns: Vec<Column>,
-    pub synapses: Vec<Synapse>,
+    columns: Vec<Column>,
+    synapses: Vec<Synapse>,
 }
 
 impl TemporalMemory {
@@ -127,31 +127,18 @@ impl PartialEq for TemporalMemory {
     }
 }
 
-pub fn load_memory_instructions(map: &mut HashMap<String, Instruction>) {
-    map.insert(String::from("MEMORY.NEW"), Instruction::new(memory_new));
+pub fn load_int_instructions(map: &mut HashMap<String, Instruction>) {
+    map.insert(String::from("MEMORY.ADD"), Instruction::new(memory_add));
 }
 
 /// MEMORY.ADD: Pushes a new instance of temporal memory where the
 /// number of columns and cells per column are taken from the INTEGER stack.
-fn memory_new(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+fn memory_add(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(ivals) = push_state.int_stack.pop_vec(2) {
         let ncols = i32::max(ivals[0], 0) as usize;
         let ncells = i32::max(ivals[1], 0) as usize;
         push_state
             .memory_stack
-            .push(TemporalMemory::new(ncols, ncells));
-    }
-}
-
-/// MEMORY.COLUMN*STATE: Pushes the state of the columns at index i to
-/// the BOOLEAN stack where i is taken from the INTEGER stack.
-fn memory_column_state(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(index) = push_state.int_stack.pop() {
-        if let Some(memory) = push_state.memory_stack.get(0) {
-            let corr_index = i32::max(i32::min(index, memory.columns.len() as i32 - 1), 0) as usize;
-            push_state
-                .bool_stack
-                .push(memory.columns[corr_index].active);
-        }
+            .push(TemporalMemory::new(ivals[0] as usize, ivals[1] as usize));
     }
 }

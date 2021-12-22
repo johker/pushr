@@ -24,7 +24,7 @@ pub enum PushType {
     BoolVector { val: BoolVector },
     IntVector { val: IntVector },
     FloatVector { val: FloatVector },
-    TemporalMemory { val: TemporalMemory },
+    Memory { val: TemporalMemory },
 }
 
 #[allow(dead_code)]
@@ -65,6 +65,14 @@ impl Item {
     pub fn intvec(arg: IntVector) -> Item {
         Item::Literal {
             push_type: PushType::IntVector { val: arg },
+        }
+    }
+
+    pub fn memory(ncols: usize, ncells: usize) -> Item {
+        Item::Literal {
+            push_type: PushType::Memory {
+                val: TemporalMemory::new(ncols, ncells),
+            },
         }
     }
 
@@ -347,8 +355,8 @@ impl PartialEq for Item {
                             PushType::FloatVector { val: _ } => return true,
                             _ => return false,
                         },
-                        PushType::TemporalMemory { val: _ } => match other_type {
-                            PushType::TemporalMemory { val: _ } => return true,
+                        PushType::Memory { val: _ } => match other_type {
+                            PushType::Memory { val: _ } => return true,
                             _ => return false,
                         },
                     };
@@ -382,7 +390,7 @@ impl fmt::Display for Item {
                     PushType::BoolVector { val } => info = val.to_string(),
                     PushType::FloatVector { val } => info = val.to_string(),
                     PushType::IntVector { val } => info = val.to_string(),
-                    PushType::TemporalMemory { val } => info = val.to_string(),
+                    PushType::Memory { val } => info = val.to_string(),
                 }
                 write!(f, "{}({})", at, info)
             }
@@ -426,8 +434,8 @@ impl PushType {
                 PushType::IntVector { val: other_val } => return val == other_val,
                 _ => false,
             },
-            PushType::TemporalMemory { val } => match &*other {
-                PushType::TemporalMemory { val: other_val } => return val == other_val,
+            PushType::Memory { val } => match &*other {
+                PushType::Memory { val: other_val } => return val == other_val,
                 _ => false,
             },
         }
