@@ -1,7 +1,7 @@
 use std::fmt;
 
+use crate::push::graph::Graph;
 use crate::push::index::Index;
-use crate::push::memory::TemporalMemory;
 use crate::push::stack::PushStack;
 use crate::push::vector::{BoolVector, FloatVector, IntVector};
 
@@ -24,7 +24,7 @@ pub enum PushType {
     BoolVector { val: BoolVector },
     IntVector { val: IntVector },
     FloatVector { val: FloatVector },
-    Memory { val: TemporalMemory },
+    Graph { val: Graph },
 }
 
 #[allow(dead_code)]
@@ -68,11 +68,9 @@ impl Item {
         }
     }
 
-    pub fn memory(ncols: usize, ncells: usize) -> Item {
+    pub fn graph() -> Item {
         Item::Literal {
-            push_type: PushType::Memory {
-                val: TemporalMemory::new(ncols, ncells),
-            },
+            push_type: PushType::Graph { val: Graph::new() },
         }
     }
 
@@ -355,8 +353,8 @@ impl PartialEq for Item {
                             PushType::FloatVector { val: _ } => return true,
                             _ => return false,
                         },
-                        PushType::Memory { val: _ } => match other_type {
-                            PushType::Memory { val: _ } => return true,
+                        PushType::Graph { val: _ } => match other_type {
+                            PushType::Graph { val: _ } => return true,
                             _ => return false,
                         },
                     };
@@ -390,7 +388,7 @@ impl fmt::Display for Item {
                     PushType::BoolVector { val } => info = val.to_string(),
                     PushType::FloatVector { val } => info = val.to_string(),
                     PushType::IntVector { val } => info = val.to_string(),
-                    PushType::Memory { val } => info = val.to_string(),
+                    PushType::Graph { val } => info = val.to_string(),
                 }
                 write!(f, "{}({})", at, info)
             }
@@ -434,8 +432,8 @@ impl PushType {
                 PushType::IntVector { val: other_val } => return val == other_val,
                 _ => false,
             },
-            PushType::Memory { val } => match &*other {
-                PushType::Memory { val: other_val } => return val == other_val,
+            PushType::Graph { val } => match &*other {
+                PushType::Graph { val: other_val } => return val == other_val,
                 _ => false,
             },
         }

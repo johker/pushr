@@ -1,7 +1,7 @@
 use crate::push::configuration::PushConfiguration;
+use crate::push::graph::Graph;
 use crate::push::index::Index;
 use crate::push::item::Item;
-use crate::push::memory::TemporalMemory;
 use crate::push::stack::PushStack;
 use crate::push::vector::{BoolVector, FloatVector, IntVector};
 use std::collections::HashMap;
@@ -39,8 +39,8 @@ pub struct PushState {
     pub input_stack: PushStack<BoolVector>,
     pub output_stack: PushStack<BoolVector>,
 
-    // Memory
-    pub memory_stack: PushStack<TemporalMemory>,
+    // Graph
+    pub graph_stack: PushStack<Graph>,
 
     // Bindings
     pub name_bindings: HashMap<String, Item>,
@@ -64,7 +64,7 @@ impl PushState {
             int_vector_stack: PushStack::new(),
             input_stack: PushStack::new(),
             output_stack: PushStack::new(),
-            memory_stack: PushStack::new(),
+            graph_stack: PushStack::new(),
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
             quote_name: false,
