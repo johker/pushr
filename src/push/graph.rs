@@ -224,6 +224,14 @@ pub fn load_graph_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(graph_node_add),
     );
     map.insert(
+        String::from("GRAPH.NODE*GETACTIVE"),
+        Instruction::new(graph_node_get_active),
+    );
+    map.insert(
+        String::from("GRAPH.NODE*SETACTIVE"),
+        Instruction::new(graph_node_set_active),
+    );
+    map.insert(
         String::from("GRAPH.EDGE*ADD"),
         Instruction::new(graph_edge_add),
     );
@@ -243,6 +251,35 @@ fn graph_node_add(push_state: &mut PushState, _instruction_cache: &InstructionCa
                 push_state
                     .int_stack
                     .push(graph.add_node(state, active_flag) as i32);
+            }
+        }
+    }
+}
+
+/// GRAPH.NODE*GETACTIVE: Gets the active flag for the node with the specified id where the
+///  id is taken from the INTEGER stack. If the id does not exist this acts as NOOP.
+fn graph_node_get_active(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(graph) = push_state.graph_stack.get_mut(0) {
+        if let Some(id) = push_state.int_stack.pop() {
+            if id > 0 {
+                if let Some(active_flag) = graph.get_active(&(id as usize)) {
+                    push_state.bool_stack.push(active_flag);
+                }
+            }
+        }
+    }
+}
+
+/// GRAPH.NODE*SETACTIVE: Sets the active flag for the node with the specified id where the
+/// active value is taken from the BOOLEAN stack and the id from the INTEGER stack. If the id
+/// does not exist this acts as NOOP.
+fn graph_node_set_active(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(graph) = push_state.graph_stack.get_mut(0) {
+        if let Some(active_flag) = push_state.bool_stack.pop() {
+            if let Some(id) = push_state.int_stack.pop() {
+                if id > 0 {
+                    graph.set_active(id as usize, active_flag);
+                }
             }
         }
     }
@@ -295,6 +332,32 @@ mod tests {
                 .get_active(&node_id)
                 .unwrap(),
             true
+        );
+    }
+
+    #[test]
+    fn graph_node_active_flag_modification() {
+        let mut test_state = PushState::new();
+        test_state.bool_stack.push(true);
+        test_state.int_stack.push(1);
+        graph_add(&mut test_state, &icache());
+        graph_node_add(&mut test_state, &icache());
+        let node_id = test_state.int_stack.pop().unwrap() as usize;
+        assert_eq!(test_state.bool_stack.size(), 0);
+        test_state.int_stack.push(node_id.clone() as i32);
+        graph_node_get_active(&mut test_state, &icache());
+        assert_eq!(test_state.bool_stack.pop().unwrap(), true);
+        test_state.bool_stack.push(false);
+        test_state.int_stack.push(node_id.clone() as i32);
+        graph_node_set_active(&mut test_state, &icache());
+        assert_eq!(
+            test_state
+                .graph_stack
+                .get(0)
+                .unwrap()
+                .get_active(&node_id)
+                .unwrap(),
+            false
         );
     }
 

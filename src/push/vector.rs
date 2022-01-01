@@ -150,6 +150,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(bool_vector_id),
     );
     map.insert(
+        String::from("BOOLVECTOR.LENGTH"),
+        Instruction::new(bool_vector_length),
+    );
+    map.insert(
         String::from("BOOLVECTOR.ONES"),
         Instruction::new(bool_vector_ones),
     );
@@ -263,6 +267,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(int_vector_mean),
     );
     map.insert(
+        String::from("INTVECTOR.LENGTH"),
+        Instruction::new(int_vector_length),
+    );
+    map.insert(
         String::from("INTVECTOR.POP"),
         Instruction::new(int_vector_pop),
     );
@@ -358,6 +366,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("FLOATVECTOR.ID"),
         Instruction::new(float_vector_id),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.LENGTH"),
+        Instruction::new(float_vector_length),
     );
     map.insert(
         String::from("FLOATVECTOR.MEAN"),
@@ -543,6 +555,13 @@ fn bool_vector_equal(push_state: &mut PushState, _instruction_cache: &Instructio
 /// BOOLVECTOR.FLUSH: Empties the BOOLVECTOR stack.
 pub fn bool_vector_flush(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.bool_vector_stack.flush();
+}
+
+/// BOOLVECTOR.LENGTH: Pushes the length of the top BOOLVECTOR item to the INTEGER stack.
+pub fn bool_vector_length(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(bv) = push_state.bool_vector_stack.get(0) {
+        push_state.int_stack.push(bv.values.len() as i32);
+    }
 }
 
 /// BOOLVECTOR.ONES: Pushes a newly generated BOOLVECTOR with all elements set to true. The size
@@ -889,6 +908,13 @@ pub fn int_vector_from_int(push_state: &mut PushState, _instruction_cache: &Inst
     }
 }
 
+/// INTVECTOR.LENGTH: Pushes the length of the top INTVECTOR item to the INTEGER stack.
+pub fn int_vector_length(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(iv) = push_state.int_vector_stack.get(0) {
+        push_state.int_stack.push(iv.values.len() as i32);
+    }
+}
+
 /// INTVECTOR.MEAN: Pushes the mean of the top INTVECTOR to the float stack
 pub fn int_vector_mean(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(numbers) = push_state.int_vector_stack.get(0) {
@@ -1183,6 +1209,13 @@ fn float_vector_equal(push_state: &mut PushState, _instruction_cache: &Instructi
 /// FLOATVECTOR.FLUSH: Empties the FLOATVECTOR stack.
 pub fn float_vector_flush(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.float_vector_stack.flush();
+}
+
+/// FLOATVECTOR.LENGTH: Pushes the length of the top FLOATVECTOR item to the INTEGER stack.
+pub fn float_vector_length(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(fv) = push_state.float_vector_stack.get(0) {
+        push_state.int_stack.push(fv.values.len() as i32);
+    }
 }
 
 /// FLOATVECTOR.MEAN: Pushes the mean of the top FLOATVECTOR to the float stack
