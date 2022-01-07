@@ -41,7 +41,7 @@ pub fn input_flush(push_state: &mut PushState, _instruction_cache: &InstructionC
     push_state.input_stack.flush();
 }
 
-/// INPUT.FLUSH: Pushes the nth bit of the first element if the FIFO queue to the
+/// INPUT.GET: Pushes the nth bit of the first element if the FIFO queue to the
 /// BOOLEAN stack. The index n is taken from the INTEGER stack.
 pub fn input_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
