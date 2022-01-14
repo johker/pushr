@@ -13,16 +13,18 @@ static NODE_COUNTER: AtomicUsize = AtomicUsize::new(1);
 #[derive(Clone, Debug, Hash, Eq)]
 pub struct Node {
     node_id: usize,
-    state: i32,
-    active: bool,
+    pre: i32,
+    post: i32,
+    updated: bool,
 }
 
 impl Node {
-    pub fn new(state: i32, active: bool) -> Self {
+    pub fn new(state: i32) -> Self {
         Self {
             node_id: NODE_COUNTER.fetch_add(1, Ordering::Relaxed),
-            state: state,
-            active: active,
+            pre: state,
+            post: state,
+            updated: false,
         }
     }
 }
@@ -77,9 +79,11 @@ impl fmt::Display for Graph {
             owned_string.push_str("(");
             owned_string.push_str(&node.node_id.to_string());
             owned_string.push_str(":");
-            owned_string.push_str(&node.active.to_string());
+            owned_string.push_str(&node.updated.to_string());
             owned_string.push_str(";");
-            owned_string.push_str(&node.state.to_string());
+            owned_string.push_str(&node.pre.to_string());
+            owned_string.push_str("/");
+            owned_string.push_str(&node.post.to_string());
             owned_string.push_str(")");
         }
         owned_string.push_str(")");
@@ -103,8 +107,8 @@ impl Graph {
 
     /// Adds an new node with the given state and activity
     /// and returns its assigned IDs.
-    pub fn add_node(&mut self, state: i32, active: bool) -> usize {
-        let node = Node::new(state, active);
+    pub fn add_node(&mut self, state: i32) -> usize {
+        let node = Node::new(state);
         let node_id = node.node_id;
         self.nodes.insert(node_id, node);
         self.edges.insert(node_id.clone(), HashSet::new());
@@ -142,58 +146,49 @@ impl Graph {
         }
     }
 
-    /// Returns all nodes that are in the given state.
-    pub fn get_nodes_with_state(&self, state: &i32) -> Vec<usize> {
-        let mut nodes = vec![];
-        for (_, node) in self.nodes.iter() {
-            if node.state == *state {
-                nodes.push(node.node_id);
-            }
-        }
-        nodes
+    pub fn node_is_updated(&self, id: &usize) -> Option<bool> {
+       if let Some(node) = self.nodes.get(&id) {
+           Some(node.updated)
+       } else {
+           None
+       }
     }
 
-    pub fn get_active_nodes_with_state(&self, active: &bool, state: &i32) -> Vec<usize> {
-        let mut nodes = vec![];
-        for (_, node) in self.nodes.iter() {
-            if node.state == *state && node.active == *active {
-                nodes.push(node.node_id);
-            }
+    /// Resets updated flag of all nodes
+    pub fn reset_update_flag(&mut self) {
+        for (_, node) in self.nodes.iter_mut() {
+            node.updated = false;
         }
-        nodes
     }
 
-    /// Get the state of the node with the given ID.
-    pub fn get_state(&self, id: &usize) -> Option<i32> {
+    /// Get the pre state of the node with the given ID.
+   pub fn get_pre_state(&self, id: &usize) -> Option<i32> {
         if let Some(node) = self.nodes.get(&id) {
-            Some(node.state)
+            Some(node.pre)
         } else {
             None
         }
     }
 
-    /// Set the state of the node with the given ID.
+    /// Get the post state of the node with the given ID.
+    pub fn get_post_state(&self, id: &usize) -> Option<i32> {
+        if let Some(node) = self.nodes.get(&id) {
+            Some(node.post)
+        } else {
+            None
+        }
+    }
+
+    /// Set the state of the node with the given ID. Update
+    /// previous state and update flag.
     pub fn set_state(&mut self, id: usize, state: i32) {
         if let Some(node) = self.nodes.get_mut(&id) {
-            node.state = state;
+            node.pre = node.post;
+            node.post = state;
+            node.updated = true;
         }
     }
 
-    /// Get the active flag of the node with the given ID.
-    pub fn get_active(&self, id: &usize) -> Option<bool> {
-        if let Some(node) = self.nodes.get(&id) {
-            Some(node.active)
-        } else {
-            None
-        }
-    }
-
-    /// Set the active flag of the node with the given ID.
-    pub fn set_active(&mut self, id: usize, active: bool) {
-        if let Some(node) = self.nodes.get_mut(&id) {
-            node.active = active;
-        }
-    }
 
     /// Get the weight of the edge between the nodes with
     /// origin_id and destination_id.
@@ -242,20 +237,24 @@ pub fn load_graph_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(graph_node_add),
     );
     map.insert(
-        String::from("GRAPH.NODE*GETACTIVE"),
-        Instruction::new(graph_node_get_active),
+        String::from("GRAPH.NODE*RESETUPDATE"),
+        Instruction::new(graph_node_reset_update),
     );
     map.insert(
-        String::from("GRAPH.NODE*GETSTATE"),
-        Instruction::new(graph_node_get_state),
+        String::from("GRAPH.NODE*PRE"),
+        Instruction::new(graph_node_get_pre_state),
+    );
+    map.insert(
+        String::from("GRAPH.NODE*POST"),
+        Instruction::new(graph_node_get_post_state),
+    );
+    map.insert(
+        String::from("GRAPH.NODE*UPDATED"),
+        Instruction::new(graph_node_is_updated),
     );
     map.insert(
         String::from("GRAPH.NODE*PREDECESSORS"),
         Instruction::new(graph_node_predecessors),
-    );
-    map.insert(
-        String::from("GRAPH.NODE*SETACTIVE"),
-        Instruction::new(graph_node_set_active),
     );
     map.insert(
         String::from("GRAPH.NODE*SETSTATE"),
@@ -276,37 +275,29 @@ fn graph_add(push_state: &mut PushState, _instruction_cache: &InstructionCache) 
 /// of the node is pushed to the INTEGER stack.
 fn graph_node_add(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(graph) = push_state.graph_stack.get_mut(0) {
-        if let Some(active_flag) = push_state.bool_stack.pop() {
             if let Some(state) = push_state.int_stack.pop() {
                 push_state
                     .int_stack
-                    .push(graph.add_node(state, active_flag) as i32);
+                    .push(graph.add_node(state) as i32);
             }
-        }
     }
 }
 
-/// GRAPH.NODE*GETACTIVE: Pushes the active flag for the node with the specified id to the BOOLEAN
-/// stack where the id is taken from the INTEGER stack. If the id does not exist this acts as NOOP.
-fn graph_node_get_active(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+/// GRAPH.NODE*RESETUPDATE: Reset the 'Updated' flag of each node of the top graph item.
+fn graph_node_reset_update(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(graph) = push_state.graph_stack.get_mut(0) {
-        if let Some(id) = push_state.int_stack.pop() {
-            if id > 0 {
-                if let Some(active_flag) = graph.get_active(&(id as usize)) {
-                    push_state.bool_stack.push(active_flag);
-                }
-            }
-        }
+        graph.reset_update_flag();
     }
 }
 
-/// GRAPH.NODE*GETSTATE: Pushes the state for the node with the specified id to the INTEGER stack
-/// where the id is taken from the INTEGER stack. If the id does not exist this acts as NOOP.
-fn graph_node_get_state(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+
+/// GRAPH.NODE*PRE: Pushes the pre update state of the node the with the specified id to the
+/// integer stack. 
+fn graph_node_get_pre_state(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(graph) = push_state.graph_stack.get_mut(0) {
         if let Some(id) = push_state.int_stack.pop() {
             if id > 0 {
-                if let Some(state) = graph.get_state(&(id as usize)) {
+                if let Some(state) = graph.get_pre_state(&(id as usize)) {
                     push_state.int_stack.push(state);
                 }
             }
@@ -314,15 +305,28 @@ fn graph_node_get_state(push_state: &mut PushState, _instruction_cache: &Instruc
     }
 }
 
-/// GRAPH.NODE*SETACTIVE: Sets the active flag for the node with the specified id where the
-/// active value is taken from the BOOLEAN stack and the id from the INTEGER stack. If the id
-/// does not exist this acts as NOOP.
-fn graph_node_set_active(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+/// GRAPH.NODE*POST: Pushes the post update state of the node with the specified id to the
+/// INTEGER stack.
+fn graph_node_get_post_state(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(graph) = push_state.graph_stack.get_mut(0) {
-        if let Some(active_flag) = push_state.bool_stack.pop() {
-            if let Some(id) = push_state.int_stack.pop() {
-                if id > 0 {
-                    graph.set_active(id as usize, active_flag);
+        if let Some(id) = push_state.int_stack.pop() {
+            if id > 0 {
+                if let Some(state) = graph.get_post_state(&(id as usize)) {
+                    push_state.int_stack.push(state);
+                }
+            }
+        }
+    }
+}
+
+/// GRAPH.NODE*UPDATED: Pushes the update flag of the node with the specified id to the
+/// BOOLEAN stack.
+fn graph_node_is_updated(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(graph) = push_state.graph_stack.get_mut(0) {
+        if let Some(id) = push_state.int_stack.pop() {
+            if id > 0 {
+                if let Some(is_updated) = graph.node_is_updated(&(id as usize)) {
+                    push_state.bool_stack.push(is_updated);
                 }
             }
         }
@@ -384,8 +388,7 @@ mod tests {
         InstructionCache::new(vec![])
     }
 
-    pub fn test_node(test_state: &mut PushState, active: bool, state: i32) -> i32 {
-        test_state.bool_stack.push(active);
+    pub fn test_node(test_state: &mut PushState, state: i32) -> i32 {
         test_state.int_stack.push(state);
         graph_node_add(test_state, &icache());
         test_state.int_stack.pop().unwrap()
@@ -399,28 +402,12 @@ mod tests {
     }
 
     #[test]
-    fn graph_get_all_active_nodes_with_state() {
-        let mut graph = Graph::new();
-        graph.add_node(1, true);
-        graph.add_node(1, false);
-        graph.add_node(2, true);
-        graph.add_node(2, true);
-        graph.add_node(2, false);
-        graph.add_node(3, true);
-        graph.add_node(3, false);
-        graph.add_node(4, true);
-        graph.add_node(4, false);
-        let filtered_nodes = graph.get_active_nodes_with_state(&true, &2);
-        assert_eq!(filtered_nodes.len(), 2);
-    }
-
-    #[test]
     fn graph_node_predecessors_are_pushed() {
         let mut test_state = PushState::new();
         graph_add(&mut test_state, &icache());
-        let origin_id = test_node(&mut test_state, true, 1);
-        let origin_id2 = test_node(&mut test_state, true, 1);
-        let destination_id = test_node(&mut test_state, true, 1);
+        let origin_id = test_node(&mut test_state, 1);
+        let origin_id2 = test_node(&mut test_state, 1);
+        let destination_id = test_node(&mut test_state, 1);
         test_edge(&mut test_state, origin_id, destination_id, 0.1);
         test_edge(&mut test_state, origin_id2, destination_id, 0.1);
         test_state.int_stack.push(destination_id);
@@ -433,7 +420,7 @@ mod tests {
     fn graph_node_add_updates_graph() {
         let mut test_state = PushState::new();
         graph_add(&mut test_state, &icache());
-        let node_id = test_node(&mut test_state, true, 1) as usize;
+        let node_id = test_node(&mut test_state, 1) as usize;
         assert_eq!(test_state.graph_stack.get(0).unwrap().node_size(), 1);
         assert_eq!(test_state.graph_stack.get(0).unwrap().edge_size(), 0);
         assert_eq!(
@@ -441,72 +428,52 @@ mod tests {
                 .graph_stack
                 .get(0)
                 .unwrap()
-                .get_state(&node_id)
+                .get_post_state(&node_id)
                 .unwrap(),
             1
-        );
-        assert_eq!(
-            test_state
-                .graph_stack
-                .get(0)
-                .unwrap()
-                .get_active(&node_id)
-                .unwrap(),
-            true
-        );
-    }
-
-    #[test]
-    fn graph_node_active_flag_modification() {
-        let mut test_state = PushState::new();
-        graph_add(&mut test_state, &icache());
-        let node_id = test_node(&mut test_state, true, 1);
-        assert_eq!(test_state.bool_stack.size(), 0);
-        test_state.int_stack.push(node_id.clone() as i32);
-        graph_node_get_active(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.pop().unwrap(), true);
-        test_state.bool_stack.push(false);
-        test_state.int_stack.push(node_id.clone() as i32);
-        graph_node_set_active(&mut test_state, &icache());
-        assert_eq!(
-            test_state
-                .graph_stack
-                .get(0)
-                .unwrap()
-                .get_active(&(node_id as usize))
-                .unwrap(),
-            false
         );
     }
 
     #[test]
     fn graph_node_state_modification() {
         let mut test_state = PushState::new();
+        let node_state_1 = 94;
+        let node_state_2 = 123;
         graph_add(&mut test_state, &icache());
-        let node_id = test_node(&mut test_state, true, 95);
+        let node_id = test_node(&mut test_state, node_state_1);
         test_state.int_stack.push(node_id.clone() as i32);
-        graph_node_get_state(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.pop().unwrap(), 95);
+        graph_node_get_post_state(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.pop().unwrap(), node_state_1);
         test_state.int_stack.push(node_id.clone() as i32);
-        test_state.int_stack.push(23);
+        test_state.int_stack.push(node_state_2);
         graph_node_set_state(&mut test_state, &icache());
         assert_eq!(
             test_state
                 .graph_stack
                 .get(0)
                 .unwrap()
-                .get_state(&(node_id as usize))
+                .get_pre_state(&(node_id as usize))
                 .unwrap(),
-            23
+           node_state_1
         );
+        assert_eq!(
+            test_state
+                .graph_stack
+                .get(0)
+                .unwrap()
+                .get_post_state(&(node_id as usize))
+                .unwrap(),
+          node_state_2
+        );
+        assert!(test_state.graph_stack.get(0).unwrap().node_is_updated(&(node_id as usize)).unwrap());
     }
 
     #[test]
     fn graph_edge_add_updates_graph() {
         let mut test_state = PushState::new();
         graph_add(&mut test_state, &icache());
-        let origin_id = test_node(&mut test_state, true, 1);
-        let destination_id = test_node(&mut test_state, true, 1);
+        let origin_id = test_node(&mut test_state, 1);
+        let destination_id = test_node(&mut test_state, 1);
         test_edge(&mut test_state, origin_id, destination_id, 0.1);
         assert_eq!(test_state.graph_stack.get(0).unwrap().node_size(), 2);
         assert_eq!(test_state.graph_stack.get(0).unwrap().edge_size(), 1);

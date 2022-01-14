@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     pub fn parse_different_vector_types_with_wrong_syntax() {
-        let input = "( BOOL[1,1,2,0,0] INT[2,345,-5.0] FLOAT[3.3,NAN,4.1] INT[1,2,3] )";
+        let input = "( BOOL[1,1,2,0,0] INT[2,345,-5.0] FLOAT[3.3,NANu,4.1] INT[1,2,3] )";
         let mut push_state = PushState::new();
         let mut instruction_set = InstructionSet::new();
         instruction_set.load();
