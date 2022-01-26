@@ -27,6 +27,22 @@ impl Node {
             updated: false,
         }
     }
+
+    pub fn get_pre_state(&self) -> i32 {
+        self.pre
+    }
+
+
+    pub fn get_post_state(&self) -> i32 {
+       self.post 
+    }
+
+    pub fn set_state(&mut self, state : i32) {
+        self.pre = self.post;
+        self.post = state;
+        self.updated = true;
+    }
+
 }
 
 impl PartialEq for Node {
@@ -48,6 +64,10 @@ impl Edge {
             weight: weight,
         }
     }
+
+    pub fn get_origin_id(&self) -> usize {
+        self.origin_node_id
+    }
 }
 
 impl PartialEq for Edge {
@@ -67,9 +87,9 @@ impl Eq for Edge {}
 #[derive(Clone, Debug)]
 pub struct Graph {
     // Incoming edge list
-    edges: HashMap<usize, HashSet<Edge>>,
+    pub edges: HashMap<usize, HashSet<Edge>>,
     // Nodes by Id
-    nodes: HashMap<usize, Node>,
+    pub nodes: HashMap<usize, Node>,
 }
 
 impl fmt::Display for Graph {
@@ -181,11 +201,9 @@ impl Graph {
 
     /// Set the state of the node with the given ID. Update
     /// previous state and update flag.
-    pub fn set_state(&mut self, id: usize, state: i32) {
+    pub fn set_state(&mut self, id: &usize, state: i32) {
         if let Some(node) = self.nodes.get_mut(&id) {
-            node.pre = node.post;
-            node.post = state;
-            node.updated = true;
+            node.set_state(state);
         }
     }
 
@@ -264,6 +282,10 @@ pub fn load_graph_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("GRAPH.EDGE*ADD"),
         Instruction::new(graph_edge_add),
     );
+    map.insert(
+        String::from("GRAPH.EDGE*SETWEIGHT"),
+        Instruction::new(graph_edge_set_weight),
+    );
 }
 
 /// GRAPH.ADD: Pushes a new instance of an empty graph to the graph stack.
@@ -341,7 +363,7 @@ fn graph_node_set_state(push_state: &mut PushState, _instruction_cache: &Instruc
         if let Some(state) = push_state.int_stack.pop() {
             if let Some(id) = push_state.int_stack.pop() {
                 if id > 0 {
-                    graph.set_state(id as usize, state);
+                    graph.set_state(&(id as usize), state);
                 }
             }
         }
@@ -376,6 +398,20 @@ fn graph_node_predecessors(push_state: &mut PushState, _instruction_cache: &Inst
                         .int_vector_stack
                         .push(IntVector::new(predecessors));
                 }
+            }
+        }
+    }
+}
+
+/// GRAPH.EDGE*SETWEIGHT: Sets the weight for the edge with the specified origin and 
+/// destination id.
+fn graph_edge_set_weight(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(graph) = push_state.graph_stack.get_mut(0) {
+        if let Some(weight) = push_state.float_stack.pop() {
+            if let Some(ids) = push_state.int_stack.pop_vec(2) {
+                let origin_id = ids[0] as usize;
+                let destination_id = ids[1] as usize;
+                graph.set_weight(&origin_id, &destination_id, weight);
             }
         }
     }

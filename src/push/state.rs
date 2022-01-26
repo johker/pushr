@@ -96,11 +96,12 @@ impl fmt::Display for PushState {
         }
         write!(
             f,
-            "> BOOL  : \n{}\n> CODE  : \n{}\n> EXEC  : \n{}\n> FLOAT : \n{}\n> INDEX   : \n{}\n> INT   : \n{}\n> BVEC  : \n{}\n> FVEC  : \n{}\n> IVEC  : \n{}\n> NAME  : \n{}\n> IDS   : \n{}\n",
+            "> BOOL  : \n{}\n> CODE  : \n{}\n> EXEC  : \n{}\n> FLOAT : \n{}\n> GRAPH   : \n{}\n> INDEX   : \n{}\n> INT   : \n{}\n> BVEC  : \n{}\n> FVEC  : \n{}\n> IVEC  : \n{}\n> NAME  : \n{}\n> IDS   : \n{}\n",
             self.bool_stack.to_string(),
             self.code_stack.to_string(),
             self.exec_stack.to_string(),
             self.float_stack.to_string(),
+            self.graph_stack.to_string(),
             self.index_stack.to_string(),
             self.int_stack.to_string(),
             self.bool_vector_stack.to_string().replace(";", ";\n"),
