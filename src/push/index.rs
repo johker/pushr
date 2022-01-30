@@ -102,6 +102,7 @@ mod tests {
         InstructionCache::new(vec![])
     }
 
+
     #[test]
     fn integer_modulus_pushes_result() {
         let mut test_state = PushState::new();

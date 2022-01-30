@@ -203,6 +203,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     );
 
     map.insert(
+        String::from("INTVECTOR.APPEND"),
+        Instruction::new(int_vector_append),
+    );
+    map.insert(
         String::from("INTVECTOR.BOOLINDEX"),
         Instruction::new(int_vector_bool_index),
     );
@@ -222,14 +226,14 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         String::from("INTVECTOR.-"),
         Instruction::new(int_vector_subtract),
     );
-    map.insert(
-        String::from("INTVECTOR.*"),
-        Instruction::new(int_vector_multiply),
-    );
-    map.insert(
-        String::from("INTVECTOR./"),
-        Instruction::new(int_vector_divide),
-    );
+//    map.insert(
+//        String::from("INTVECTOR.*"),
+//        Instruction::new(int_vector_multiply),
+//    );
+//    map.insert(
+//        String::from("INTVECTOR./"),
+//        Instruction::new(int_vector_divide),
+//    );
     map.insert(
         String::from("INTVECTOR.CONTAINS"),
         Instruction::new(int_vector_contains),
@@ -301,6 +305,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("INTVECTOR.STACKDEPTH"),
         Instruction::new(int_vector_stack_depth),
+    );
+    map.insert(
+        String::from("INTVECTOR.SET*INSERT"),
+        Instruction::new(int_vector_set_insert),
     );
     map.insert(
         String::from("INTVECTOR.SUM"),
@@ -704,6 +712,18 @@ pub fn int_vector_append(push_state: &mut PushState, _instruction_set: &Instruct
     if let Some(item) = push_state.int_vector_stack.get_mut(0) {
         if let Some(to_append) = push_state.int_stack.pop() {
             item.values.push(to_append);
+        }
+    }
+}
+
+/// INTVECTOR.SET*INSERT: Appends the top integer item to the top intvector item - only if 
+/// it does not already exit in the intvector.
+pub fn int_vector_set_insert(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    if let Some(item) = push_state.int_vector_stack.get_mut(0) {
+        if let Some(to_insert) = push_state.int_stack.pop() {
+            if !item.values.contains(&to_insert) {
+                item.values.push(to_insert);
+            }
         }
     }
 }
@@ -2072,6 +2092,19 @@ mod tests {
         } else {
             assert!(false, "Expected to find bool vector");
         }
+    }
+
+    #[test]
+    fn int_vector_set_insert_does_not_allow_duplicates() {
+        let mut test_state = PushState::new();
+        let test_input = IntVector::new(vec![1,2,3,4]);
+        test_state.int_vector_stack.push(test_input.clone());
+        test_state.int_stack.push(1);
+        int_vector_set_insert(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.get(0).unwrap(), &test_input);
+        test_state.int_stack.push(5);
+        int_vector_set_insert(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.get(0).unwrap(), &IntVector::new(vec![1,2,3,4,5]));
     }
 
     #[test]

@@ -94,25 +94,41 @@ pub struct Graph {
 
 impl fmt::Display for Graph {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut owned_string: String = "[".to_owned();
+        let mut node_string: String = "[".to_owned();
         for (_, node) in self.nodes.iter() {
-            owned_string.push_str("(");
-            owned_string.push_str(&node.node_id.to_string());
-            owned_string.push_str(":");
-            owned_string.push_str(&node.updated.to_string());
-            owned_string.push_str(";");
-            owned_string.push_str(&node.pre.to_string());
-            owned_string.push_str("/");
-            owned_string.push_str(&node.post.to_string());
-            owned_string.push_str(")");
+            node_string.push_str(" (");
+            node_string.push_str(&node.node_id.to_string());
+            node_string.push_str(":");
+            node_string.push_str(&node.updated.to_string());
+            node_string.push_str(";");
+            node_string.push_str(&node.pre.to_string());
+            node_string.push_str("/");
+            node_string.push_str(&node.post.to_string());
+            node_string.push_str(")");
         }
-        owned_string.push_str(")");
+        node_string.push_str(")");
+        let mut edge_string: String = "[".to_owned();
+        for (node, edges) in self.edges.iter() {
+            edge_string.push_str("(");
+            edge_string.push_str(&node.to_string());
+            edge_string.push_str(" <= [");
+            for e in edges.iter() {
+                edge_string.push_str(&e.origin_node_id.to_string());
+                edge_string.push_str("(");
+                edge_string.push_str(&e.weight.to_string());
+                edge_string.push_str(")");
+                edge_string.push_str(";");
+            }
+            edge_string.push_str("] ");
+        }
+        edge_string.push_str(")");
         write!(
             f,
-            "GRAPH [{};{} => NODES: {}]",
+            "GRAPH [{};{} => NODES: {}, EDGES: {}]",
             &self.node_size(),
             &self.edge_size(),
-            owned_string
+            node_string,
+            edge_string,
         )
     }
 }
@@ -283,6 +299,10 @@ pub fn load_graph_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(graph_edge_add),
     );
     map.insert(
+        String::from("GRAPH.EDGE*GETWEIGHT"),
+        Instruction::new(graph_edge_get_weight),
+    );
+    map.insert(
         String::from("GRAPH.EDGE*SETWEIGHT"),
         Instruction::new(graph_edge_set_weight),
     );
@@ -389,19 +409,33 @@ fn graph_node_predecessors(push_state: &mut PushState, _instruction_cache: &Inst
     if let Some(graph) = push_state.graph_stack.get(0) {
         if let Some(node_id) = push_state.int_stack.pop() {
             if node_id > 0 {
+                let mut predecessors = vec![];
                 if let Some(incoming_edges) = graph.edges.get(&(node_id as usize)) {
-                    let mut predecessors = vec![];
                     for edge in incoming_edges {
                         predecessors.push(edge.origin_node_id as i32);
                     }
-                    push_state
-                        .int_vector_stack
-                        .push(IntVector::new(predecessors));
                 }
+                push_state
+                    .int_vector_stack
+                    .push(IntVector::new(predecessors));
             }
         }
     }
 }
+
+/// GRAPH.EDGE*GETWEIGHT: Gets the weight for the edge with the specified origin and 
+/// destination id.
+fn graph_edge_get_weight(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(graph) = push_state.graph_stack.get_mut(0) {
+            if let Some(ids) = push_state.int_stack.pop_vec(2) {
+                let origin_id = ids[0] as usize;
+                let destination_id = ids[1] as usize;
+                if let Some(weight) = graph.get_weight(&origin_id, &destination_id) {
+                    push_state.float_stack.push(weight);
+                }
+            }
+        }
+    }
 
 /// GRAPH.EDGE*SETWEIGHT: Sets the weight for the edge with the specified origin and 
 /// destination id.

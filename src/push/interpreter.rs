@@ -208,4 +208,22 @@ mod tests {
         assert_eq!(push_state.index_stack.to_string(), "");
         assert_eq!(push_state.exec_stack.to_string(), "");
     }
+
+    #[test]
+    fn run_execution_loop_with_zero_length() {
+        // This should calculate the sum of the iteration variable: 0+1+2+3
+        let input = "( 0 0 INDEX.DEFINE EXEC.LOOP ( INDEX.CURRENT INTEGER.+ ) )";
+        let mut push_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        PushParser::parse_program(&mut push_state, &instruction_set, &input);
+        loop {
+            if PushInterpreter::step(&mut push_state, &mut instruction_set, &icache()) {
+                break;
+            }
+        }
+        assert_eq!(push_state.int_stack.to_string(), "1:0;");
+        assert_eq!(push_state.index_stack.to_string(), "");
+        assert_eq!(push_state.exec_stack.to_string(), "");
+    }
 }
