@@ -19,6 +19,7 @@ pub fn load_int_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("INTEGER.<"), Instruction::new(integer_smaller));
     map.insert(String::from("INTEGER.="), Instruction::new(integer_equal));
     map.insert(String::from("INTEGER.>"), Instruction::new(integer_greater));
+    map.insert(String::from("INTEGER.ABS"), Instruction::new(integer_abs));
     map.insert(
         String::from("INTEGER.DEFINE"),
         Instruction::new(integer_define),
@@ -127,6 +128,13 @@ fn integer_equal(push_state: &mut PushState, _instruction_cache: &InstructionCac
 fn integer_greater(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(ivals) = push_state.int_stack.pop_vec(2) {
         push_state.bool_stack.push(ivals[0] > ivals[1]);
+    }
+}
+
+/// INTEGER.ABS: Pushes the absolute value of the top INTEGER item.
+fn integer_abs(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(ival) = push_state.int_stack.pop() {
+        push_state.int_stack.push(i32::abs(ival));
     }
 }
 

@@ -120,8 +120,8 @@ impl fmt::Display for Graph {
                 edge_string.push_str(";");
             }
             edge_string.push_str("] ");
+            edge_string.push_str(")");
         }
-        edge_string.push_str(")");
         write!(
             f,
             "GRAPH [{};{} => NODES: {}, EDGES: {}]",
@@ -291,6 +291,10 @@ pub fn load_graph_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(graph_node_predecessors),
     );
     map.insert(
+        String::from("GRAPH.NODE*SUCuESSOR"),
+        Instruction::new(graph_node_successors),
+    );
+    map.insert(
         String::from("GRAPH.NODE*SETSTATE"),
         Instruction::new(graph_node_set_state),
     );
@@ -423,6 +427,27 @@ fn graph_node_predecessors(push_state: &mut PushState, _instruction_cache: &Inst
     }
 }
 
+/// GRAPH.NODE*SUCCESSORS: Pushes the IDs of all nodes with an edge pointing to the current
+/// node to the INTVECTOR stack. The ID of current node is taken from the INTEGER stack.
+fn graph_node_successors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    // TODO
+    if let Some(graph) = push_state.graph_stack.get(0) {
+        if let Some(node_id) = push_state.int_stack.pop() {
+            if node_id > 0 {
+                let mut successors = vec![];
+                for (k,v) in graph.edges.iter() {
+                    if v.contains(&Edge::new(node_id as usize,0.0)) {
+                        successors.push(*k as i32);
+                    }
+                }
+                push_state
+                    .int_vector_stack
+                    .push(IntVector::new(successors));
+            }
+        }
+    }
+}
+
 /// GRAPH.EDGE*GETWEIGHT: Gets the weight for the edge with the specified origin and 
 /// destination id.
 fn graph_edge_get_weight(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -483,7 +508,29 @@ mod tests {
         test_state.int_stack.push(destination_id);
         graph_node_predecessors(&mut test_state, &icache());
         assert_eq!(test_state.int_vector_stack.size(), 1);
-        assert_eq!(test_state.int_vector_stack.pop().unwrap().values.len(), 2);
+        let predecessors = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(predecessors.len(), 2);
+        assert!(predecessors.contains(&origin_id));
+        assert!(predecessors.contains(&origin_id2));
+    }
+
+    #[test]
+    fn graph_node_successors_are_pushed() {
+        let mut test_state = PushState::new();
+        graph_add(&mut test_state, &icache());
+        let origin_id = test_node(&mut test_state, 1);
+        let destination_id = test_node(&mut test_state, 1);
+        let destination_id2 = test_node(&mut test_state, 1);
+        test_edge(&mut test_state, origin_id, destination_id, 0.1);
+        test_edge(&mut test_state, origin_id, destination_id2, 0.1);
+        test_state.int_stack.push(origin_id);
+        graph_node_successors(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        let successors = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(successors.len(), 2);
+        assert!(successors.contains(&destination_id));
+        assert!(successors.contains(&destination_id2));
+
     }
 
     #[test]

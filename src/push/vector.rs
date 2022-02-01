@@ -247,6 +247,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(int_vector_dup),
     );
     map.insert(
+        String::from("INTVECTOR.EMPTY"),
+        Instruction::new(int_vector_empty),
+    );
+    map.insert(
         String::from("INTVECTOR.EQUAL"),
         Instruction::new(int_vector_equal),
     );
@@ -277,6 +281,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
         String::from("INTVECTOR.POP"),
         Instruction::new(int_vector_pop),
+    );
+    map.insert(
+        String::from("INTVECTOR.REMOVE"),
+        Instruction::new(int_vector_remove),
     );
     map.insert(
         String::from("INTVECTOR.RAND"),
@@ -716,18 +724,6 @@ pub fn int_vector_append(push_state: &mut PushState, _instruction_set: &Instruct
     }
 }
 
-/// INTVECTOR.SET*INSERT: Appends the top integer item to the top intvector item - only if 
-/// it does not already exit in the intvector.
-pub fn int_vector_set_insert(push_state: &mut PushState, _instruction_set: &InstructionCache) {
-    if let Some(item) = push_state.int_vector_stack.get_mut(0) {
-        if let Some(to_insert) = push_state.int_stack.pop() {
-            if !item.values.contains(&to_insert) {
-                item.values.push(to_insert);
-            }
-        }
-    }
-}
-
 /// INTVECTOR.ID: Pushes the ID of the INTVECTOR stack to the INTEGER stack.
 pub fn int_vector_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
     push_state.int_stack.push(INT_VECTOR_STACK_ID);
@@ -902,6 +898,11 @@ pub fn int_vector_dup(push_state: &mut PushState, _instruction_cache: &Instructi
     }
 }
 
+/// INTVECTOR.EMPTY: Pushes an empty INTVECTOR.
+fn int_vector_empty(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.int_vector_stack.push(IntVector::new(vec![]));
+}
+
 /// INTVECTOR.=: Pushes TRUE onto the BOOLEAN stack if the top two items are equal, or FALSE
 /// otherwise.
 fn int_vector_equal(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -959,6 +960,13 @@ pub fn int_vector_ones(push_state: &mut PushState, _instruction_cache: &Instruct
 /// INTVECTOR.POP: Pops the INTVECTOR stack.
 pub fn int_vector_pop(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.int_vector_stack.pop();
+    if let Some(item) = push_state.int_vector_stack.get_mut(0) {
+        if let Some(to_insert) = push_state.int_stack.pop() {
+            if !item.values.contains(&to_insert) {
+                item.values.push(to_insert);
+            }
+        }
+    }
 }
 
 /// INTVECTOR.RAND: Pushes a newly generated random INTVECTOR. The size, min and max values
@@ -974,6 +982,16 @@ pub fn int_vector_rand(push_state: &mut PushState, _instruction_cache: &Instruct
     }
 }
 
+/// INTVECTOR.REMOVE: Removes any occurance of the top element from the INTEGER stack from 
+/// the top element of INTVECTOR if it is contained.
+pub fn int_vector_remove(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(item) = push_state.int_vector_stack.get_mut(0) {
+        if let Some(to_remove) = push_state.int_stack.pop() {
+            item.values.retain(|x| *x != to_remove);
+        }
+    }
+}
+
 /// INTVECTOR.ROTATE: Moves all elements of the top item to the adjacent position on the left.
 /// The first item is removed while the last element of the vector is taken from the INTEGER stack.
 pub fn int_vector_rotate(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -982,6 +1000,22 @@ pub fn int_vector_rotate(push_state: &mut PushState, _instruction_cache: &Instru
             iv.values.rotate_left(1);
             let n = iv.values.len();
             iv.values[n - 1] = i;
+        }
+    }
+}
+
+/// INTVECTOR.SET*INSERT: Appends the top integer item to the top INTVECTOR item - only if
+/// it does not already exit in the intvector. If no INTVECTOR item exists, a new one will
+/// be created
+pub fn int_vector_set_insert(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    if push_state.int_vector_stack.size() == 0 {
+        push_state.int_vector_stack.push(IntVector::new(vec![]));
+    }
+    if let Some(item) = push_state.int_vector_stack.get_mut(0) {
+        if let Some(to_insert) = push_state.int_stack.pop() {
+            if !item.values.contains(&to_insert) {
+                item.values.push(to_insert);
+            }
         }
     }
 }
@@ -2092,6 +2126,19 @@ mod tests {
         } else {
             assert!(false, "Expected to find bool vector");
         }
+    }
+
+    #[test]
+    fn int_vector_remove_elements() {
+        let mut test_state = PushState::new();
+        let test_input = IntVector::new(vec![1,2,3,2]);
+        test_state.int_vector_stack.push(test_input.clone());
+        test_state.int_stack.push(5);
+        int_vector_remove(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.get(0).unwrap(), &IntVector::new(vec![1,2,3,2]));
+        test_state.int_stack.push(2);
+        int_vector_remove(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.get(0).unwrap(), &IntVector::new(vec![1,3]));
     }
 
     #[test]
