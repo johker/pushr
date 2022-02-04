@@ -229,6 +229,18 @@ mod tests {
     }
 
     #[test]
+    fn pop_vec_max_index() {
+        let mut test_stack = PushStack {
+            elements: vec![1, 2, 3],
+        };
+                                              
+        match test_stack.pop_vec(4) {
+            None => assert!(true),
+            Some(pv) => assert!(false),
+        }
+    }
+
+    #[test]
     fn push_vec_in_right_order() {
         let mut test_stack = PushStack {
             elements: vec![1, 2, 3],

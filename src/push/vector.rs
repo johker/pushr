@@ -960,13 +960,6 @@ pub fn int_vector_ones(push_state: &mut PushState, _instruction_cache: &Instruct
 /// INTVECTOR.POP: Pops the INTVECTOR stack.
 pub fn int_vector_pop(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.int_vector_stack.pop();
-    if let Some(item) = push_state.int_vector_stack.get_mut(0) {
-        if let Some(to_insert) = push_state.int_stack.pop() {
-            if !item.values.contains(&to_insert) {
-                item.values.push(to_insert);
-            }
-        }
-    }
 }
 
 /// INTVECTOR.RAND: Pushes a newly generated random INTVECTOR. The size, min and max values

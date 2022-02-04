@@ -170,6 +170,10 @@ impl Graph {
                 // Use origin_id to create an incoming edge
                 let edge = Edge::new(origin_id, weight);
                 incoming_edges.insert(edge);
+            } else {
+                let mut new_incoming_edges = HashSet::new();
+                new_incoming_edges.insert(Edge::new(origin_id, weight));
+                self.edges.insert(destination_id, new_incoming_edges);
             }
         }
     }
@@ -291,7 +295,7 @@ pub fn load_graph_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(graph_node_predecessors),
     );
     map.insert(
-        String::from("GRAPH.NODE*SUCuESSOR"),
+        String::from("GRAPH.NODE*SUCCESSORS"),
         Instruction::new(graph_node_successors),
     );
     map.insert(
@@ -399,8 +403,8 @@ fn graph_edge_add(push_state: &mut PushState, _instruction_cache: &InstructionCa
     if let Some(graph) = push_state.graph_stack.get_mut(0) {
         if let Some(weight) = push_state.float_stack.pop() {
             if let Some(ids) = push_state.int_stack.pop_vec(2) {
-                let origin_id = ids[0] as usize;
-                let destination_id = ids[1] as usize;
+                let origin_id = ids[1] as usize;
+                let destination_id = ids[0] as usize;
                 graph.add_edge(origin_id, destination_id, weight);
             }
         }
