@@ -358,35 +358,21 @@ impl Node {
                  }
              }
         }
-           //// Right side 
-           //for (rk, rv) in other.edges.iter() {
-           // if !self.nodes.contains_key(rk) {
-           //     added_edges.push(rv.clone());
-           // } else {
-           //    // Difference
-           //    let left_edge = self.edges.get(rk).unwrap();
-           //    let right_edges = other.edges.get(rk).unwrap();
-           //    if let Some(edge_diff) = left_edge.diff(&right_edge) {
-           //         changed_edges.push(node_diff);
-           //    }
-           // }
-           //}
-           edge_diff = edge_diff.trim_end_matches(",").to_string();
-            if node_changes + edge_changes == 0 {
-                return None;
-            } else {
-                let mut diff_string: String = "\nNODES(".to_owned();
-                diff_string.push_str(&node_changes.to_string());
-                diff_string.push_str("):");
-                diff_string.push_str(&node_diff);
-                diff_string.push_str("\n");
-                diff_string.push_str("EDGES(");
-                diff_string.push_str(&edge_changes.to_string());
-                diff_string.push_str("):");
-                diff_string.push_str(&edge_diff);
-                diff_string.push_str("\n");
-                return Some(diff_string);
-            }
+        edge_diff = edge_diff.trim_end_matches(",").to_string();
+        if node_changes + edge_changes == 0 {
+            return None;
+        } else {
+            let mut diff_string: String = "\nNODES(".to_owned();
+            diff_string.push_str(&node_changes.to_string());
+            diff_string.push_str("):");
+            diff_string.push_str(&node_diff);
+            diff_string.push_str("\n");
+            diff_string.push_str("EDGES(");
+            diff_string.push_str(&edge_changes.to_string());
+            diff_string.push_str("):");
+            diff_string.push_str(&edge_diff);
+            return Some(diff_string);
+           }
         }
 
         /// Adds an new node with the given state and activity

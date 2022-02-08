@@ -279,6 +279,10 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(int_vector_length),
     );
     map.insert(
+        String::from("INTVECTOR.LOOP"),
+        Instruction::new(int_vector_loop),
+    );
+    map.insert(
         String::from("INTVECTOR.POP"),
         Instruction::new(int_vector_pop),
     );
@@ -933,6 +937,27 @@ pub fn int_vector_from_int(push_state: &mut PushState, _instruction_cache: &Inst
 pub fn int_vector_length(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(iv) = push_state.int_vector_stack.get(0) {
         push_state.int_stack.push(iv.values.len() as i32);
+    }
+}
+
+/// INTVECTOR.LOOP: Excecutes the top element of the EXEC stack once for each element
+/// of the top INTVECTOR item. The element that corresponds to the current loop iteration
+/// is pushed to the INTEGER stack.
+pub fn int_vector_loop(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(mut array) = push_state.int_vector_stack.pop() {
+        if let Some(body) = push_state.exec_stack.pop() {
+            if !array.values.is_empty() {                
+                let next_element = array.values.remove(0);
+                let updated_loop = Item::list(vec![
+                                              body.clone(),
+                                              Item::instruction("INTVECTOR.LOOP".to_string()),
+                                              Item::intvec(array),
+                                              Item::int(next_element),
+                ]);
+                push_state.exec_stack.push(body);
+                push_state.exec_stack.push(updated_loop);
+            }
+        }
     }
 }
 
