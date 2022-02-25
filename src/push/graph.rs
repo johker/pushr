@@ -485,6 +485,29 @@ impl Node {
             self.nodes.len()
         }
 
+        /// Returns all node ids that contains the given pre state parameter
+        pub fn pre_filter(&self, state: &i32) -> Vec<i32> {
+            let mut filtered_nodes = vec![];
+            for (_,n) in self.nodes.iter() {
+                if n.get_pre_state() == *state {
+                    filtered_nodes.push(n.get_id() as i32);
+                }
+            }
+            println!("Nodes = {:?}", filtered_nodes);
+            filtered_nodes
+        }
+        
+        /// Returns all node ids that contains the given pre state parameter
+        pub fn post_filter(&self, state: &i32) -> Vec<i32> {
+            let mut filtered_nodes = vec![];
+            for (_,n) in self.nodes.iter() {
+                if n.get_post_state() == *state {
+                    filtered_nodes.push(n.get_id() as i32);
+                }
+            }
+            filtered_nodes
+        }
+
         /// Returns the number of edges
         pub fn edge_size(&self) -> usize {
             let mut num_edges = 0;
@@ -532,6 +555,14 @@ impl Node {
             Instruction::new(graph_node_successors),
         );
         map.insert(
+            String::from("GRAPH.NODE*PREFILTER"),
+            Instruction::new(graph_node_pre_filter),
+        );
+        map.insert(
+            String::from("GRAPH.NODE*POSTFILTER"),
+            Instruction::new(graph_node_post_filter),
+        );
+        map.insert(
             String::from("GRAPH.NODE*SETSTATE"),
             Instruction::new(graph_node_set_state),
         );
@@ -562,6 +593,28 @@ impl Node {
                     push_state
                         .int_stack
                         .push(graph.add_node(state) as i32);
+                }
+        }
+    }
+
+    /// GRAPH.NODE*PREFILTER: Pushes the IDs of all nodes that are in the pre state specified
+    /// by the top item of the INTEGER stack to the INTVECTOR stack. 
+    fn graph_node_pre_filter(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+        if let Some(graph) = push_state.graph_stack.get(0) {
+            if let Some(state) = push_state.int_stack.pop() {
+                let pf = graph.pre_filter(&state);
+                println!("pf  = {:?}", pf);
+                push_state.int_vector_stack.push(IntVector::new(pf)); 
+                }
+        }
+    }
+
+    /// GRAPH.NODE*POSTFILTER: Pushes the IDs of all nodes that are in the post state specified
+    /// by the top item of the INTEGER stack to the INTVECTOR stack. 
+    fn graph_node_post_filter(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+        if let Some(graph) = push_state.graph_stack.get(0) {
+            if let Some(state) = push_state.int_stack.pop() {
+                   push_state.int_vector_stack.push(IntVector::new(graph.post_filter(&state))); 
                 }
         }
     }
@@ -822,6 +875,52 @@ mod tests {
     }
 
     #[test]
+    fn graph_node_pre_filter_pushes_ids() {
+        let mut test_state = PushState::new();
+        let mut test_graph = Graph::new();
+        let mut expected_ids = vec![];
+        let filter_state = 3;
+        test_graph.add_node(1);
+        test_graph.add_node(1);
+        test_graph.add_node(1);
+        test_graph.add_node(2);
+        expected_ids.push(test_graph.add_node(filter_state) as i32);
+        expected_ids.push(test_graph.add_node(filter_state) as i32);
+        test_graph.add_node(4);
+        test_state.graph_stack.push(test_graph);
+        test_state.int_stack.push(expected_ids[0].clone());
+        test_state.int_stack.push(1);
+        graph_node_set_state(&mut test_state, &icache());
+        test_state.int_stack.push(expected_ids[1].clone());
+        test_state.int_stack.push(1);
+        graph_node_set_state(&mut test_state, &icache());
+        test_state.int_stack.push(filter_state);
+        graph_node_pre_filter(&mut test_state, &icache());
+        let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(expected_ids.sort(), filtered_nodes.sort());
+    }
+
+    #[test]
+    fn graph_node_post_filter_pushes_ids() {
+        let mut test_state = PushState::new();
+        let mut test_graph = Graph::new();
+        let mut expected_ids = vec![];
+        let filter_state = 3;
+        test_graph.add_node(1);
+        test_graph.add_node(1);
+        test_graph.add_node(1);
+        test_graph.add_node(2);
+        expected_ids.push(test_graph.add_node(filter_state) as i32);
+        expected_ids.push(test_graph.add_node(filter_state) as i32);
+        test_graph.add_node(4);
+        test_state.graph_stack.push(test_graph);
+        test_state.int_stack.push(filter_state);
+        graph_node_post_filter(&mut test_state, &icache());
+        let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(expected_ids.sort(), filtered_nodes.sort());
+    }
+
+    #[test]
     fn graph_edge_add_updates_graph() {
         let mut test_state = PushState::new();
         graph_add(&mut test_state, &icache());
@@ -862,12 +961,16 @@ mod tests {
         changed_test_graph.set_state(&test_ids[1], 99);
         changed_test_graph.set_weight(&test_ids[1], &test_ids[0], 0.2);
         let diff = test_graph.diff(&changed_test_graph).unwrap();
+        //println!("ograph = {}", test_graph );
+        //println!("graph = {}", changed_test_graph );
+        println!("test_ids = {:?}", test_ids );
+        println!("DIFF = {}", diff );
         assert!(diff.contains("NODES(2)"));
-        assert!(diff.contains("~N[ID: 12, 2/2 <= STATE => 2/99, false <= UPDATED => true]"));
-        assert!(diff.contains("+N[ID: 15, STATE: 5/5, UPDATED: false]"));
+        assert!(diff.contains(&format!("~N[ID: {}, 2/2 <= STATE => 2/99, false <= UPDATED => true]", test_ids[1])));
+        assert!(diff.contains(&format!("+N[ID: {}, STATE: 5/5, UPDATED: false]", test_ids[4])));
         assert!(diff.contains("EDGES(2)"));
-        assert!(diff.contains("+E[11 <= [ONID: 15, WEIGHT: 1.2]]"));
-        assert!(diff.contains("~E[11 <= [ONID: 12, 1.3 <= WEIGHT => 0.2]]"));
+        assert!(diff.contains(&format!("+E[{} <= [ONID: {}, WEIGHT: 1.2]]", test_ids[0], test_ids[4])));
+        assert!(diff.contains(&format!("~E[{} <= [ONID: {}, 1.3 <= WEIGHT => 0.2]]",test_ids[0], test_ids[1])));
 
     }
 

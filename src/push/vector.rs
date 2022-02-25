@@ -946,18 +946,18 @@ pub fn int_vector_length(push_state: &mut PushState, _instruction_cache: &Instru
 pub fn int_vector_loop(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(mut array) = push_state.int_vector_stack.pop() {
         if let Some(body) = push_state.exec_stack.pop() {
-            if !array.values.is_empty() {                
+            if !array.values.is_empty() {
                 let next_element = array.values.remove(0);
                 let updated_loop = Item::list(vec![
                                               body.clone(),
                                               Item::instruction("INTVECTOR.LOOP".to_string()),
                                               Item::intvec(array),
-                                              Item::int(next_element),
                 ]);
-                push_state.exec_stack.push(body);
                 push_state.exec_stack.push(updated_loop);
+                push_state.exec_stack.push(body);
+                push_state.int_stack.push(next_element);
             }
-        }
+        } 
     }
 }
 
