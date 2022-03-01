@@ -878,7 +878,7 @@ pub fn int_vector_divide(push_state: &mut PushState, _instruction_cache: &Instru
 /// The INTVECTOR items is not popped.
 pub fn int_vector_contains(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(element) = push_state.int_stack.pop() {
-        if let Some(array) = push_state.int_vector_stack.get(0) {
+        if let Some(array) = push_state.int_vector_stack.pop() {
             push_state.bool_stack.push(array.values.contains(&element));
         }
     }
@@ -921,7 +921,7 @@ pub fn int_vector_flush(push_state: &mut PushState, _instruction_cache: &Instruc
 }
 
 /// INTVECTOR.FROMINT: Create an INTVECTOR from the elements of the INTEGER stack. The top
-/// element 0 (min-max corrected) describes the number of elements. The elements 1..n of
+/// element (min-max corrected) describes the number of elements. The elements 1..n of
 /// the INTEGER stack are pushed as vector to the INTVECTOR stack.
 pub fn int_vector_from_int(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(vector_size) = push_state.int_stack.pop() {

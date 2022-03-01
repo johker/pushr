@@ -486,23 +486,26 @@ impl Node {
         }
 
         /// Returns all node ids that contains the given pre state parameter
-        pub fn pre_filter(&self, state: &i32) -> Vec<i32> {
+        pub fn pre_filter(&self, states: &Vec<i32>) -> Vec<i32> {
             let mut filtered_nodes = vec![];
             for (_,n) in self.nodes.iter() {
-                if n.get_pre_state() == *state {
-                    filtered_nodes.push(n.get_id() as i32);
+                for state in states.iter() {
+                    if n.get_pre_state() == *state {
+                        filtered_nodes.push(n.get_id() as i32);
+                    }
                 }
             }
-            println!("Nodes = {:?}", filtered_nodes);
             filtered_nodes
         }
         
         /// Returns all node ids that contains the given pre state parameter
-        pub fn post_filter(&self, state: &i32) -> Vec<i32> {
+        pub fn post_filter(&self, states: &Vec<i32>) -> Vec<i32> {
             let mut filtered_nodes = vec![];
             for (_,n) in self.nodes.iter() {
-                if n.get_post_state() == *state {
-                    filtered_nodes.push(n.get_id() as i32);
+                for state in states.iter() {
+                    if n.get_post_state() == *state {
+                        filtered_nodes.push(n.get_id() as i32);
+                    }
                 }
             }
             filtered_nodes
@@ -601,10 +604,9 @@ impl Node {
     /// by the top item of the INTEGER stack to the INTVECTOR stack. 
     fn graph_node_pre_filter(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get(0) {
-            if let Some(state) = push_state.int_stack.pop() {
-                let pf = graph.pre_filter(&state);
-                println!("pf  = {:?}", pf);
-                push_state.int_vector_stack.push(IntVector::new(pf)); 
+            if let Some(states) = push_state.int_vector_stack.pop() {
+                let pf = graph.pre_filter(&states.values);
+                    push_state.int_vector_stack.push(IntVector::new(pf)); 
                 }
         }
     }
@@ -613,8 +615,8 @@ impl Node {
     /// by the top item of the INTEGER stack to the INTVECTOR stack. 
     fn graph_node_post_filter(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get(0) {
-            if let Some(state) = push_state.int_stack.pop() {
-                   push_state.int_vector_stack.push(IntVector::new(graph.post_filter(&state))); 
+            if let Some(states) = push_state.int_vector_stack.pop() {
+                   push_state.int_vector_stack.push(IntVector::new(graph.post_filter(&states.values))); 
                 }
         }
     }
@@ -879,22 +881,22 @@ mod tests {
         let mut test_state = PushState::new();
         let mut test_graph = Graph::new();
         let mut expected_ids = vec![];
-        let filter_state = 3;
+        let filter_states = vec![3,4];
         test_graph.add_node(1);
         test_graph.add_node(1);
         test_graph.add_node(1);
         test_graph.add_node(2);
-        expected_ids.push(test_graph.add_node(filter_state) as i32);
-        expected_ids.push(test_graph.add_node(filter_state) as i32);
-        test_graph.add_node(4);
+        expected_ids.push(test_graph.add_node(filter_states[0]) as i32);
+        expected_ids.push(test_graph.add_node(filter_states[0]) as i32);
+        expected_ids.push(test_graph.add_node(filter_states[1]) as i32);
+        test_graph.add_node(6);
         test_state.graph_stack.push(test_graph);
-        test_state.int_stack.push(expected_ids[0].clone());
-        test_state.int_stack.push(1);
+        for i in 0..3 {
+            test_state.int_stack.push(expected_ids[i].clone());
+            test_state.int_stack.push(1);
+        }
         graph_node_set_state(&mut test_state, &icache());
-        test_state.int_stack.push(expected_ids[1].clone());
-        test_state.int_stack.push(1);
-        graph_node_set_state(&mut test_state, &icache());
-        test_state.int_stack.push(filter_state);
+        test_state.int_vector_stack.push(IntVector::new(filter_states));
         graph_node_pre_filter(&mut test_state, &icache());
         let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
         assert_eq!(expected_ids.sort(), filtered_nodes.sort());
@@ -905,16 +907,17 @@ mod tests {
         let mut test_state = PushState::new();
         let mut test_graph = Graph::new();
         let mut expected_ids = vec![];
-        let filter_state = 3;
+        let filter_states = vec![3,4];
         test_graph.add_node(1);
         test_graph.add_node(1);
         test_graph.add_node(1);
         test_graph.add_node(2);
-        expected_ids.push(test_graph.add_node(filter_state) as i32);
-        expected_ids.push(test_graph.add_node(filter_state) as i32);
-        test_graph.add_node(4);
-        test_state.graph_stack.push(test_graph);
-        test_state.int_stack.push(filter_state);
+        expected_ids.push(test_graph.add_node(filter_states[0]) as i32);
+        expected_ids.push(test_graph.add_node(filter_states[0]) as i32);
+        expected_ids.push(test_graph.add_node(filter_states[1]) as i32);
+        test_graph.add_node(6);
+        graph_node_set_state(&mut test_state, &icache());
+        test_state.int_vector_stack.push(IntVector::new(filter_states));
         graph_node_post_filter(&mut test_state, &icache());
         let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
         assert_eq!(expected_ids.sort(), filtered_nodes.sort());
