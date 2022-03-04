@@ -13,18 +13,16 @@ static NODE_COUNTER: AtomicUsize = AtomicUsize::new(1);
 #[derive(Clone, Debug, Hash, Eq)]
 pub struct Node {
     node_id: usize,
-    pre: i32,
-    post: i32,
-    updated: bool,
+    pre_state: i32,
+    post_state: i32,
 }
 
 impl Node {
     pub fn new(state: i32) -> Self {
         Self {
             node_id: NODE_COUNTER.fetch_add(1, Ordering::Relaxed),
-            pre: state,
-            post: state,
-            updated: false,
+            pre_state: state,
+            post_state: state,
         }
     }
 
@@ -33,29 +31,22 @@ impl Node {
     /// identical.
     pub fn diff(&self, other: &Node) -> Option<String> {
         if self.node_id == other.get_id() &&
-            self.pre == other.get_pre_state() &&
-            self.post == other.get_post_state() &&
-            self.updated == other.is_updated() {
+            self.pre_state == other.get_pre_state() &&
+            self.post_state == other.get_post_state() { 
                 None
             } else {
                let mut diff_string: String = "N[".to_owned();
                diff_string.push_str("ID: ");
                diff_string.push_str(&self.node_id.to_string());
                diff_string.push_str(", ");
-               if self.pre != other.get_pre_state() || self.post != other.get_post_state() {
-                  diff_string.push_str(&self.pre.to_string());
+               if self.pre_state != other.get_pre_state() || self.post_state != other.get_post_state() {
+                  diff_string.push_str(&self.pre_state.to_string());
                   diff_string.push_str("/");
                   diff_string.push_str(&other.get_pre_state().to_string());
                   diff_string.push_str(" <= STATE => ");
-                  diff_string.push_str(&self.post.to_string());
+                  diff_string.push_str(&self.post_state.to_string());
                   diff_string.push_str("/");
                   diff_string.push_str(&other.get_post_state().to_string());
-                  diff_string.push_str(", ");
-               }
-               if self.updated != other.is_updated() {
-                  diff_string.push_str(&self.updated.to_string());
-                  diff_string.push_str(" <= UPDATED => ");
-                  diff_string.push_str(&other.is_updated().to_string());
                   diff_string.push_str(", ");
                }
                diff_string = diff_string.trim_end_matches(", ").to_string();
@@ -69,22 +60,20 @@ impl Node {
     }
 
     pub fn get_pre_state(&self) -> i32 {
-        self.pre
+        self.pre_state
     }
 
 
     pub fn get_post_state(&self) -> i32 {
-       self.post
-    }
-
-    pub fn is_updated(&self) -> bool {
-        self.updated
+       self.post_state
     }
 
     pub fn set_state(&mut self, state : i32) {
-        self.pre = self.post;
-        self.post = state;
-        self.updated = true;
+        self.post_state = state;
+    }
+
+    pub fn update(&mut self) {
+        self.pre_state = self.post_state;
     }
 
 }
@@ -102,11 +91,9 @@ impl Node {
             node_string.push_str("ID: ");
             node_string.push_str(&self.node_id.to_string());
             node_string.push_str(", STATE: ");
-            node_string.push_str(&self.pre.to_string());
+            node_string.push_str(&self.pre_state.to_string());
             node_string.push_str("/");
-            node_string.push_str(&self.post.to_string());
-            node_string.push_str(", UPDATED: ");
-            node_string.push_str(&self.updated.to_string());
+            node_string.push_str(&self.post_state.to_string());
             write!(
                 f,
                 "N[{}]",
@@ -119,14 +106,16 @@ impl Node {
     #[derive(Copy, Clone, Debug)]
     pub struct Edge {
         origin_node_id: usize,
-        weight: f32,
+        pre_weight: f32,
+        post_weight: f32,
     }
 
     impl Edge {
         pub fn new(node_id: usize, weight: f32) -> Self {
             Self {
                 origin_node_id: node_id,
-                weight: weight,
+                pre_weight: weight,
+                post_weight: weight,
             }
         }
         /// Returns the difference between this edge and the
@@ -134,17 +123,22 @@ impl Node {
         /// identical.
         pub fn diff(&self, other: &Edge) -> Option<String> {
             if self.origin_node_id == other.get_origin_id() &&
-                self.weight == other.get_weight() {
+                self.pre_weight == other.get_pre_weight() &&
+                self.post_weight == other.get_post_weight() {
                     None
                 } else {
                    let mut diff_string: String = "[".to_owned();
                    diff_string.push_str("ONID: ");
                    diff_string.push_str(&other.get_origin_id().to_string());
                    diff_string.push_str(", ");
-                   if self.weight != other.get_weight() {
-                      diff_string.push_str(&self.weight.to_string());
+                   if self.pre_weight != other.get_pre_weight() || self.post_weight != other.get_post_weight() {
+                      diff_string.push_str(&self.pre_weight.to_string());
+                      diff_string.push_str("/");
+                      diff_string.push_str(&self.post_weight.to_string());
                       diff_string.push_str(" <= WEIGHT => ");
-                      diff_string.push_str(&other.get_weight().to_string());
+                      diff_string.push_str(&other.get_pre_weight().to_string());
+                      diff_string.push_str("/");
+                      diff_string.push_str(&other.get_post_weight().to_string());
                    }
                    diff_string.push_str("]");
                    Some(diff_string)
@@ -155,8 +149,20 @@ impl Node {
             self.origin_node_id
         }
 
-        pub fn get_weight(&self) -> f32 {
-            self.weight
+        pub fn get_pre_weight(&self) -> f32 {
+            self.pre_weight
+        }
+
+        pub fn get_post_weight(&self) -> f32 {
+            self.post_weight
+        }
+
+        pub fn set_weight(&mut self, weight : f32) {
+            self.post_weight = weight;
+        }
+
+        pub fn update(&mut self) {
+            self.pre_weight = self.post_weight;
         }
     }
 
@@ -181,7 +187,9 @@ impl Node {
                 edge_string.push_str("ONID: ");
                 edge_string.push_str(&self.origin_node_id.to_string());
                 edge_string.push_str(", WEIGHT: ");
-                edge_string.push_str(&self.weight.to_string());
+                edge_string.push_str(&self.pre_weight.to_string());
+                edge_string.push_str("/");
+                edge_string.push_str(&self.post_weight.to_string());
             write!(
                 f,
                 "[{}]",
@@ -419,25 +427,10 @@ impl Node {
             }
         }
 
-        pub fn node_is_updated(&self, id: &usize) -> Option<bool> {
-           if let Some(node) = self.nodes.get(&id) {
-               Some(node.updated)
-           } else {
-               None
-           }
-        }
-
-        /// Resets updated flag of all nodes
-        pub fn reset_update_flag(&mut self) {
-            for (_, node) in self.nodes.iter_mut() {
-                node.updated = false;
-            }
-        }
-
         /// Get the pre state of the node with the given ID.
        pub fn get_pre_state(&self, id: &usize) -> Option<i32> {
             if let Some(node) = self.nodes.get(&id) {
-                Some(node.pre)
+                Some(node.pre_state)
             } else {
                 None
             }
@@ -446,7 +439,7 @@ impl Node {
         /// Get the post state of the node with the given ID.
         pub fn get_post_state(&self, id: &usize) -> Option<i32> {
             if let Some(node) = self.nodes.get(&id) {
-                Some(node.post)
+                Some(node.post_state)
             } else {
                 None
             }
@@ -461,12 +454,23 @@ impl Node {
         }
 
 
-        /// Get the weight of the edge between the nodes with
+        /// Get the pre weight of the edge between the nodes with
         /// origin_id and destination_id.
-        pub fn get_weight(&self, origin_id: &usize, destination_id: &usize) -> Option<f32> {
+        pub fn get_pre_weight(&self, origin_id: &usize, destination_id: &usize) -> Option<f32> {
             if let Some(incoming_edges) = self.edges.get(&destination_id) {
                 if let Some(edge) = incoming_edges.get(&Edge::new(*origin_id, 0.0)) {
-                    return Some(edge.weight);
+                    return Some(edge.pre_weight);
+                }
+            }
+            None
+        }
+
+        /// Get the post weight of the edge between the nodes with
+        /// origin_id and destination_id.
+        pub fn get_post_weight(&self, origin_id: &usize, destination_id: &usize) -> Option<f32> {
+            if let Some(incoming_edges) = self.edges.get(&destination_id) {
+                if let Some(edge) = incoming_edges.get(&Edge::new(*origin_id, 0.0)) {
+                    return Some(edge.post_weight);
                 }
             }
             None
@@ -475,8 +479,11 @@ impl Node {
         /// Set the weight of the edge between the nodes with
         /// origin_id and destination_id.
         pub fn set_weight(&mut self, origin_id: &usize, destination_id: &usize, weight: f32) {
-            if let Some(incoming_edges) = self.edges.get_mut(&destination_id) {
-                incoming_edges.replace(Edge::new(*origin_id, weight));
+            if let Some(mut incoming_edges) = self.edges.get_mut(&destination_id) {
+                if let Some(mut edge) = incoming_edges.take(&Edge::new(*origin_id, 0.0)) {
+                    edge.set_weight(weight);
+                    incoming_edges.insert(edge);
+                }
             }
         }
 
@@ -519,6 +526,19 @@ impl Node {
             }
             num_edges
         }
+
+        /// Update all nodes and edges.
+        pub fn update_all(&mut self) {
+            for (id,node) in self.nodes.iter_mut() {
+                node.update();
+                if let Some(mut incoming_edges) = self.edges.get_mut(&id) {
+                    if let Some(mut edge) = incoming_edges.take(&Edge::new(*id, 0.0)) {
+                        edge.update();
+                        incoming_edges.insert(edge);
+                    }
+                }
+            }
+        }
     }
 
     impl PartialEq for Graph {
@@ -534,10 +554,6 @@ impl Node {
             Instruction::new(graph_node_add),
         );
         map.insert(
-            String::from("GRAPH.NODE*RESETUPDATE"),
-            Instruction::new(graph_node_reset_update),
-        );
-        map.insert(
             String::from("GRAPH.NODE*PRE"),
             Instruction::new(graph_node_get_pre_state),
         );
@@ -546,8 +562,8 @@ impl Node {
             Instruction::new(graph_node_get_post_state),
         );
         map.insert(
-            String::from("GRAPH.NODE*UPDATED"),
-            Instruction::new(graph_node_is_updated),
+            String::from("GRAPH.UPDATE"),
+            Instruction::new(graph_update),
         );
         map.insert(
             String::from("GRAPH.NODE*PREDECESSORS"),
@@ -574,8 +590,12 @@ impl Node {
             Instruction::new(graph_edge_add),
         );
         map.insert(
-            String::from("GRAPH.EDGE*GETWEIGHT"),
-            Instruction::new(graph_edge_get_weight),
+            String::from("GRAPH.EDGE*PRE"),
+            Instruction::new(graph_edge_get_pre_weight),
+        );
+        map.insert(
+            String::from("GRAPH.EDGE*POST"),
+            Instruction::new(graph_edge_get_post_weight),
         );
         map.insert(
             String::from("GRAPH.EDGE*SETWEIGHT"),
@@ -621,14 +641,6 @@ impl Node {
         }
     }
 
-    /// GRAPH.NODE*RESETUPDATE: Reset the 'Updated' flag of each node of the top graph item.
-    fn graph_node_reset_update(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-        if let Some(graph) = push_state.graph_stack.get_mut(0) {
-            graph.reset_update_flag();
-        }
-    }
-
-
     /// GRAPH.NODE*PRE: Pushes the pre update state of the node the with the specified id to the
     /// integer stack. 
     fn graph_node_get_pre_state(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -657,17 +669,10 @@ impl Node {
         }
     }
 
-    /// GRAPH.NODE*UPDATED: Pushes the update flag of the node with the specified id to the
-    /// BOOLEAN stack.
-    fn graph_node_is_updated(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    /// GRAPH.UPDATE: Transfers post to pre values for all nodes and edges of the graph.
+    fn graph_update(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get_mut(0) {
-            if let Some(id) = push_state.int_stack.pop() {
-                if id > 0 {
-                    if let Some(is_updated) = graph.node_is_updated(&(id as usize)) {
-                        push_state.bool_stack.push(is_updated);
-                    }
-                }
-            }
+            graph.update_all();
         }
     }
 
@@ -739,19 +744,33 @@ impl Node {
         }
     }
 
-    /// GRAPH.EDGE*GETWEIGHT: Gets the weight for the edge with the specified origin and 
+    /// GRAPH.EDGE*PRE: Gets the pre weight for the edge with the specified origin and 
     /// destination id.
-    fn graph_edge_get_weight(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    fn graph_edge_get_pre_weight(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get_mut(0) {
-                if let Some(ids) = push_state.int_stack.pop_vec(2) {
-                    let origin_id = ids[0] as usize;
-                    let destination_id = ids[1] as usize;
-                    if let Some(weight) = graph.get_weight(&origin_id, &destination_id) {
-                        push_state.float_stack.push(weight);
-                    }
+             if let Some(ids) = push_state.int_stack.pop_vec(2) {
+                let origin_id = ids[0] as usize;
+                let destination_id = ids[1] as usize;
+                if let Some(weight) = graph.get_pre_weight(&origin_id, &destination_id) {
+                   push_state.float_stack.push(weight);
                 }
             }
         }
+     }
+
+     /// GRAPH.EDGE*POST: Gets the post weight for the edge with the specified origin and 
+     /// destination id.
+     fn graph_edge_get_post_weight(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+         if let Some(graph) = push_state.graph_stack.get_mut(0) {
+              if let Some(ids) = push_state.int_stack.pop_vec(2) {
+                 let origin_id = ids[0] as usize;
+                 let destination_id = ids[1] as usize;
+                 if let Some(weight) = graph.get_post_weight(&origin_id, &destination_id) {
+                    push_state.float_stack.push(weight);
+                 }
+              }
+          }
+      }
 
     /// GRAPH.EDGE*SETWEIGHT: Sets the weight for the edge with the specified origin and 
     /// destination id.
@@ -873,7 +892,6 @@ mod tests {
                 .unwrap(),
           node_state_2
         );
-        assert!(test_state.graph_stack.get(0).unwrap().node_is_updated(&(node_id as usize)).unwrap());
     }
 
     #[test]
@@ -939,7 +957,7 @@ mod tests {
                 .graph_stack
                 .get(0)
                 .unwrap()
-                .get_weight(&(origin_id as usize), &(destination_id as usize))
+                .get_post_weight(&(origin_id as usize), &(destination_id as usize))
                 .unwrap(),
             0.1
         );
@@ -969,11 +987,11 @@ mod tests {
         println!("test_ids = {:?}", test_ids );
         println!("DIFF = {}", diff );
         assert!(diff.contains("NODES(2)"));
-        assert!(diff.contains(&format!("~N[ID: {}, 2/2 <= STATE => 2/99, false <= UPDATED => true]", test_ids[1])));
-        assert!(diff.contains(&format!("+N[ID: {}, STATE: 5/5, UPDATED: false]", test_ids[4])));
+        assert!(diff.contains(&format!("~N[ID: {}, 2/2 <= STATE => 2/99]", test_ids[1])));
+        assert!(diff.contains(&format!("+N[ID: {}, STATE: 5/5]", test_ids[4])));
         assert!(diff.contains("EDGES(2)"));
-        assert!(diff.contains(&format!("+E[{} <= [ONID: {}, WEIGHT: 1.2]]", test_ids[0], test_ids[4])));
-        assert!(diff.contains(&format!("~E[{} <= [ONID: {}, 1.3 <= WEIGHT => 0.2]]",test_ids[0], test_ids[1])));
+        assert!(diff.contains(&format!("+E[{} <= [ONID: {}, WEIGHT: 1.2/1.2]]", test_ids[0], test_ids[4])));
+        assert!(diff.contains(&format!("~E[{} <= [ONID: {}, 1.3/1.3 <= WEIGHT => 1.3/0.2]]",test_ids[0], test_ids[1])));
 
     }
 

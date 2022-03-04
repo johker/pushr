@@ -2049,11 +2049,14 @@ mod tests {
         test_state.int_stack.push(4);
         int_vector_contains(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
-        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(test_state.int_vector_stack.size(), 0);
         test_state.int_stack.push(5);
+        test_state
+            .int_vector_stack
+            .push(IntVector::new(vec![3, 4, 1, 2]));
         int_vector_contains(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), false);
-        assert_eq!(test_state.int_vector_stack.size(), 1);
+        assert_eq!(test_state.int_vector_stack.size(), 0);
         assert_eq!(test_state.int_stack.size(), 0);
     }
 
