@@ -1,7 +1,7 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::state::PushState;
-use crate::push::vector::IntVector;
+use crate::push::vector::{BoolVector, IntVector};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt;
@@ -586,6 +586,10 @@ impl Node {
             Instruction::new(graph_node_set_state),
         );
         map.insert(
+            String::from("GRAPH.NODE*STATESWITCH"),
+            Instruction::new(graph_node_state_switch),
+        );
+        map.insert(
             String::from("GRAPH.EDGE*ADD"),
             Instruction::new(graph_edge_add),
         );
@@ -619,6 +623,32 @@ impl Node {
                 }
         }
     }
+
+    
+ /// GRAPH.NODE*STATESWITCH: Sets the state defined by the top two INTEGER items to the nodes with the IDs
+ /// specified by top item of the INTVECTOR stack. If the element at position i of the top
+ /// BOOLVECTOR item is true then the state of the node corresponding to the ID at position i
+ /// of the INTVECTOR is set to the second element, otherwise it is set to the top element. 
+ fn graph_node_state_switch(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(graph) = push_state.graph_stack.get_mut(0) {
+        if let Some(node_ids) = push_state.int_vector_stack.pop() {
+            if let Some(state_switch) = push_state.bool_vector_stack.pop() {
+                if let Some(states) = push_state.int_stack.pop_vec(2) {
+                    let on_state = states[0];
+                    let off_state = states[1];
+                    let switch_len = i32::max(i32::min(node_ids.values.len() as i32 , state_switch.values.len() as i32), 0) as usize;
+                    for i in 0..switch_len {
+                        if state_switch.values[i] {
+                            graph.set_state(&(node_ids.values[i] as usize), on_state);
+                        } else {
+                            graph.set_state(&(node_ids.values[i] as usize), off_state);
+                        }
+                    }
+                }
+            }
+        }
+    }
+ }
 
     /// GRAPH.NODE*PREFILTER: Pushes the IDs of all nodes that are in the pre state specified
     /// by the top item of the INTEGER stack to the INTVECTOR stack. 
@@ -751,6 +781,7 @@ impl Node {
              if let Some(ids) = push_state.int_stack.pop_vec(2) {
                 let origin_id = ids[0] as usize;
                 let destination_id = ids[1] as usize;
+                println!("Origin = {}, Destination = {}", origin_id, destination_id);
                 if let Some(weight) = graph.get_pre_weight(&origin_id, &destination_id) {
                    push_state.float_stack.push(weight);
                 }
@@ -939,6 +970,34 @@ mod tests {
         graph_node_post_filter(&mut test_state, &icache());
         let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
         assert_eq!(expected_ids.sort(), filtered_nodes.sort());
+    }
+
+    #[test]
+    fn graph_node_state_switch_with_unequal_length() {
+        let mut test_state = PushState::new();
+        let mut test_graph = Graph::new();
+        let mut ids_to_switch = vec![];
+        let mut state_switch = vec![true; 3];
+        state_switch[1] = false;
+        let initial_state = 0;
+        let on_state = 1;
+        let off_state = 2;
+        ids_to_switch.push(test_graph.add_node(initial_state) as i32);
+        ids_to_switch.push(test_graph.add_node(initial_state) as i32);
+        ids_to_switch.push(test_graph.add_node(initial_state) as i32);
+        ids_to_switch.push(test_graph.add_node(initial_state) as i32);
+        test_state.int_stack.push(on_state);
+        test_state.int_stack.push(off_state);
+        test_state.int_vector_stack.push(IntVector::new(ids_to_switch.clone()));
+        test_state.bool_vector_stack.push(BoolVector::new(state_switch));
+        test_state.graph_stack.push(test_graph.clone());
+        graph_node_state_switch(&mut test_state, &icache());
+        let modified_graph = test_state.graph_stack.pop().unwrap();
+        println!("Graph Changes = {}", test_graph.diff(&modified_graph).unwrap());
+        assert_eq!(modified_graph.get_post_state(&(ids_to_switch[0] as usize)).unwrap(), on_state); 
+        assert_eq!(modified_graph.get_post_state(&(ids_to_switch[1] as usize)).unwrap(), off_state); 
+        assert_eq!(modified_graph.get_post_state(&(ids_to_switch[2] as usize)).unwrap(), on_state); 
+        assert_eq!(modified_graph.get_post_state(&(ids_to_switch[3] as usize)).unwrap(), initial_state); 
     }
 
     #[test]
