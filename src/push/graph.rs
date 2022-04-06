@@ -566,6 +566,10 @@ impl Node {
             Instruction::new(graph_update),
         );
         map.insert(
+            String::from("GRAPH.NODE*OVERLAP"),
+            Instruction::new(graph_node_overlap),
+        );
+        map.insert(
             String::from("GRAPH.NODE*PREDECESSORS"),
             Instruction::new(graph_node_predecessors),
         );
@@ -734,6 +738,32 @@ impl Node {
         }
     }
 
+    /// GRAPH.NODE*OVERLAP: Counts all incoming edges of a node that are in a certain pre state where the 
+    /// pre state and the node id are the first and second item of the INTEGER stack respectively.
+    fn graph_node_overlap(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+        if let Some(graph) = push_state.graph_stack.get(0) {
+            if let Some(state) = push_state.int_stack.pop() {
+                if let Some(node_id) = push_state.int_stack.pop() {
+                    if node_id > 0 {
+                        let mut count = 0;
+                        if let Some(incoming_edges) = graph.edges.get(&(node_id as usize)) {
+                            for edge in incoming_edges {
+                                if let Some(origin_state) = graph.get_post_state(&edge.origin_node_id) {
+                                    if origin_state == state {
+                                        count += 1;
+                                    }
+                                }
+                            }
+                        }
+                        push_state
+                            .int_stack
+                            .push(count);
+                    }
+                }
+            }
+        }
+    }
+
     /// GRAPH.NODE*PREDECESORS: Pushes the IDs of all nodes with an edge pointing to the current
     /// node to the INTVECTOR stack. The ID of current node is taken from the INTEGER stack.
     fn graph_node_predecessors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
@@ -835,6 +865,31 @@ mod tests {
         test_state.int_stack.push(destination_id); // Top element
         test_state.float_stack.push(weight);
         graph_edge_add(test_state, &icache());
+    }
+
+    #[test]
+    fn graph_node_overlap_computed() {
+        let mut test_state = PushState::new();
+        graph_add(&mut test_state, &icache());
+        let overlap_target_state = 11;
+        let uninteresting_state = 22;
+        let uninteresting_state_2 = 33;
+        let destination_state = 44;
+        let origin_id1 = test_node(&mut test_state, overlap_target_state);
+        let origin_id2 = test_node(&mut test_state, uninteresting_state);
+        let origin_id3 = test_node(&mut test_state, uninteresting_state_2);
+        let origin_id4 = test_node(&mut test_state, overlap_target_state);
+        let origin_id5 = test_node(&mut test_state, uninteresting_state);
+        let destination_id = test_node(&mut test_state, destination_state);
+        test_edge(&mut test_state, origin_id1, destination_id, 0.1);
+        test_edge(&mut test_state, origin_id2, destination_id, 0.1);
+        test_edge(&mut test_state, origin_id3, destination_id, 0.1);
+        test_edge(&mut test_state, origin_id4, destination_id, 0.1);
+        test_edge(&mut test_state, origin_id5, destination_id, 0.1);
+        test_state.int_stack.push(destination_id);
+        test_state.int_stack.push(overlap_target_state);
+        graph_node_overlap(&mut test_state, &icache());
+        assert_eq!(test_state.int_stack.pop().unwrap(), 2);
     }
 
     #[test]
