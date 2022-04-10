@@ -496,28 +496,19 @@ impl Node {
         pub fn pre_filter(&self, states: &Vec<i32>) -> Vec<i32> {
             let mut filtered_nodes = vec![];
             for (_,n) in self.nodes.iter() {
-                for state in states.iter() {
-                    if n.get_pre_state() == *state {
-                        filtered_nodes.push(n.get_id() as i32);
+                if states.len() == 0 {
+                    filtered_nodes.push(n.get_id() as i32);
+                } else {
+                    for state in states.iter() {
+                        if n.get_pre_state() == *state {
+                            filtered_nodes.push(n.get_id() as i32);
+                        }
                     }
                 }
             }
             filtered_nodes
         }
         
-        /// Returns all node ids that contains the given pre state parameter
-        pub fn post_filter(&self, states: &Vec<i32>) -> Vec<i32> {
-            let mut filtered_nodes = vec![];
-            for (_,n) in self.nodes.iter() {
-                for state in states.iter() {
-                    if n.get_post_state() == *state {
-                        filtered_nodes.push(n.get_id() as i32);
-                    }
-                }
-            }
-            filtered_nodes
-        }
-
         /// Returns the number of edges
         pub fn edge_size(&self) -> usize {
             let mut num_edges = 0;
@@ -554,20 +545,16 @@ impl Node {
             Instruction::new(graph_node_add),
         );
         map.insert(
-            String::from("GRAPH.NODE*PRE"),
+            String::from("GRAPH.NODE*GETSTATE"),
             Instruction::new(graph_node_get_pre_state),
         );
         map.insert(
-            String::from("GRAPH.NODE*POST"),
-            Instruction::new(graph_node_get_post_state),
-        );
+            String::from("GRAPH.NODE*SETSTATE"),
+            Instruction::new(graph_node_set_state),
+            );
         map.insert(
-            String::from("GRAPH.UPDATE"),
-            Instruction::new(graph_update),
-        );
-        map.insert(
-            String::from("GRAPH.NODE*OVERLAP"),
-            Instruction::new(graph_node_overlap),
+            String::from("GRAPH.NODE*NEIGHBORS"),
+            Instruction::new(graph_node_neighbors),
         );
         map.insert(
             String::from("GRAPH.NODE*PREDECESSORS"),
@@ -578,32 +565,24 @@ impl Node {
             Instruction::new(graph_node_successors),
         );
         map.insert(
-            String::from("GRAPH.NODE*PREFILTER"),
-            Instruction::new(graph_node_pre_filter),
-        );
-        map.insert(
-            String::from("GRAPH.NODE*POSTFILTER"),
-            Instruction::new(graph_node_post_filter),
-        );
-        map.insert(
-            String::from("GRAPH.NODE*SETSTATE"),
-            Instruction::new(graph_node_set_state),
-        );
-        map.insert(
             String::from("GRAPH.NODE*STATESWITCH"),
             Instruction::new(graph_node_state_switch),
+            );
+        map.insert(
+            String::from("GRAPH.NODES"),
+            Instruction::new(graph_nodes),
         );
+        map.insert(
+            String::from("GRAPH.UPDATE"),
+            Instruction::new(graph_update),
+            );
         map.insert(
             String::from("GRAPH.EDGE*ADD"),
             Instruction::new(graph_edge_add),
         );
         map.insert(
-            String::from("GRAPH.EDGE*PRE"),
+            String::from("GRAPH.EDGE*GETWEIGHT"),
             Instruction::new(graph_edge_get_pre_weight),
-        );
-        map.insert(
-            String::from("GRAPH.EDGE*POST"),
-            Instruction::new(graph_edge_get_post_weight),
         );
         map.insert(
             String::from("GRAPH.EDGE*SETWEIGHT"),
@@ -654,9 +633,10 @@ impl Node {
     }
  }
 
-    /// GRAPH.NODE*PREFILTER: Pushes the IDs of all nodes that are in the pre state specified
-    /// by the top item of the INTEGER stack to the INTVECTOR stack. 
-    fn graph_node_pre_filter(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    /// GRAPH.NODES: Pushes the IDs of the nodes that are in one of the predefined states 
+    /// (before update) to the INTVECTOR stack. The states are taken from the top item 
+    /// of the INTVECTOR stack. If the array is empty all node IDs of the graph are pushed. 
+    fn graph_nodes(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get(0) {
             if let Some(states) = push_state.int_vector_stack.pop() {
                 let pf = graph.pre_filter(&states.values);
@@ -665,37 +645,13 @@ impl Node {
         }
     }
 
-    /// GRAPH.NODE*POSTFILTER: Pushes the IDs of all nodes that are in the post state specified
-    /// by the top item of the INTEGER stack to the INTVECTOR stack. 
-    fn graph_node_post_filter(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-        if let Some(graph) = push_state.graph_stack.get(0) {
-            if let Some(states) = push_state.int_vector_stack.pop() {
-                   push_state.int_vector_stack.push(IntVector::new(graph.post_filter(&states.values))); 
-                }
-        }
-    }
-
-    /// GRAPH.NODE*PRE: Pushes the pre update state of the node the with the specified id to the
-    /// integer stack. 
+    /// GRAPH.NODE*GETSTATE: Pushes the pre update state of the node the with the specified 
+    /// id to the integer stack. 
     fn graph_node_get_pre_state(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get_mut(0) {
             if let Some(id) = push_state.int_stack.pop() {
                 if id > 0 {
                     if let Some(state) = graph.get_pre_state(&(id as usize)) {
-                        push_state.int_stack.push(state);
-                    }
-                }
-            }
-        }
-    }
-
-    /// GRAPH.NODE*POST: Pushes the post update state of the node with the specified id to the
-    /// INTEGER stack.
-    fn graph_node_get_post_state(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-        if let Some(graph) = push_state.graph_stack.get_mut(0) {
-            if let Some(id) = push_state.int_stack.pop() {
-                if id > 0 {
-                    if let Some(state) = graph.get_post_state(&(id as usize)) {
                         push_state.int_stack.push(state);
                     }
                 }
@@ -738,73 +694,102 @@ impl Node {
         }
     }
 
-    /// GRAPH.NODE*OVERLAP: Counts all incoming edges of a node that are in a certain pre state where the 
-    /// pre state and the node id are the first and second item of the INTEGER stack respectively.
-    fn graph_node_overlap(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    /// GRAPH.NODE*NEIGHBORS: Pushes the IDs of the predecessor and successor nodes that are in
+    /// one of the predefined states to the INTVECTOR stack. The states are taken from the top 
+    /// item of the INTVECTOR stack. If the array is empty all neighbor node IDs are pushed. 
+    /// The origin node id is taken from the INTEGER stack.
+    fn graph_node_neighbors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get(0) {
-            if let Some(state) = push_state.int_stack.pop() {
+            if let Some(states) = push_state.int_vector_stack.pop() {
                 if let Some(node_id) = push_state.int_stack.pop() {
                     if node_id > 0 {
-                        let mut count = 0;
+                        let mut neighbors = vec![];
                         if let Some(incoming_edges) = graph.edges.get(&(node_id as usize)) {
                             for edge in incoming_edges {
-                                if let Some(origin_state) = graph.get_post_state(&edge.origin_node_id) {
-                                    if origin_state == state {
-                                        count += 1;
+                                if let Some(origin_state) = graph.get_pre_state(&edge.origin_node_id) {
+                                    if states.values.len() == 0 || states.values.contains(&origin_state) {
+                                        neighbors.push(edge.origin_node_id as i32);
+                                    }
+                                }
+                            }
+                        }
+                        for (k,v) in graph.edges.iter() {
+                            if v.contains(&Edge::new(node_id as usize,0.0)) {
+                                if let Some(successor) = graph.nodes.get(k) {
+                                    if states.values.len() == 0 || states.values.contains(&successor.get_pre_state()) {
+                                        neighbors.push(*k as i32);
                                     }
                                 }
                             }
                         }
                         push_state
-                            .int_stack
-                            .push(count);
+                            .int_vector_stack
+                            .push(IntVector::new(neighbors));
                     }
                 }
             }
         }
     }
 
-    /// GRAPH.NODE*PREDECESORS: Pushes the IDs of all nodes with an edge pointing to the current
-    /// node to the INTVECTOR stack. The ID of current node is taken from the INTEGER stack.
+    /// GRAPH.NODE*PREDECESSORS: Pushes the IDs of the predecessor nodes that are in
+    /// one of the predefined states to the INTVECTOR stack. The states are taken from the top 
+    /// item of the INTVECTOR stack. If the array is empty all predecessor node IDs are pushed. 
+    /// The origin node id is taken from the INTEGER stack.
     fn graph_node_predecessors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get(0) {
-            if let Some(node_id) = push_state.int_stack.pop() {
-                if node_id > 0 {
-                    let mut predecessors = vec![];
-                    if let Some(incoming_edges) = graph.edges.get(&(node_id as usize)) {
-                        for edge in incoming_edges {
-                            predecessors.push(edge.origin_node_id as i32);
+            if let Some(states) = push_state.int_vector_stack.pop() {
+                if let Some(node_id) = push_state.int_stack.pop() {
+                    if node_id > 0 {
+                        let mut predecessors = vec![];
+                        if let Some(incoming_edges) = graph.edges.get(&(node_id as usize)) {
+                            for edge in incoming_edges {
+                                if let Some(origin_state) = graph.get_pre_state(&edge.origin_node_id) {
+                                    if states.values.len() == 0 || states.values.contains(&origin_state) {
+                                        predecessors.push(edge.origin_node_id as i32);
+                                    }
+                                }
+                            }
                         }
+                        push_state
+                            .int_vector_stack
+                            .push(IntVector::new(predecessors));
                     }
-                    push_state
-                        .int_vector_stack
-                        .push(IntVector::new(predecessors));
                 }
             }
         }
     }
 
-    /// GRAPH.NODE*SUCCESSORS: Pushes the IDs of all nodes with an edge pointing to the current
-    /// node to the INTVECTOR stack. The ID of current node is taken from the INTEGER stack.
+    /// GRAPH.NODE*SUCCESSORS: Pushes the IDs of the successor nodes that are in
+    /// one of the predefined states to the INTVECTOR stack. The states are taken from the top 
+    /// item of the INTVECTOR stack. If the array is empty all successor node IDs are pushed. 
+    /// The origin node id is taken from the INTEGER stack.
     fn graph_node_successors(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get(0) {
-            if let Some(node_id) = push_state.int_stack.pop() {
-                if node_id > 0 {
-                    let mut successors = vec![];
-                    for (k,v) in graph.edges.iter() {
-                        if v.contains(&Edge::new(node_id as usize,0.0)) {
-                            successors.push(*k as i32);
+            if let Some(states) = push_state.int_vector_stack.pop() {
+                if let Some(node_id) = push_state.int_stack.pop() {
+                    if node_id > 0 {
+                        let mut successors = vec![];
+                        for (k,v) in graph.edges.iter() {
+                            println!("Checking incoming nodes: {:?}", v);
+                            if v.contains(&Edge::new(node_id as usize,0.0)) {
+                                if let Some(successor) = graph.nodes.get(k) {
+                                    println!("...Found");
+                                    if states.values.len() == 0 || states.values.contains(&successor.get_pre_state()) {
+                                        successors.push(*k as i32);
+                                    }
+                                }
+                            }
                         }
+                        push_state
+                            .int_vector_stack
+                            .push(IntVector::new(successors));
                     }
-                    push_state
-                        .int_vector_stack
-                        .push(IntVector::new(successors));
                 }
             }
         }
     }
 
-    /// GRAPH.EDGE*PRE: Gets the pre weight for the edge with the specified origin and 
+    /// GRAPH.EDGE*GETWEIGHT: Gets the pre weight for the edge with the specified origin and 
     /// destination id.
     fn graph_edge_get_pre_weight(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get_mut(0) {
@@ -818,20 +803,6 @@ impl Node {
             }
         }
      }
-
-     /// GRAPH.EDGE*POST: Gets the post weight for the edge with the specified origin and 
-     /// destination id.
-     fn graph_edge_get_post_weight(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-         if let Some(graph) = push_state.graph_stack.get_mut(0) {
-              if let Some(ids) = push_state.int_stack.pop_vec(2) {
-                 let origin_id = ids[0] as usize;
-                 let destination_id = ids[1] as usize;
-                 if let Some(weight) = graph.get_post_weight(&origin_id, &destination_id) {
-                    push_state.float_stack.push(weight);
-                 }
-              }
-          }
-      }
 
     /// GRAPH.EDGE*SETWEIGHT: Sets the weight for the edge with the specified origin and 
     /// destination id.
@@ -868,32 +839,39 @@ mod tests {
     }
 
     #[test]
-    fn graph_node_overlap_computed() {
+    fn graph_node_selected_predecessors_states_are_pushed() {
         let mut test_state = PushState::new();
         graph_add(&mut test_state, &icache());
-        let overlap_target_state = 11;
+        let predecessor_target_state = 11;
+        let predecessor_target_state2 = 12;
         let uninteresting_state = 22;
         let uninteresting_state_2 = 33;
         let destination_state = 44;
-        let origin_id1 = test_node(&mut test_state, overlap_target_state);
+        let origin_id1 = test_node(&mut test_state, predecessor_target_state);
         let origin_id2 = test_node(&mut test_state, uninteresting_state);
         let origin_id3 = test_node(&mut test_state, uninteresting_state_2);
-        let origin_id4 = test_node(&mut test_state, overlap_target_state);
+        let origin_id4 = test_node(&mut test_state, predecessor_target_state);
         let origin_id5 = test_node(&mut test_state, uninteresting_state);
+        let origin_id6 = test_node(&mut test_state, predecessor_target_state2);
         let destination_id = test_node(&mut test_state, destination_state);
         test_edge(&mut test_state, origin_id1, destination_id, 0.1);
         test_edge(&mut test_state, origin_id2, destination_id, 0.1);
         test_edge(&mut test_state, origin_id3, destination_id, 0.1);
         test_edge(&mut test_state, origin_id4, destination_id, 0.1);
         test_edge(&mut test_state, origin_id5, destination_id, 0.1);
+        test_edge(&mut test_state, origin_id6, destination_id, 0.1);
         test_state.int_stack.push(destination_id);
-        test_state.int_stack.push(overlap_target_state);
-        graph_node_overlap(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.pop().unwrap(), 2);
+        test_state.int_vector_stack.push(IntVector::new(vec![predecessor_target_state, predecessor_target_state2]));
+        graph_node_predecessors(&mut test_state, &icache());
+        let predecessors = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(predecessors.len(), 3);
+        assert!(predecessors.contains(&origin_id1));
+        assert!(predecessors.contains(&origin_id4));
+        assert!(predecessors.contains(&origin_id6));
     }
 
     #[test]
-    fn graph_node_predecessors_are_pushed() {
+    fn graph_node_all_predecessors_are_pushed_when_intvector_empty() {
         let mut test_state = PushState::new();
         graph_add(&mut test_state, &icache());
         let origin_id = test_node(&mut test_state, 1);
@@ -902,6 +880,7 @@ mod tests {
         test_edge(&mut test_state, origin_id, destination_id, 0.1);
         test_edge(&mut test_state, origin_id2, destination_id, 0.1);
         test_state.int_stack.push(destination_id);
+        test_state.int_vector_stack.push(IntVector::new(vec![]));
         graph_node_predecessors(&mut test_state, &icache());
         assert_eq!(test_state.int_vector_stack.size(), 1);
         let predecessors = test_state.int_vector_stack.pop().unwrap().values;
@@ -911,22 +890,122 @@ mod tests {
     }
 
     #[test]
-    fn graph_node_successors_are_pushed() {
+    fn graph_node_selected_successors_states_are_pushed() {
         let mut test_state = PushState::new();
         graph_add(&mut test_state, &icache());
-        let origin_id = test_node(&mut test_state, 1);
-        let destination_id = test_node(&mut test_state, 1);
-        let destination_id2 = test_node(&mut test_state, 1);
-        test_edge(&mut test_state, origin_id, destination_id, 0.1);
+        let successor_target_state = 11;
+        let successor_target_state2 = 12;
+        let uninteresting_state = 22;
+        let uninteresting_state_2 = 33;
+        let origin_state = 44;
+        let destination_id1 = test_node(&mut test_state, successor_target_state);
+        let destination_id2 = test_node(&mut test_state, uninteresting_state);
+        let destination_id3 = test_node(&mut test_state, uninteresting_state_2);
+        let destination_id4 = test_node(&mut test_state, successor_target_state);
+        let destination_id5 = test_node(&mut test_state, uninteresting_state);
+        let destination_id6 = test_node(&mut test_state, successor_target_state2);
+        let origin_id = test_node(&mut test_state, origin_state);
+        test_edge(&mut test_state, origin_id, destination_id1, 0.1);
         test_edge(&mut test_state, origin_id, destination_id2, 0.1);
+        test_edge(&mut test_state, origin_id, destination_id3, 0.1);
+        test_edge(&mut test_state, origin_id, destination_id4, 0.1);
+        test_edge(&mut test_state, origin_id, destination_id5, 0.1);
+        test_edge(&mut test_state, origin_id, destination_id6, 0.1);
         test_state.int_stack.push(origin_id);
+        test_state.int_vector_stack.push(IntVector::new(vec![successor_target_state, successor_target_state2]));
         graph_node_successors(&mut test_state, &icache());
+        let successors = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(successors.len(), 3);
+        assert!(successors.contains(&destination_id1));
+        assert!(successors.contains(&destination_id4));
+        assert!(successors.contains(&destination_id6));
+    }
+
+    #[test]
+    fn graph_node_all_successors_are_pushed_when_intvector_empty() {
+        let mut test_state = PushState::new();
+        graph_add(&mut test_state, &icache());
+        let test_id = test_node(&mut test_state, 1);
+        let destination_id1 = test_node(&mut test_state, 1);
+        let destination_id2 = test_node(&mut test_state, 1);
+        test_edge(&mut test_state, test_id, destination_id1, 0.1);
+        test_edge(&mut test_state, test_id, destination_id2, 0.1);
+        test_state.int_stack.push(test_id);
+        test_state.int_vector_stack.push(IntVector::new(vec![]));
+        graph_node_successors(&mut test_state, &icache());
+        println!("Graph = {}", test_state.graph_stack.copy(0).unwrap());
         assert_eq!(test_state.int_vector_stack.size(), 1);
         let successors = test_state.int_vector_stack.pop().unwrap().values;
         assert_eq!(successors.len(), 2);
-        assert!(successors.contains(&destination_id));
+        assert!(successors.contains(&destination_id1));
         assert!(successors.contains(&destination_id2));
+    }
 
+    #[test]
+    fn graph_node_selected_neighbors_states_are_pushed() {
+        let mut test_state = PushState::new();
+        graph_add(&mut test_state, &icache());
+        let successor_target_state = 11;
+        let successor_target_state2 = 12;
+        let predecessor_target_state = 13;
+        let predecessor_target_state2 = 14;
+        let uninteresting_state = 22;
+        let uninteresting_state_2 = 33;
+        let origin_state = 44;
+        let destination_id1 = test_node(&mut test_state, successor_target_state);
+        let destination_id2 = test_node(&mut test_state, uninteresting_state);
+        let destination_id3 = test_node(&mut test_state, uninteresting_state_2);
+        let destination_id4 = test_node(&mut test_state, successor_target_state);
+        let destination_id5 = test_node(&mut test_state, uninteresting_state);
+        let destination_id6 = test_node(&mut test_state, successor_target_state2);
+        let origin_id1 = test_node(&mut test_state, predecessor_target_state);
+        let origin_id2 = test_node(&mut test_state, uninteresting_state);
+        let origin_id3 = test_node(&mut test_state, predecessor_target_state2);
+        let test_id = test_node(&mut test_state, origin_state);
+        test_edge(&mut test_state, test_id, destination_id1, 0.1);
+        test_edge(&mut test_state, test_id, destination_id2, 0.1);
+        test_edge(&mut test_state, test_id, destination_id3, 0.1);
+        test_edge(&mut test_state, test_id, destination_id4, 0.1);
+        test_edge(&mut test_state, test_id, destination_id5, 0.1);
+        test_edge(&mut test_state, test_id, destination_id6, 0.1);
+        test_edge(&mut test_state, origin_id1, test_id, 0.1);
+        test_edge(&mut test_state, origin_id2, test_id, 0.1);
+        test_edge(&mut test_state, origin_id3, test_id, 0.1);
+        test_state.int_stack.push(test_id);
+        test_state.int_vector_stack.push(IntVector::new(vec![successor_target_state, successor_target_state2, predecessor_target_state, predecessor_target_state2]));
+        graph_node_neighbors(&mut test_state, &icache());
+        let neighbors = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(neighbors.len(), 5);
+        assert!(neighbors.contains(&destination_id1));
+        assert!(neighbors.contains(&destination_id4));
+        assert!(neighbors.contains(&destination_id6));
+        assert!(neighbors.contains(&origin_id1));
+        assert!(neighbors.contains(&origin_id3));
+    }
+
+    #[test]
+    fn graph_node_all_neighbors_are_pushed_when_intvector_empty() {
+        let mut test_state = PushState::new();
+        graph_add(&mut test_state, &icache());
+        let test_id = test_node(&mut test_state, 1);
+        let destination_id1 = test_node(&mut test_state, 1);
+        let destination_id2 = test_node(&mut test_state, 1);
+        let origin_id1 = test_node(&mut test_state, 1);
+        let origin_id2 = test_node(&mut test_state, 1);
+        test_edge(&mut test_state, test_id, destination_id1, 0.1);
+        test_edge(&mut test_state, test_id, destination_id2, 0.1);
+        test_edge(&mut test_state, origin_id1, test_id, 0.1);
+        test_edge(&mut test_state, origin_id2, test_id, 0.1);
+        test_state.int_stack.push(test_id);
+        test_state.int_vector_stack.push(IntVector::new(vec![]));
+        graph_node_neighbors(&mut test_state, &icache());
+        assert_eq!(test_state.int_vector_stack.size(), 1);
+        let neighbors = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(neighbors.len(), 4);
+        assert!(neighbors.contains(&origin_id1));
+        assert!(neighbors.contains(&origin_id2));
+        assert!(neighbors.contains(&destination_id1));
+        assert!(neighbors.contains(&destination_id2));
     }
 
     #[test]
@@ -955,7 +1034,7 @@ mod tests {
         graph_add(&mut test_state, &icache());
         let node_id = test_node(&mut test_state, node_state_1);
         test_state.int_stack.push(node_id.clone() as i32);
-        graph_node_get_post_state(&mut test_state, &icache());
+        graph_node_get_pre_state(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.pop().unwrap(), node_state_1);
         test_state.int_stack.push(node_id.clone() as i32);
         test_state.int_stack.push(node_state_2);
@@ -1001,28 +1080,7 @@ mod tests {
         }
         graph_node_set_state(&mut test_state, &icache());
         test_state.int_vector_stack.push(IntVector::new(filter_states));
-        graph_node_pre_filter(&mut test_state, &icache());
-        let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
-        assert_eq!(expected_ids.sort(), filtered_nodes.sort());
-    }
-
-    #[test]
-    fn graph_node_post_filter_pushes_ids() {
-        let mut test_state = PushState::new();
-        let mut test_graph = Graph::new();
-        let mut expected_ids = vec![];
-        let filter_states = vec![3,4];
-        test_graph.add_node(1);
-        test_graph.add_node(1);
-        test_graph.add_node(1);
-        test_graph.add_node(2);
-        expected_ids.push(test_graph.add_node(filter_states[0]) as i32);
-        expected_ids.push(test_graph.add_node(filter_states[0]) as i32);
-        expected_ids.push(test_graph.add_node(filter_states[1]) as i32);
-        test_graph.add_node(6);
-        graph_node_set_state(&mut test_state, &icache());
-        test_state.int_vector_stack.push(IntVector::new(filter_states));
-        graph_node_post_filter(&mut test_state, &icache());
+        graph_nodes(&mut test_state, &icache());
         let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
         assert_eq!(expected_ids.sort(), filtered_nodes.sort());
     }
