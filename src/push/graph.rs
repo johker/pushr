@@ -1060,7 +1060,7 @@ mod tests {
     }
 
     #[test]
-    fn graph_node_pre_filter_pushes_ids() {
+    fn graph_nodes_pushes_selected_ids() {
         let mut test_state = PushState::new();
         let mut test_graph = Graph::new();
         let mut expected_ids = vec![];
@@ -1080,6 +1080,22 @@ mod tests {
         }
         graph_node_set_state(&mut test_state, &icache());
         test_state.int_vector_stack.push(IntVector::new(filter_states));
+        graph_nodes(&mut test_state, &icache());
+        let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
+        assert_eq!(expected_ids.sort(), filtered_nodes.sort());
+    }
+
+    #[test]
+    fn graph_nodes_pushes_all_ids_when_filter_is_empty() {
+        let mut test_state = PushState::new();
+        let mut test_graph = Graph::new();
+        let mut expected_ids = vec![];
+        expected_ids.push(test_graph.add_node(1) as i32);
+        expected_ids.push(test_graph.add_node(112) as i32);
+        expected_ids.push(test_graph.add_node(99) as i32);
+        expected_ids.push(test_graph.add_node(99) as i32);
+        test_state.graph_stack.push(test_graph);
+        test_state.int_vector_stack.push(IntVector::new(vec![]));
         graph_nodes(&mut test_state, &icache());
         let mut filtered_nodes = test_state.int_vector_stack.pop().unwrap().values;
         assert_eq!(expected_ids.sort(), filtered_nodes.sort());
