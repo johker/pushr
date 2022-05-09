@@ -368,12 +368,20 @@ pub fn load_vector_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(float_vector_divide),
     );
     map.insert(
+        String::from("FLOATVECTOR.APPEND"),
+        Instruction::new(float_vector_append),
+    );
+    map.insert(
         String::from("FLOATVECTOR.DEFINE"),
         Instruction::new(float_vector_define),
     );
     map.insert(
         String::from("FLOATVECTOR.DUP"),
         Instruction::new(float_vector_dup),
+    );
+    map.insert(
+        String::from("FLOATVECTOR.EMPTY"),
+        Instruction::new(float_vector_empty),
     );
     map.insert(
         String::from("FLOATVECTOR.EQUAL"),
@@ -501,8 +509,10 @@ pub fn bool_vector_and(push_state: &mut PushState, _instruction_cache: &Instruct
 pub fn bool_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.bool_vector_stack.get(0) {
-            let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
-            push_state.bool_stack.push(element.values[i].clone());
+            if element.values.len() >0 {
+                let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
+                push_state.bool_stack.push(element.values[i].clone());
+            }
         }
     }
 }
@@ -755,8 +765,8 @@ pub fn int_vector_bool_index(push_state: &mut PushState, _instruction_cache: &In
 pub fn int_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.int_vector_stack.get(0) {
-            let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
-            if i < element.values.len() {
+            if element.values.len() >0 {
+                let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
                 push_state.int_stack.push(element.values[i].clone());
             }
         }
@@ -875,7 +885,7 @@ pub fn int_vector_divide(push_state: &mut PushState, _instruction_cache: &Instru
 
 /// INTVECTOR.CONTAINS: Pushes true to the BOOLEAN stack if the top INTEGER is included in the
 /// top INTVECTOR item. This instruction acts as a NOOP if there is no INTEGER or INTVECTOR.
-/// The INTVECTOR items is not popped.
+/// The INTVECTOR item is popped.
 pub fn int_vector_contains(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(element) = push_state.int_stack.pop() {
         if let Some(array) = push_state.int_vector_stack.pop() {
@@ -1126,6 +1136,15 @@ pub fn int_vector_zeros(push_state: &mut PushState, _instruction_cache: &Instruc
 
 ////////////////////////////////////// FLOATVECTOR //////////////////////////////////////////
 
+/// FLOATVECTOR.APPEND: Appends the top FLOAT item to the top FLOATVECTOR item.
+pub fn float_vector_append(push_state: &mut PushState, _instruction_set: &InstructionCache) {
+    if let Some(item) = push_state.float_vector_stack.get_mut(0) {
+        if let Some(to_append) = push_state.float_stack.pop() {
+            item.values.push(to_append);
+        }
+    }
+}
+
 /// FLOATVECTOR.ID: Pushes the ID of the FLOATVECTOR stack to the INTEGER stack.
 pub fn float_vector_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
     push_state.int_stack.push(FLOAT_VECTOR_STACK_ID);
@@ -1136,8 +1155,10 @@ pub fn float_vector_id(push_state: &mut PushState, _instruction_set: &Instructio
 pub fn float_vector_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(element) = push_state.float_vector_stack.get(0) {
-            let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
-            push_state.float_stack.push(element.values[i].clone());
+            if element.values.len() > 0 {
+                let i = i32::max(i32::min(index, element.values.len() as i32 - 1), 0) as usize;
+                push_state.float_stack.push(element.values[i].clone());
+            }
         }
     }
 }
@@ -1268,6 +1289,11 @@ pub fn float_vector_dup(push_state: &mut PushState, _instruction_cache: &Instruc
     if let Some(fvval) = push_state.float_vector_stack.copy(0) {
         push_state.float_vector_stack.push(fvval);
     }
+}
+
+/// FLOATVECTOR.EMPTY: Pushes an empty FLOATVECTOR.
+fn float_vector_empty(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.float_vector_stack.push(FloatVector::new(vec![]));
 }
 
 /// FLOATVECTOR.=: Pushes TRUE onto the BOOLEAN stack if the top two items are equal, or FALSE

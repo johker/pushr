@@ -25,6 +25,7 @@ pub fn load_int_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(integer_define),
     );
     map.insert(String::from("INTEGER.DUP"), Instruction::new(integer_dup));
+    map.insert(String::from("INTEGER.DDUP"), Instruction::new(integer_ddup));
     map.insert(
         String::from("INTEGER.FLUSH"),
         Instruction::new(integer_flush),
@@ -153,6 +154,14 @@ pub fn integer_define(push_state: &mut PushState, _instruction_cache: &Instructi
 pub fn integer_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(ival) = push_state.int_stack.copy(0) {
         push_state.int_stack.push(ival);
+    }
+}
+
+/// INTEGER.DDUP: Duplicates the two top items on the INTEGER stack while preserving its order.
+pub fn integer_ddup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(ivals) = push_state.int_stack.copy_vec(2) {
+        push_state.int_stack.push(ivals[0]);
+        push_state.int_stack.push(ivals[1]);
     }
 }
 

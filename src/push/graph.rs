@@ -492,7 +492,7 @@ impl Node {
             self.nodes.len()
         }
 
-        /// Returns all node ids that contains the given pre state parameter
+        /// Returns all nodes ids that contains the given pre state parameter
         pub fn pre_filter(&self, states: &Vec<i32>) -> Vec<i32> {
             let mut filtered_nodes = vec![];
             for (_,n) in self.nodes.iter() {
@@ -608,10 +608,11 @@ impl Node {
     }
 
     
- /// GRAPH.NODE*STATESWITCH: Sets the state defined by the top two INTEGER items to the nodes with the IDs
- /// specified by top item of the INTVECTOR stack. If the element at position i of the top
- /// BOOLVECTOR item is true then the state of the node corresponding to the ID at position i
- /// of the INTVECTOR is set to the second element, otherwise it is set to the top element. 
+ /// GRAPH.NODE*STATESWITCH: Sets the state defined by the top two INTEGER items to the nodes 
+ /// with the IDs specified by top item of the INTVECTOR stack. If the element at position i 
+ /// of the top BOOLVECTOR item is true then the state of the node corresponding to the ID 
+ /// at position i of the INTVECTOR is set to the second element, otherwise it is set to 
+ /// the top element. 
  fn graph_node_state_switch(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(graph) = push_state.graph_stack.get_mut(0) {
         if let Some(node_ids) = push_state.int_vector_stack.pop() {
@@ -796,7 +797,6 @@ impl Node {
              if let Some(ids) = push_state.int_stack.pop_vec(2) {
                 let origin_id = ids[0] as usize;
                 let destination_id = ids[1] as usize;
-                println!("Origin = {}, Destination = {}", origin_id, destination_id);
                 if let Some(weight) = graph.get_pre_weight(&origin_id, &destination_id) {
                    push_state.float_stack.push(weight);
                 }
