@@ -236,7 +236,7 @@ mod tests {
                                               
         match test_stack.pop_vec(4) {
             None => assert!(true),
-            Some(pv) => assert!(false),
+            Some(_pv) => assert!(false),
         }
     }
 

@@ -2,8 +2,7 @@ use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::state::PushState;
 use crate::push::vector::{BoolVector, IntVector};
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -201,7 +200,7 @@ impl Node {
     #[derive(Clone, Debug)]
     pub struct Graph {
         // Incoming edge list
-        pub edges: HashMap<usize, HashSet<Edge>>,
+        pub edges: HashMap<usize, Vec<Edge>>,
         // Nodes by Id
         pub nodes: HashMap<usize, Node>,
     }
@@ -292,7 +291,7 @@ impl Node {
            let mut edge_diff : String = "".to_owned();
            // 2. Edges
            // Left side
-           for (lk,lv) in self.edges.iter() {
+           for (lk,_lv) in self.edges.iter() {
                 if !other.edges.contains_key(lk) {
                     // All edges of this node are removed
                     if let Some(ies) = self.edges.get(lk) {
@@ -323,7 +322,7 @@ impl Node {
                     }
                 }
            }
-        for (rk,rv) in other.edges.iter() {
+        for (rk,_rv) in other.edges.iter() {
              if !self.edges.contains_key(rk) {
                  // All edges of this node are added
                  if let Some(ies) = other.edges.get(rk) {
@@ -351,7 +350,7 @@ impl Node {
                              edge_changes += 1;
                          } else {
                             // Difference
-                            let lie = self.edges.get(rk).unwrap().get(&Edge::new(rie.get_origin_id(),0.0)).unwrap();
+                            let lie = (*self.edges.get(rk).unwrap()).iter().find( |&&x| x == Edge::new(rie.get_origin_id(),0.0) ).unwrap();
                             if let Some(change) = lie.diff(rie) {
                                 edge_diff.push_str("\n");
                                 edge_diff.push_str("~E[");
@@ -398,7 +397,9 @@ impl Node {
             self.nodes.remove(&id);
             self.edges.remove(&id);
             for (_, edges) in self.edges.iter_mut() {
-                edges.remove(&Edge::new(id, 0.0));
+                if let Some(edge_idx) = edges.iter().position(|x| x == &Edge::new(id, 0.0)) {
+                    edges.remove(edge_idx);
+                }
             }
         }
 
@@ -410,10 +411,12 @@ impl Node {
                 if let Some(incoming_edges) = self.edges.get_mut(&destination_id) {
                     // Use origin_id to create an incoming edge
                     let edge = Edge::new(origin_id, weight);
-                    incoming_edges.insert(edge);
+                    if !incoming_edges.contains(&edge){
+                        incoming_edges.push(edge);
+                    }
                 } else {
-                    let mut new_incoming_edges = HashSet::new();
-                    new_incoming_edges.insert(Edge::new(origin_id, weight));
+                    let mut new_incoming_edges = vec![]; 
+                    new_incoming_edges.push(Edge::new(origin_id, weight));
                     self.edges.insert(destination_id, new_incoming_edges);
                 }
             }
@@ -423,7 +426,7 @@ impl Node {
         /// from the graph
         pub fn remove_edge(&mut self, origin_id: usize, destination_id: usize) {
             if let Some(incoming_edges) = self.edges.get_mut(&destination_id) {
-                incoming_edges.remove(&Edge::new(origin_id, 0.0));
+                incoming_edges.retain(|x| x != &Edge::new(origin_id, 0.0));
             }
         }
 
@@ -458,8 +461,8 @@ impl Node {
         /// origin_id and destination_id.
         pub fn get_pre_weight(&self, origin_id: &usize, destination_id: &usize) -> Option<f32> {
             if let Some(incoming_edges) = self.edges.get(&destination_id) {
-                if let Some(edge) = incoming_edges.get(&Edge::new(*origin_id, 0.0)) {
-                    return Some(edge.pre_weight);
+                if let Some(edge_idx) = incoming_edges.iter().position(|x| x == &Edge::new(*origin_id, 0.0)) {
+                   return Some(incoming_edges[edge_idx].get_pre_weight()); 
                 }
             }
             None
@@ -469,8 +472,8 @@ impl Node {
         /// origin_id and destination_id.
         pub fn get_post_weight(&self, origin_id: &usize, destination_id: &usize) -> Option<f32> {
             if let Some(incoming_edges) = self.edges.get(&destination_id) {
-                if let Some(edge) = incoming_edges.get(&Edge::new(*origin_id, 0.0)) {
-                    return Some(edge.post_weight);
+                if let Some(edge_idx) = incoming_edges.iter().position(|x| x == &Edge::new(*origin_id, 0.0)) {
+                    return Some(incoming_edges[edge_idx].get_post_weight()); 
                 }
             }
             None
@@ -479,10 +482,9 @@ impl Node {
         /// Set the weight of the edge between the nodes with
         /// origin_id and destination_id.
         pub fn set_weight(&mut self, origin_id: &usize, destination_id: &usize, weight: f32) {
-            if let Some(mut incoming_edges) = self.edges.get_mut(&destination_id) {
-                if let Some(mut edge) = incoming_edges.take(&Edge::new(*origin_id, 0.0)) {
-                    edge.set_weight(weight);
-                    incoming_edges.insert(edge);
+            if let Some(incoming_edges) = self.edges.get_mut(&destination_id) {
+                if let Some(edge_idx) = incoming_edges.iter().position(|x| x == &Edge::new(*origin_id, 0.0)) {
+                    incoming_edges[edge_idx].set_weight(weight); 
                 }
             }
         }
@@ -522,10 +524,9 @@ impl Node {
         pub fn update_all(&mut self) {
             for (id,node) in self.nodes.iter_mut() {
                 node.update();
-                if let Some(mut incoming_edges) = self.edges.get_mut(&id) {
-                    if let Some(mut edge) = incoming_edges.take(&Edge::new(*id, 0.0)) {
-                        edge.update();
-                        incoming_edges.insert(edge);
+                if let Some(incoming_edges) = self.edges.get_mut(&id) {
+                    for edge in incoming_edges.iter_mut() {
+                        edge.update(); 
                     }
                 }
             }
@@ -1181,6 +1182,33 @@ mod tests {
         assert!(diff.contains(&format!("+E[{} <= [ONID: {}, WEIGHT: 1.2/1.2]]", test_ids[0], test_ids[4])));
         assert!(diff.contains(&format!("~E[{} <= [ONID: {}, 1.3/1.3 <= WEIGHT => 1.3/0.2]]",test_ids[0], test_ids[1])));
 
+    }
+
+    #[test]
+    fn graph_update_all() {
+        let mut test_state = PushState::new();
+        let mut test_graph = Graph::new();
+        let mut test_ids = vec![];
+        test_ids.push(test_graph.add_node(1));
+        test_ids.push(test_graph.add_node(2));
+        test_ids.push(test_graph.add_node(3));
+        test_ids.push(test_graph.add_node(4));
+   
+        test_graph.add_edge(test_ids[1], test_ids[0], 1.3);
+        test_graph.add_edge(test_ids[2], test_ids[0], 1.6);
+        test_graph.add_edge(test_ids[3], test_ids[0], 1.5);
+
+        test_graph.set_state(&test_ids[1], 99);
+        test_graph.set_weight(&test_ids[1], &test_ids[0], 0.2);
+
+        test_state.graph_stack.push(test_graph);
+
+        graph_update(&mut test_state, &icache());
+
+        test_graph = test_state.graph_stack.pop().unwrap();
+        println!("Test Graph = {}", test_graph.to_string());
+        assert_eq!(test_graph.get_pre_state(&test_ids[1]).unwrap(), 99);
+        assert_eq!(test_graph.get_pre_weight(&test_ids[1], &test_ids[0]).unwrap(), 0.2);
     }
 
 }
