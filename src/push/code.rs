@@ -527,6 +527,11 @@ pub fn code_position(push_state: &mut PushState, _instruction_cache: &Instructio
     }
 }
 
+/// CODE.PRINT: Pushes the string representation of the code stack as name binding. 
+pub fn code_print(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    // TODO 
+}
+
 /// CODE.QUOTE: Specifies that the next expression submitted for execution will instead be pushed
 /// literally onto the CODE stack. This can be implemented by moving the top item on the EXEC stack
 /// onto the CODE stack.

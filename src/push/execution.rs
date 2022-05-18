@@ -4,6 +4,7 @@ use crate::push::item::Item;
 use crate::push::state::PushState;
 use crate::push::state::*;
 use std::collections::HashMap;
+use std::process::Command;
 
 /// Code queued for execution. The EXEC stack maintains the execution state of the Push
 /// interpreter. Instructions that specifically manipulate the EXEC stack can be used to implement
@@ -12,6 +13,7 @@ use std::collections::HashMap;
 /// execution state of the interpreter, not just code that might later be executed.
 pub fn load_exec_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("EXEC.="), Instruction::new(exec_eq));
+    map.insert(String::from("EXEC.CMD"), Instruction::new(exec_cmd));
     map.insert(String::from("EXEC.DEFINE"), Instruction::new(exec_define));
     map.insert(String::from("EXEC.LOOP"), Instruction::new(exec_loop));
     map.insert(String::from("EXEC.DUP"), Instruction::new(exec_dup));
@@ -39,6 +41,13 @@ pub fn load_exec_instructions(map: &mut HashMap<String, Instruction>) {
 /// EXEC.ID: Pushes the ID of the EXEC stack to the INTEGER stack.
 pub fn exec_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
     push_state.int_stack.push(EXEC_STACK_ID);
+}
+
+/// EXEC.CMD: Executes the top item of the name stack on the command line.
+pub fn exec_cmd(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(cmd) = push_state.name_stack.pop() {
+        Command::new(cmd).spawn();
+    }
 }
 
 /// EXEC.=: Pushes TRUE if the top two items on the EXEC stack are equal, or FALSE otherwise.

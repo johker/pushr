@@ -14,6 +14,7 @@ use std::collections::HashMap;
 /// name that already has a definition onto the NAME stack.
 pub fn load_name_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(String::from("NAME.="), Instruction::new(name_equal));
+    map.insert(String::from("NAME.CAT"), Instruction::new(name_cat));
     map.insert(String::from("NAME.DUP"), Instruction::new(name_dup));
     map.insert(String::from("NAME.FLUSH"), Instruction::new(name_flush));
     map.insert(String::from("NAME.ID"), Instruction::new(name_id));
@@ -41,6 +42,16 @@ pub fn load_name_instructions(map: &mut HashMap<String, Instruction>) {
 /// NAME.ID: Pushes the ID of the NAME stack to the INTEGER stack.
 pub fn name_id(push_state: &mut PushState, _instruction_set: &InstructionCache) {
     push_state.int_stack.push(NAME_STACK_ID);
+}
+
+/// NAME.CAT: Pushes the concatenation of the two topmost items where top item
+/// will be appended.
+fn name_cat(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    if let Some(nvals) = push_state.name_stack.pop_vec(2) {
+        let mut catstr = nvals[0].clone();
+        catstr.push_str(&nvals[1]);
+        push_state.name_stack.push(catstr);
+    }
 }
 
 /// NAME.=: Pushes TRUE if the top two NAMEs are equal, or FALSE otherwise.
@@ -152,6 +163,16 @@ mod tests {
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
     }
+
+    #[test]
+    fn name_cat_appends_second_item() {
+        let mut test_state = PushState::new();
+        test_state.name_stack.push(String::from("Test"));
+        test_state.name_stack.push(String::from("Test"));
+        name_cat(&mut test_state, &icache());
+        assert_eq!(test_state.name_stack.pop().unwrap(), "TestTest".to_string());
+    }
+
     #[test]
     fn name_equal_pushes_result() {
         let mut test_state = PushState::new();

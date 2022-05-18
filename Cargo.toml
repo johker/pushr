@@ -16,3 +16,7 @@ categories = ["compilers"]
 rand = "0.8.0"
 rand_distr = "0.4.1"
 names = "0.10.0"
+
+[[bin]]
+name = "Pushr"
+path = "src/main.rs"
