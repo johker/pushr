@@ -373,7 +373,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.int_stack.push(2);
         integer_dup(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:2; 2:2;");
+        assert_eq!(test_state.int_stack.to_string(), "2 2");
     }
 
     #[test]
@@ -390,7 +390,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(true);
         integer_from_boolean(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:1;");
+        assert_eq!(test_state.int_stack.to_string(), "1");
     }
 
     #[test]
@@ -398,7 +398,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.float_stack.push(1.0);
         integer_from_float(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:1;");
+        assert_eq!(test_state.int_stack.to_string(), "1");
     }
 
     #[test]
@@ -407,7 +407,7 @@ mod tests {
         test_state.int_stack.push(1);
         test_state.int_stack.push(3);
         integer_max(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:3;");
+        assert_eq!(test_state.int_stack.to_string(), "3");
     }
 
     #[test]
@@ -416,7 +416,7 @@ mod tests {
         test_state.int_stack.push(1);
         test_state.int_stack.push(3);
         integer_max(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:3;");
+        assert_eq!(test_state.int_stack.to_string(), "3");
     }
 
     #[test]
@@ -425,7 +425,7 @@ mod tests {
         test_state.int_stack.push(2);
         test_state.int_stack.push(1);
         integer_pop(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:2;");
+        assert_eq!(test_state.int_stack.to_string(), "2");
     }
 
     #[test]
@@ -441,9 +441,9 @@ mod tests {
         test_state.int_stack.push(3);
         test_state.int_stack.push(2);
         test_state.int_stack.push(1);
-        assert_eq!(test_state.int_stack.to_string(), "1:1; 2:2; 3:3;");
+        assert_eq!(test_state.int_stack.to_string(), "1 2 3");
         integer_rot(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:3; 2:1; 3:2;");
+        assert_eq!(test_state.int_stack.to_string(), "3 1 2");
     }
 
     #[test]
@@ -453,10 +453,10 @@ mod tests {
         test_state.int_stack.push(3);
         test_state.int_stack.push(2);
         test_state.int_stack.push(1);
-        assert_eq!(test_state.int_stack.to_string(), "1:1; 2:2; 3:3; 4:4;");
+        assert_eq!(test_state.int_stack.to_string(), "1 2 3 4");
         test_state.int_stack.push(2);
         integer_shove(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:2; 2:3; 3:1; 4:4;");
+        assert_eq!(test_state.int_stack.to_string(), "2 3 1 4");
     }
 
     #[test]
@@ -467,7 +467,7 @@ mod tests {
         test_state.int_stack.push(2);
         test_state.int_stack.push(1);
         integer_stack_depth(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:5; 2:1; 3:2; 4:3; 5:4;");
+        assert_eq!(test_state.int_stack.to_string(), "5 1 2 3 4");
     }
 
     #[test]
@@ -475,9 +475,9 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.int_stack.push(0);
         test_state.int_stack.push(1);
-        assert_eq!(test_state.int_stack.to_string(), "1:1; 2:0;");
+        assert_eq!(test_state.int_stack.to_string(), "1 0");
         integer_swap(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:0; 2:1;");
+        assert_eq!(test_state.int_stack.to_string(), "0 1");
     }
 
     #[test]
@@ -488,10 +488,10 @@ mod tests {
         test_state.int_stack.push(3);
         test_state.int_stack.push(2);
         test_state.int_stack.push(1);
-        assert_eq!(test_state.int_stack.to_string(), "1:1; 2:2; 3:3; 4:4; 5:5;");
+        assert_eq!(test_state.int_stack.to_string(), "1 2 3 4 5");
         test_state.int_stack.push(3);
         integer_yank(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:4; 2:1; 3:2; 4:3; 5:5;");
+        assert_eq!(test_state.int_stack.to_string(), "4 1 2 3 5");
     }
 
     #[test]
@@ -502,12 +502,12 @@ mod tests {
         test_state.int_stack.push(3);
         test_state.int_stack.push(2);
         test_state.int_stack.push(1);
-        assert_eq!(test_state.int_stack.to_string(), "1:1; 2:2; 3:3; 4:4; 5:5;");
+        assert_eq!(test_state.int_stack.to_string(), "1 2 3 4 5");
         test_state.int_stack.push(3);
         integer_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.int_stack.to_string(),
-            "1:4; 2:1; 3:2; 4:3; 5:4; 6:5;"
+            "4 1 2 3 4 5"
         );
     }
 }

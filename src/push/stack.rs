@@ -1,13 +1,42 @@
 use std::fmt;
+use std::any::type_name;
 
 #[derive(Clone, Debug)]
 pub struct PushStack<T> {
     elements: Vec<T>,
 }
 
+pub trait PushPrint {
+    fn to_pstring(&self) -> String; 
+}
+
+impl PushPrint for f32 {
+    fn to_pstring(&self) -> String {
+        format!("{:.1}", self)
+    }
+}
+
+impl PushPrint for i32 {
+   fn to_pstring(&self) -> String {
+       self.to_string()
+   }
+}
+
+impl PushPrint for String {
+   fn to_pstring(&self) -> String {
+       self.to_string()
+   }
+}
+
+impl PushPrint for bool {
+   fn to_pstring(&self) -> String {
+       format!("{}", self.to_string().to_uppercase())
+   }
+}
+
 impl<T> PushStack<T>
 where
-    T: Clone + fmt::Display + PartialEq,
+    T: Clone + fmt::Display + PartialEq + PushPrint,
 {
     pub fn new() -> Self {
         Self {
@@ -25,7 +54,7 @@ where
     pub fn to_string(&self) -> String {
         let mut result = "".to_string();
         for (i, x) in self.elements.iter().rev().enumerate() {
-            result.push_str(&format!("{}:{}; ", (i + 1), x));
+             result.push_str(&format!(" {}", x.to_pstring()));
         }
         result.trim().to_string()
     }
@@ -345,7 +374,7 @@ mod tests {
         assert_eq!(test_stack.replace(6, 19), Err(2));
         assert_eq!(test_stack.replace(4, 19), Ok(()));
         assert_eq!(test_stack.replace(0, 19), Ok(()));
-        assert_eq!(test_stack.to_string(), "1:19; 2:19; 3:3; 4:2; 5:19;");
+        assert_eq!(test_stack.to_string(), "19 19 3 2 19");
     }
 
     #[test]

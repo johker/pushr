@@ -395,7 +395,7 @@ mod tests {
             INT_STACK_ID,
         ]));
         list_add(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "1:List: 1:Literal(1); 2:Literal([22]); 3:Literal([1]); 4:Literal([3]); 5:Literal(1f); 6:Literal(true);;");
+        assert_eq!(test_state.code_stack.to_string(), "( 1 [22] [1] [3.0] 1.0 TRUE )");
     }
 
     #[test]
@@ -413,7 +413,7 @@ mod tests {
         list_remove(&mut test_state, &icache());
         assert_eq!(
             test_state.code_stack.to_string(),
-            "1:Literal(2); 2:Literal(1);"
+            "2 1"
         );
     }
 
@@ -432,7 +432,7 @@ mod tests {
         list_get(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:List: 1:Literal(2.3f); 2:Literal(3); 3:Literal(2); 4:Literal(true);;",
+            "( 2.3 3 2 TRUE )",
             "Order of elements should be reversed"
         );
     }
@@ -488,7 +488,7 @@ mod tests {
         list_set(&mut test_state, &icache());
         assert_eq!(
             test_state.code_stack.to_string(),
-            "1:Literal(33); 2:List: 1:Literal(true); 2:Literal(false);; 3:Literal(11);",
+            "33 ( true false ) 11",
             "Order of new list element reversed"
         );
     }
@@ -500,7 +500,7 @@ mod tests {
         test_state.bool_stack.push(false);
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "1:false; 2:true;",
+            "false true",
             "Initial order of items"
         );
         test_state
@@ -518,7 +518,7 @@ mod tests {
         );
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "1:false; 2:true;",
+            "false true",
             "Push/Pull of list preserves order of items"
         );
     }
@@ -529,7 +529,7 @@ mod tests {
         test_state.bool_stack.push(false);
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "1:false; 2:true;",
+            "false true",
             "Initial order of items"
         );
         test_state
@@ -551,7 +551,7 @@ mod tests {
         );
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "1:false; 2:true;",
+            "false true",
             "Push/Pull of list preserves order of items"
         );
     }
@@ -566,7 +566,7 @@ mod tests {
         list_neighbor_ids(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            String::from("1:[40,41,50,51,60,61];")
+            String::from("[40,41,50,51,60,61]")
         );
     }
 
@@ -580,7 +580,7 @@ mod tests {
         list_neighbor_ids(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            String::from("1:[88,89,98,99];")
+            String::from("[88,89,98,99]")
         );
         test_state.int_vector_stack.flush();
         test_state.float_stack.push(1.5); // Radius
@@ -590,7 +590,7 @@ mod tests {
         list_neighbor_ids(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            String::from("1:[0,1,10,11];")
+            String::from("[0,1,10,11]")
         );
     }
 
@@ -607,7 +607,7 @@ mod tests {
         list_neighbor_ids(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            String::from("1:[0,1,3];")
+            String::from("[0,1,3]")
         );
         test_state.int_vector_stack.flush();
         test_state.float_stack.push(1.0); // Radius
@@ -618,7 +618,7 @@ mod tests {
         list_neighbor_ivals(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            String::from("1:[19,18,16];")
+            String::from("[19,18,16]")
         );
     }
 }

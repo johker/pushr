@@ -4,6 +4,7 @@ use crate::push::item::Item;
 use crate::push::random::CodeGenerator;
 use crate::push::state::PushState;
 use crate::push::state::*;
+use crate::push::stack::PushPrint;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -26,6 +27,12 @@ impl BoolVector {
     }
 }
 
+impl PushPrint for BoolVector {
+   fn to_pstring(&self) -> String {
+       format!("{}", self.to_string())
+   }
+}
+
 impl fmt::Display for BoolVector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = self
@@ -33,7 +40,7 @@ impl fmt::Display for BoolVector {
             .clone()
             .into_iter()
             .fold(String::new(), |acc, num| {
-                acc + &(num as u32).to_string() + ","
+                acc + &num.to_string().to_uppercase() + ","
             });
         s.pop();
         write!(f, "[{}]", s)
@@ -55,6 +62,12 @@ impl IntVector {
     pub fn new(arg: Vec<i32>) -> Self {
         Self { values: arg }
     }
+}
+
+impl PushPrint for IntVector {
+   fn to_pstring(&self) -> String {
+       format!("{}", self.to_string())
+   }
 }
 
 impl fmt::Display for IntVector {
@@ -86,13 +99,19 @@ impl FloatVector {
     }
 }
 
+impl PushPrint for FloatVector {
+   fn to_pstring(&self) -> String {
+       format!("{}", self.to_string())
+   }
+}
+
 impl fmt::Display for FloatVector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = self
             .values
             .clone()
             .into_iter()
-            .fold(String::new(), |acc, num| acc + &num.to_string() + ",");
+            .fold(String::new(), |acc, num| acc + &format!("{:.1}", num) + ",");
         s.pop();
         write!(f, "[{}]", s)
     }
@@ -1508,7 +1527,7 @@ mod tests {
     #[test]
     fn bool_vector_prints_values() {
         let bv = BoolVector::new(vec![true, false, true]);
-        assert_eq!(bv.to_string(), "[1,0,1]");
+        assert_eq!(bv.to_string(), "[TRUE,FALSE,TRUE]");
     }
 
     #[test]
@@ -1760,13 +1779,13 @@ mod tests {
             .push(BoolVector::new(vec![true]));
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
-            "1:[1]; 2:[0]; 3:[0]; 4:[0];"
+            "[TRUE] [FALSE] [FALSE] [FALSE]"
         );
         test_state.int_stack.push(2);
         bool_vector_shove(&mut test_state, &icache());
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
-            "1:[0]; 2:[0]; 3:[1]; 4:[0];"
+            "[FALSE] [FALSE] [TRUE] [FALSE]"
         );
         test_state
             .bool_vector_stack
@@ -1775,7 +1794,7 @@ mod tests {
         bool_vector_shove(&mut test_state, &icache());
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
-            "1:[0]; 2:[0]; 3:[1]; 4:[0]; 5:[1];"
+            "[FALSE] [FALSE] [TRUE] [FALSE] [TRUE]"
         );
         test_state
             .bool_vector_stack
@@ -1783,7 +1802,7 @@ mod tests {
         test_state.int_stack.push(-2);
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
-            "1:[1]; 2:[0]; 3:[0]; 4:[1]; 5:[0]; 6:[1];"
+            "[TRUE] [FALSE] [FALSE] [TRUE] [FALSE] [TRUE]"
         );
     }
 
@@ -1794,9 +1813,9 @@ mod tests {
             .bool_vector_stack
             .push(BoolVector::new(vec![true, false, false, true, false]));
         bool_vector_sort_asc(&mut test_state, &icache());
-        assert_eq!(test_state.bool_vector_stack.to_string(), "1:[0,0,0,1,1];");
+        assert_eq!(test_state.bool_vector_stack.to_string(), "[FALSE,FALSE,FALSE,TRUE,TRUE]");
         bool_vector_sort_desc(&mut test_state, &icache());
-        assert_eq!(test_state.bool_vector_stack.to_string(), "1:[1,1,0,0,0];");
+        assert_eq!(test_state.bool_vector_stack.to_string(), "[TRUE,TRUE,FALSE,FALSE,FALSE]");
     }
 
     #[test]
@@ -1815,7 +1834,7 @@ mod tests {
             .bool_vector_stack
             .push(BoolVector::new(vec![true]));
         bool_vector_stack_depth(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+        assert_eq!(test_state.int_stack.to_string(), "4");
     }
 
     #[test]
@@ -1825,7 +1844,7 @@ mod tests {
             .bool_vector_stack
             .push(BoolVector::new(vec![true, false, false, true, false]));
         bool_vector_count(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:2;");
+        assert_eq!(test_state.int_stack.to_string(), "2");
     }
 
     #[test]
@@ -1837,9 +1856,9 @@ mod tests {
         test_state
             .bool_vector_stack
             .push(BoolVector::new(vec![false]));
-        assert_eq!(test_state.bool_vector_stack.to_string(), "1:[0]; 2:[1];");
+        assert_eq!(test_state.bool_vector_stack.to_string(), "[FALSE] [TRUE]");
         bool_vector_swap(&mut test_state, &icache());
-        assert_eq!(test_state.bool_vector_stack.to_string(), "1:[1]; 2:[0];");
+        assert_eq!(test_state.bool_vector_stack.to_string(), "[TRUE] [FALSE]");
     }
 
     #[test]
@@ -1862,13 +1881,13 @@ mod tests {
             .push(BoolVector::new(vec![true]));
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
-            "1:[1]; 2:[1]; 3:[1]; 4:[0]; 5:[1];"
+            "[TRUE] [TRUE] [TRUE] [FALSE] [TRUE]"
         );
         test_state.int_stack.push(3);
         bool_vector_yank(&mut test_state, &icache());
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
-            "1:[0]; 2:[1]; 3:[1]; 4:[1]; 5:[1];"
+            "[FALSE] [TRUE] [TRUE] [TRUE] [TRUE]"
         );
     }
 
@@ -1892,13 +1911,13 @@ mod tests {
             .push(BoolVector::new(vec![true]));
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
-            "1:[1]; 2:[1]; 3:[1]; 4:[0]; 5:[1];"
+            "[TRUE] [TRUE] [TRUE] [FALSE] [TRUE]"
         );
         test_state.int_stack.push(3);
         bool_vector_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.bool_vector_stack.to_string(),
-            "1:[0]; 2:[1]; 3:[1]; 4:[1]; 5:[0]; 6:[1];"
+            "[FALSE] [TRUE] [TRUE] [TRUE] [FALSE] [TRUE]"
         );
     }
 
@@ -2210,13 +2229,13 @@ mod tests {
         test_state.int_vector_stack.push(IntVector::new(vec![1]));
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            "1:[1]; 2:[2]; 3:[3]; 4:[4];"
+            "[1] [2] [3] [4]"
         );
         test_state.int_stack.push(2);
         int_vector_shove(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            "1:[2]; 2:[3]; 3:[1]; 4:[4];"
+            "[2] [3] [1] [4]"
         );
     }
 
@@ -2229,12 +2248,12 @@ mod tests {
         int_vector_sort_asc(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            "1:[-28,-1,0,34,111];"
+            "[-28,-1,0,34,111]"
         );
         int_vector_sort_desc(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            "1:[111,34,0,-1,-28];"
+            "[111,34,0,-1,-28]"
         );
     }
     #[test]
@@ -2245,7 +2264,7 @@ mod tests {
         test_state.int_vector_stack.push(IntVector::new(vec![2]));
         test_state.int_vector_stack.push(IntVector::new(vec![1]));
         int_vector_stack_depth(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+        assert_eq!(test_state.int_stack.to_string(), "4");
     }
 
     #[test]
@@ -2253,9 +2272,9 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.int_vector_stack.push(IntVector::new(vec![0]));
         test_state.int_vector_stack.push(IntVector::new(vec![1]));
-        assert_eq!(test_state.int_vector_stack.to_string(), "1:[1]; 2:[0];");
+        assert_eq!(test_state.int_vector_stack.to_string(), "[1] [0]");
         int_vector_swap(&mut test_state, &icache());
-        assert_eq!(test_state.int_vector_stack.to_string(), "1:[0]; 2:[1];");
+        assert_eq!(test_state.int_vector_stack.to_string(), "[0] [1]");
     }
 
     #[test]
@@ -2265,7 +2284,7 @@ mod tests {
             .int_vector_stack
             .push(IntVector::new(vec![1, 3, -2, 5, 7]));
         int_vector_sum(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:14;");
+        assert_eq!(test_state.int_stack.to_string(), "14");
     }
 
     #[test]
@@ -2278,13 +2297,13 @@ mod tests {
         test_state.int_vector_stack.push(IntVector::new(vec![1]));
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            "1:[1]; 2:[2]; 3:[3]; 4:[4]; 5:[5];"
+            "[1] [2] [3] [4] [5]"
         );
         test_state.int_stack.push(3);
         int_vector_yank(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[5];"
+            "[4] [1] [2] [3] [5]"
         );
     }
 
@@ -2298,13 +2317,13 @@ mod tests {
         test_state.int_vector_stack.push(IntVector::new(vec![1]));
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            "1:[1]; 2:[2]; 3:[3]; 4:[4]; 5:[5];"
+            "[1] [2] [3] [4] [5]"
         );
         test_state.int_stack.push(3);
         int_vector_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.int_vector_stack.to_string(),
-            "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[4]; 6:[5];"
+            "[4] [1] [2] [3] [4] [5]"
         );
     }
 
@@ -2510,13 +2529,13 @@ mod tests {
             .push(FloatVector::new(vec![1.0]));
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "1:[1]; 2:[2]; 3:[3]; 4:[4];"
+            "[1.0] [2.0] [3.0] [4.0]"
         );
         test_state.int_stack.push(2);
         float_vector_shove(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "1:[2]; 2:[3]; 3:[1]; 4:[4];"
+            "[2.0] [3.0] [1.0] [4.0]"
         );
     }
     #[test]
@@ -2568,12 +2587,12 @@ mod tests {
         float_vector_sort_asc(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "1:[-28.1,-1.5,0,34.2,111.1];"
+            "[-28.1,-1.5,0.0,34.2,111.1]"
         );
         float_vector_sort_desc(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "1:[111.1,34.2,0,-1.5,-28.1];"
+            "[111.1,34.2,0,-1.5,-28.1]"
         );
     }
 
@@ -2607,7 +2626,7 @@ mod tests {
             .float_vector_stack
             .push(FloatVector::new(vec![1.0]));
         float_vector_stack_depth(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+        assert_eq!(test_state.int_stack.to_string(), "4");
     }
 
     #[test]
@@ -2617,7 +2636,7 @@ mod tests {
             .float_vector_stack
             .push(FloatVector::new(vec![1.0, 3.0, -2.0, 5.0, 7.0]));
         float_vector_sum(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:14;");
+        assert_eq!(test_state.float_stack.to_string(), "14.0");
     }
 
     #[test]
@@ -2629,9 +2648,9 @@ mod tests {
         test_state
             .float_vector_stack
             .push(FloatVector::new(vec![1.0]));
-        assert_eq!(test_state.float_vector_stack.to_string(), "1:[1]; 2:[0];");
+        assert_eq!(test_state.float_vector_stack.to_string(), "[1.0] [0.0]");
         float_vector_swap(&mut test_state, &icache());
-        assert_eq!(test_state.float_vector_stack.to_string(), "1:[0]; 2:[1];");
+        assert_eq!(test_state.float_vector_stack.to_string(), "[0.0] [1.0]");
     }
 
     #[test]
@@ -2654,13 +2673,13 @@ mod tests {
             .push(FloatVector::new(vec![1.0]));
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "1:[1]; 2:[2]; 3:[3]; 4:[4]; 5:[5];"
+            "[1.0] [2.0] [3.0] [4.0] [5.0]"
         );
         test_state.int_stack.push(3);
         float_vector_yank(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[5];"
+            "[4.0] [1.0] [2.0] [3.0] [5.0]"
         );
     }
 
@@ -2684,13 +2703,13 @@ mod tests {
             .push(FloatVector::new(vec![1.0]));
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "1:[1]; 2:[2]; 3:[3]; 4:[4]; 5:[5];"
+            "[1.0] [2.0] [3.0] [4.0] [5.0]"
         );
         test_state.int_stack.push(3);
         float_vector_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "1:[4]; 2:[1]; 3:[2]; 4:[3]; 5:[4]; 6:[5];"
+            "[4.0] [1.0] [2.0] [3.0] [4.0] [5.0]"
         );
     }
 

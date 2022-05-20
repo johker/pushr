@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::push::graph::Graph;
 use crate::push::index::Index;
-use crate::push::stack::PushStack;
+use crate::push::stack::{PushStack, PushPrint};
 use crate::push::vector::{BoolVector, FloatVector, IntVector};
 
 // Items
@@ -369,32 +369,35 @@ impl PartialEq for Item {
     }
 }
 
+impl PushPrint for Item {
+   fn to_pstring(&self) -> String {
+       format!("{}", self.to_string())
+   }
+}
+
 impl fmt::Display for Item {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &*self {
-            Item::List { items } => write!(f, "List: {}", items.to_string()),
+            Item::List { items } => write!(f, "( {} )", items.to_string()),
             Item::InstructionMeta { name } => {
-                let at = "InstructionMeta".to_string();
-                write!(f, "{}({})", at, name)
+                write!(f, "{}", name)
             }
             Item::Literal { push_type } => {
-                let at = "Literal".to_string();
                 let info;
                 match push_type {
-                    PushType::Bool { val } => info = val.to_string(),
+                    PushType::Bool { val } => info = val.to_string().to_uppercase(),
                     PushType::Int { val } => info = val.to_string(),
                     PushType::Index { val } => info = val.to_string(),
-                    PushType::Float { val } => info = val.to_string() + "f",
+                    PushType::Float { val } => info = format!("{:.1}", val),
                     PushType::BoolVector { val } => info = val.to_string(),
                     PushType::FloatVector { val } => info = val.to_string(),
                     PushType::IntVector { val } => info = val.to_string(),
                     PushType::Graph { val } => info = val.to_string(),
                 }
-                write!(f, "{}({})", at, info)
+                write!(f, "{}", info)
             }
             Item::Identifier { name } => {
-                let at = "Identifier".to_string();
-                write!(f, "{}({})", at, name)
+                write!(f, "{}", name)
             }
         }
     }
@@ -464,7 +467,7 @@ mod tests {
     #[test]
     fn print_list_shows_sublements() {
         let list = Item::list(vec![Item::int(0), Item::int(1)]);
-        assert_eq!(list.to_string(), "List: 1:Literal(1); 2:Literal(0);");
+        assert_eq!(list.to_string(), "( 1 0 )");
     }
 
     #[test]
@@ -477,7 +480,7 @@ mod tests {
         ]);
         assert_eq!(
             Item::traverse(&test_item, 4).unwrap().to_string(),
-            "Literal(3)"
+            "3"
         );
     }
 
@@ -494,13 +497,13 @@ mod tests {
             Item::find(&test_item, &Item::int(28), &mut 0, &0)
                 .unwrap()
                 .to_string(),
-            "Literal(3)"
+            "3"
         );
         assert_eq!(
             Item::find(&test_item, &Item::int(28), &mut 0, &1)
                 .unwrap()
                 .to_string(),
-            "Literal(2)"
+            "2"
         );
     }
 
@@ -516,7 +519,7 @@ mod tests {
         assert_eq!(Item::insert(&mut test_item, &item_to_insert, 4), Ok(false));
         assert_eq!(
             test_item.to_string(),
-            "List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(99);; 4:Literal(4);"
+            "( 1 2 ( 99 ) 4 )"
         );
     }
 
@@ -636,7 +639,7 @@ mod tests {
         Item::substitute(&mut test_item, &pattern, &substitute);
         assert_eq!(
             test_item.to_string(),
-            "List: 1:Literal(1); 2:Literal(2); 3:List: 1:Literal(9);; 4:Literal(4);"
+            "( 1 2 ( 9 ) 4 )"
         );
     }
     #[test]
@@ -652,7 +655,7 @@ mod tests {
         Item::substitute(&mut test_item, &pattern, &substitute);
         assert_eq!(
             test_item.to_string(),
-            "List: 1:Literal(1); 2:Literal(2); 3:Literal(9); 4:Literal(4);"
+            "( 1 2 9 4 )"
         );
     }
 }

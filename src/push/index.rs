@@ -1,6 +1,7 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::state::PushState;
+use crate::push::stack::PushPrint;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -17,6 +18,12 @@ impl Index {
             destination: dest_arg,
         }
     }
+}
+
+impl PushPrint for Index {
+   fn to_pstring(&self) -> String {
+       format!("{}", self.to_string())
+   }
 }
 
 impl fmt::Display for Index {

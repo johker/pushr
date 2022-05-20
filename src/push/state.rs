@@ -127,6 +127,6 @@ mod tests {
         test_state
             .name_bindings
             .insert("Var1".to_string(), Item::bool(true));
-        assert_eq!(test_state.to_string(), "> BOOL  : \n\n> CODE  : \n\n> EXEC  : \n\n> FLOAT : \n\n> GRAPH : \n\n> INDEX : \n\n> INT   : \n\n> BVEC  : \n\n> FVEC  : \n\n> IVEC  : \n\n> NAME  : \n\n> IDS   : \nVar1 => Literal(true);\n Var2 => InstructionMeta(INTVECTOR.BOOLINDEX);\n \n")
+        assert_eq!(test_state.to_string(), "> BOOL  : \n\n> CODE  : \n\n> EXEC  : \n\n> FLOAT : \n\n> GRAPH : \n\n> INDEX : \n\n> INT   : \n\n> BVEC  : \n\n> FVEC  : \n\n> IVEC  : \n\n> NAME  : \n\n> IDS   : \nVar1 => true\n Var2 => INTVECTOR.BOOLINDEX\n \n")
     }
 }

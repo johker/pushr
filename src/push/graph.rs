@@ -1,6 +1,7 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::state::PushState;
+use crate::push::stack::PushPrint;
 use crate::push::vector::{BoolVector, IntVector};
 use std::collections::{HashMap};
 use std::fmt;
@@ -205,6 +206,11 @@ impl Node {
         pub nodes: HashMap<usize, Node>,
     }
 
+    impl PushPrint for Graph {
+       fn to_pstring(&self) -> String {
+           format!("{}", self.to_string())
+       }
+    }
     impl fmt::Display for Graph {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let mut node_string: String = "".to_owned();

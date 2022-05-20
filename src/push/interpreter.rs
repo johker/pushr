@@ -121,7 +121,7 @@ mod tests {
         instruction_set.load();
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         PushInterpreter::copy_to_code_stack(&mut push_state);
-        assert_eq!(push_state.code_stack.to_string(), "1:List: 1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1f); 5:Literal(5.2f); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);;");
+        assert_eq!(push_state.code_stack.to_string(), "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR ));");
     }
 
     #[test]
@@ -147,15 +147,15 @@ mod tests {
             .push(Item::instruction("INTEGER.*".to_string()));
         push_state.exec_stack.push(Item::int(3));
         push_state.exec_stack.push(Item::int(2));
-        assert_eq!(push_state.exec_stack.to_string(), "1:Literal(2); 2:Literal(3); 3:InstructionMeta(INTEGER.*); 4:Literal(4.1f); 5:Literal(5.2f); 6:InstructionMeta(FLOAT.+); 7:Literal(true); 8:Literal(false); 9:InstructionMeta(BOOLEAN.OR);");
+        assert_eq!(push_state.exec_stack.to_string(), "2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR");
 
         assert_eq!(
             PushInterpreter::run(&mut push_state, &mut instruction_set),
             PushInterpreterState::NoErrors
         );
-        assert_eq!(push_state.int_stack.to_string(), "1:6;");
+        assert_eq!(push_state.int_stack.to_string(), "6");
         assert!((push_state.float_stack.copy_vec(1).unwrap()[0] - 9.3).abs() < 0.00001);
-        assert_eq!(push_state.bool_stack.to_string(), "1:true;");
+        assert_eq!(push_state.bool_stack.to_string(), "true");
     }
 
     #[test]
@@ -171,7 +171,7 @@ mod tests {
             PushInterpreter::run(&mut push_state, &mut instruction_set),
             PushInterpreterState::NoErrors
         );
-        assert_eq!(push_state.float_stack.to_string(), "1:16;");
+        assert_eq!(push_state.float_stack.to_string(), "16.0");
     }
 
     #[test]
@@ -188,7 +188,7 @@ mod tests {
             PushInterpreter::run(&mut push_state, &mut instruction_set),
             PushInterpreterState::NoErrors
         );
-        assert_eq!(push_state.int_stack.to_string(), "1:24;");
+        assert_eq!(push_state.int_stack.to_string(), "24");
     }
 
     #[test]
@@ -204,7 +204,7 @@ mod tests {
                 break;
             }
         }
-        assert_eq!(push_state.int_stack.to_string(), "1:6;");
+        assert_eq!(push_state.int_stack.to_string(), "6");
         assert_eq!(push_state.index_stack.to_string(), "");
         assert_eq!(push_state.exec_stack.to_string(), "");
     }
@@ -222,7 +222,7 @@ mod tests {
                 break;
             }
         }
-        assert_eq!(push_state.int_stack.to_string(), "1:0;");
+        assert_eq!(push_state.int_stack.to_string(), "0");
         assert_eq!(push_state.index_stack.to_string(), "");
         assert_eq!(push_state.exec_stack.to_string(), "");
     }
@@ -240,7 +240,7 @@ mod tests {
                 break;
             }
         }
-        assert_eq!(push_state.int_stack.to_string(), "1:9;");
+        assert_eq!(push_state.int_stack.to_string(), "9");
         assert_eq!(push_state.int_vector_stack.to_string(), "");
         assert_eq!(push_state.exec_stack.to_string(), "");
     }
@@ -257,7 +257,7 @@ mod tests {
                 break;
             }
         }
-        assert_eq!(push_state.int_stack.to_string(), "1:0;");
+        assert_eq!(push_state.int_stack.to_string(), "0");
         assert_eq!(push_state.index_stack.to_string(), "");
         assert_eq!(push_state.exec_stack.to_string(), "");
     }

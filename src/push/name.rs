@@ -187,7 +187,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.name_stack.push(String::from("Test"));
         name_dup(&mut test_state, &icache());
-        assert_eq!(test_state.name_stack.to_string(), "1:Test; 2:Test;");
+        assert_eq!(test_state.name_stack.to_string(), "Test Test");
     }
 
     #[test]
@@ -222,12 +222,12 @@ mod tests {
         test_state.name_stack.push(String::from("Test1"));
         assert_eq!(
             test_state.name_stack.to_string(),
-            "1:Test1; 2:Test2; 3:Test3;"
+            "Test1 Test2 Test3"
         );
         name_rot(&mut test_state, &icache());
         assert_eq!(
             test_state.name_stack.to_string(),
-            "1:Test3; 2:Test1; 3:Test2;"
+            "Test3 Test1 Test2"
         );
     }
 
@@ -240,13 +240,13 @@ mod tests {
         test_state.name_stack.push(String::from("Test1"));
         assert_eq!(
             test_state.name_stack.to_string(),
-            "1:Test1; 2:Test2; 3:Test3; 4:Test4;"
+            "Test1 Test2 Test3 Test4"
         );
         test_state.int_stack.push(2);
         name_shove(&mut test_state, &icache());
         assert_eq!(
             test_state.name_stack.to_string(),
-            "1:Test2; 2:Test3; 3:Test1; 4:Test4;"
+            "Test2 Test3 Test1 Test4"
         );
     }
 
@@ -258,7 +258,7 @@ mod tests {
         test_state.name_stack.push(String::from("Test2"));
         test_state.name_stack.push(String::from("Test1"));
         name_stack_depth(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+        assert_eq!(test_state.int_stack.to_string(), "4");
     }
 
     #[test]
@@ -266,9 +266,9 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.name_stack.push(String::from("Test2"));
         test_state.name_stack.push(String::from("Test1"));
-        assert_eq!(test_state.name_stack.to_string(), "1:Test1; 2:Test2;");
+        assert_eq!(test_state.name_stack.to_string(), "Test1 Test2");
         name_swap(&mut test_state, &icache());
-        assert_eq!(test_state.name_stack.to_string(), "1:Test2; 2:Test1;");
+        assert_eq!(test_state.name_stack.to_string(), "Test2 Test1");
     }
 
     #[test]
@@ -281,13 +281,13 @@ mod tests {
         test_state.name_stack.push(String::from("Test1"));
         assert_eq!(
             test_state.name_stack.to_string(),
-            "1:Test1; 2:Test2; 3:Test3; 4:Test4; 5:Test5;"
+            "Test1 Test2 Test3 Test4 Test5"
         );
         test_state.int_stack.push(3);
         name_yank(&mut test_state, &icache());
         assert_eq!(
             test_state.name_stack.to_string(),
-            "1:Test4; 2:Test1; 3:Test2; 4:Test3; 5:Test5;"
+            "Test4 Test1 Test2 Test3 Test5"
         );
     }
 
@@ -301,13 +301,13 @@ mod tests {
         test_state.name_stack.push(String::from("Test1"));
         assert_eq!(
             test_state.name_stack.to_string(),
-            "1:Test1; 2:Test2; 3:Test3; 4:Test4; 5:Test5;"
+            "Test1 Test2 Test3 Test4 Test5"
         );
         test_state.int_stack.push(3);
         name_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.name_stack.to_string(),
-            "1:Test4; 2:Test1; 3:Test2; 4:Test3; 5:Test4; 6:Test5;"
+            "Test4 Test1 Test2 Test3 Test4 Test5"
         );
     }
 }

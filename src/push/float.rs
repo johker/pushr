@@ -386,7 +386,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.float_stack.push(2.0);
         float_dup(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:2; 2:2;");
+        assert_eq!(test_state.float_stack.to_string(), "2.0 2.0");
     }
 
     #[test]
@@ -403,7 +403,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(true);
         float_from_boolean(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:1;");
+        assert_eq!(test_state.float_stack.to_string(), "1.0");
     }
 
     #[test]
@@ -411,7 +411,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.int_stack.push(1);
         float_from_integer(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:1;");
+        assert_eq!(test_state.float_stack.to_string(), "1.0");
     }
 
     #[test]
@@ -420,7 +420,7 @@ mod tests {
         test_state.float_stack.push(1.0);
         test_state.float_stack.push(3.0);
         float_max(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:3;");
+        assert_eq!(test_state.float_stack.to_string(), "3.0;");
     }
 
     #[test]
@@ -429,7 +429,7 @@ mod tests {
         test_state.float_stack.push(1.0);
         test_state.float_stack.push(3.0);
         float_max(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:3;");
+        assert_eq!(test_state.float_stack.to_string(), "3.0");
     }
 
     #[test]
@@ -438,7 +438,7 @@ mod tests {
         test_state.float_stack.push(2.4);
         test_state.float_stack.push(2.1);
         float_pop(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:2.4;");
+        assert_eq!(test_state.float_stack.to_string(), "2.4");
     }
 
     #[test]
@@ -454,9 +454,9 @@ mod tests {
         test_state.float_stack.push(3.0);
         test_state.float_stack.push(2.0);
         test_state.float_stack.push(1.0);
-        assert_eq!(test_state.float_stack.to_string(), "1:1; 2:2; 3:3;");
+        assert_eq!(test_state.float_stack.to_string(), "1.0 2.0 3.0");
         float_rot(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:3; 2:1; 3:2;");
+        assert_eq!(test_state.float_stack.to_string(), "3.0 1.0 2.0");
     }
 
     #[test]
@@ -466,10 +466,10 @@ mod tests {
         test_state.float_stack.push(3.0);
         test_state.float_stack.push(2.0);
         test_state.float_stack.push(1.0);
-        assert_eq!(test_state.float_stack.to_string(), "1:1; 2:2; 3:3; 4:4;");
+        assert_eq!(test_state.float_stack.to_string(), "1.0 2.0 3.0 4.0");
         test_state.int_stack.push(2);
         float_shove(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:2; 2:3; 3:1; 4:4;");
+        assert_eq!(test_state.float_stack.to_string(), "2.0 3.0 1.0 4.0");
     }
 
     #[test]
@@ -488,7 +488,7 @@ mod tests {
         test_state.float_stack.push(2.0);
         test_state.float_stack.push(1.0);
         float_stack_depth(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:4;");
+        assert_eq!(test_state.int_stack.to_string(), "4");
     }
 
     #[test]
@@ -496,9 +496,9 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.float_stack.push(0.0);
         test_state.float_stack.push(1.0);
-        assert_eq!(test_state.float_stack.to_string(), "1:1; 2:0;");
+        assert_eq!(test_state.float_stack.to_string(), "1.0 0.0");
         float_swap(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "1:0; 2:1;");
+        assert_eq!(test_state.float_stack.to_string(), "0.0 1.0");
     }
 
     #[test]
@@ -519,13 +519,13 @@ mod tests {
         test_state.float_stack.push(1.0);
         assert_eq!(
             test_state.float_stack.to_string(),
-            "1:1; 2:2; 3:3; 4:4; 5:5;"
+            "1.0 2.0 3.0 4.0 5.0"
         );
         test_state.int_stack.push(3);
         float_yank(&mut test_state, &icache());
         assert_eq!(
             test_state.float_stack.to_string(),
-            "1:4; 2:1; 3:2; 4:3; 5:5;"
+            "4.0 1.0 2.0 3.0 5.0"
         );
     }
 
@@ -539,13 +539,13 @@ mod tests {
         test_state.float_stack.push(1.0);
         assert_eq!(
             test_state.float_stack.to_string(),
-            "1:1; 2:2; 3:3; 4:4; 5:5;"
+            "1.0 2.0 3.0 4.0 5.0"
         );
         test_state.int_stack.push(3);
         float_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.float_stack.to_string(),
-            "1:4; 2:1; 3:2; 4:3; 5:4; 6:5;"
+            "4.0 1.0 2.0 3.0 4.0 5.0"
         );
     }
 }

@@ -244,7 +244,7 @@ mod tests {
         test_state.exec_stack.push(Item::int(1));
         exec_eq(&mut test_state, &icache());
         assert_eq!(test_state.exec_stack.size(), 2);
-        assert_eq!(test_state.bool_stack.to_string(), "1:true;");
+        assert_eq!(test_state.bool_stack.to_string(), "TRUE");
     }
 
     #[test]
@@ -254,7 +254,7 @@ mod tests {
         test_state.exec_stack.push(Item::int(2));
         exec_eq(&mut test_state, &icache());
         assert_eq!(test_state.exec_stack.size(), 2);
-        assert_eq!(test_state.bool_stack.to_string(), "1:false;");
+        assert_eq!(test_state.bool_stack.to_string(), "FALSE");
     }
 
     #[test]
@@ -275,7 +275,7 @@ mod tests {
         test_state.exec_stack.push(Item::noop());
         test_state.index_stack.push(Index::new(3));
         exec_loop(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:InstructionMeta(NOOP); 2:List: 1:InstructionMeta(INDEX.INCREASE); 2:InstructionMeta(EXEC.LOOP); 3:InstructionMeta(NOOP);;");
+        assert_eq!(test_state.exec_stack.to_string(), "NOOP ( INDEX.INCREASE EXEC.LOOP NOOP )");
     }
 
     #[test]
@@ -297,7 +297,7 @@ mod tests {
         exec_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:InstructionMeta(NOOP); 2:InstructionMeta(NOOP);"
+            "NOOP NOOP"
         );
     }
 
@@ -322,7 +322,7 @@ mod tests {
         test_state.exec_stack.push(Item::int(2));
         test_state.exec_stack.push(Item::int(1));
         exec_if(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
+        assert_eq!(test_state.exec_stack.to_string(), "1");
         assert_eq!(test_state.bool_stack.to_string(), "");
     }
 
@@ -333,7 +333,7 @@ mod tests {
         test_state.exec_stack.push(Item::int(2));
         test_state.exec_stack.push(Item::int(1));
         exec_if(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
+        assert_eq!(test_state.exec_stack.to_string(), "2");
         assert_eq!(test_state.bool_stack.to_string(), "");
     }
 
@@ -344,7 +344,7 @@ mod tests {
         test_state.exec_stack.push(Item::int(2));
         test_state.exec_stack.push(Item::int(1));
         exec_k(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(1);");
+        assert_eq!(test_state.exec_stack.to_string(), "1");
     }
 
     #[test]
@@ -354,7 +354,7 @@ mod tests {
         test_state.exec_stack.push(Item::int(2));
         test_state.exec_stack.push(Item::int(1));
         exec_pop(&mut test_state, &icache());
-        assert_eq!(test_state.exec_stack.to_string(), "1:Literal(2);");
+        assert_eq!(test_state.exec_stack.to_string(), "2");
     }
 
     #[test]
@@ -365,12 +365,12 @@ mod tests {
         test_state.exec_stack.push(Item::int(1));
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(1); 2:Literal(2); 3:Literal(3);"
+            "1 2 3"
         );
         exec_rot(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(3); 2:Literal(1); 3:Literal(2);"
+            "3 1 2"
         );
     }
 
@@ -382,12 +382,12 @@ mod tests {
         test_state.exec_stack.push(Item::int(1));
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(1); 2:Literal(2); 3:Literal(3);"
+            "1 2 3"
         );
         exec_s(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(1); 2:Literal(3); 3:List: 1:Literal(2); 2:Literal(3);;"
+            "1 3 ( 2 3 )"
         );
     }
 
@@ -400,13 +400,13 @@ mod tests {
         test_state.exec_stack.push(Item::int(1));
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4);"
+            "1 2 3 4"
         );
         test_state.int_stack.push(2);
         exec_shove(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(2); 2:Literal(3); 3:Literal(1); 4:Literal(4);"
+            "2 3 1 4"
         );
     }
 
@@ -421,7 +421,7 @@ mod tests {
             .exec_stack
             .push(Item::list(vec![Item::int(1), Item::int(2)]));
         exec_stack_depth(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.to_string(), "1:2;");
+        assert_eq!(test_state.int_stack.to_string(), "2");
     }
 
     #[test]
@@ -432,7 +432,7 @@ mod tests {
         exec_swap(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(0); 2:Literal(1);"
+            "0 1"
         );
     }
 
@@ -443,7 +443,7 @@ mod tests {
         exec_y(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(0); 2:List: 1:InstructionMeta(EXEC.Y); 2:Literal(0);;"
+            "0 ( EXEC.Y 0 )"
         );
     }
 
@@ -457,13 +457,13 @@ mod tests {
         test_state.exec_stack.push(Item::int(1));
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4); 5:Literal(5);"
+            "1 2 3 4 5"
         );
         test_state.int_stack.push(3);
         exec_yank(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(4); 2:Literal(1); 3:Literal(2); 4:Literal(3); 5:Literal(5);"
+            "4 1 2 3 5"
         );
     }
 
@@ -477,13 +477,13 @@ mod tests {
         test_state.exec_stack.push(Item::int(1));
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(1); 2:Literal(2); 3:Literal(3); 4:Literal(4); 5:Literal(5);"
+            "1 2 3 4 5"
         );
         test_state.int_stack.push(3);
         exec_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "1:Literal(4); 2:Literal(1); 3:Literal(2); 4:Literal(3); 5:Literal(4); 6:Literal(5);"
+            "4 1 2 3 4 5"
         );
     }
 }
