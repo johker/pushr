@@ -121,7 +121,7 @@ mod tests {
         instruction_set.load();
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         PushInterpreter::copy_to_code_stack(&mut push_state);
-        assert_eq!(push_state.code_stack.to_string(), "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR ));");
+        assert_eq!(push_state.code_stack.to_string(), "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR )");
     }
 
     #[test]
@@ -155,7 +155,7 @@ mod tests {
         );
         assert_eq!(push_state.int_stack.to_string(), "6");
         assert!((push_state.float_stack.copy_vec(1).unwrap()[0] - 9.3).abs() < 0.00001);
-        assert_eq!(push_state.bool_stack.to_string(), "true");
+        assert_eq!(push_state.bool_stack.to_string(), "TRUE");
     }
 
     #[test]

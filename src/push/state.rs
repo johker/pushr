@@ -92,7 +92,7 @@ impl fmt::Display for PushState {
         sorted.sort_by_key(|a| a.0);
 
         for (key, value) in &sorted {
-            nb += &format!("{} => {}; ", key, value)[..];
+            nb += &format!("{} => {}\n ", key, value)[..];
         }
         write!(
             f,
@@ -104,11 +104,11 @@ impl fmt::Display for PushState {
             self.graph_stack.to_string(),
             self.index_stack.to_string(),
             self.int_stack.to_string(),
-            self.bool_vector_stack.to_string().replace(";", ";\n"),
-            self.float_vector_stack.to_string().replace(";", ";\n"),
-            self.int_vector_stack.to_string().replace(";", ";\n"),
+            self.bool_vector_stack.to_string(),
+            self.float_vector_stack.to_string(),
+            self.int_vector_stack.to_string(),
             self.name_stack.to_string(),
-            nb.replace(";", ";\n"),
+            nb,
         )
     }
 }
@@ -127,6 +127,6 @@ mod tests {
         test_state
             .name_bindings
             .insert("Var1".to_string(), Item::bool(true));
-        assert_eq!(test_state.to_string(), "> BOOL  : \n\n> CODE  : \n\n> EXEC  : \n\n> FLOAT : \n\n> GRAPH : \n\n> INDEX : \n\n> INT   : \n\n> BVEC  : \n\n> FVEC  : \n\n> IVEC  : \n\n> NAME  : \n\n> IDS   : \nVar1 => true\n Var2 => INTVECTOR.BOOLINDEX\n \n")
+        assert_eq!(test_state.to_string(), "> BOOL  : \n\n> CODE  : \n\n> EXEC  : \n\n> FLOAT : \n\n> GRAPH : \n\n> INDEX : \n\n> INT   : \n\n> BVEC  : \n\n> FVEC  : \n\n> IVEC  : \n\n> NAME  : \n\n> IDS   : \nVar1 => TRUE\n Var2 => INTVECTOR.BOOLINDEX\n \n")
     }
 }

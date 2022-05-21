@@ -235,7 +235,7 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(false);
         boolean_dup(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.to_string(), "false false");
+        assert_eq!(test_state.bool_stack.to_string(), "FALSE FALSE");
     }
 
     #[test]
@@ -252,10 +252,10 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.float_stack.push(0.0);
         boolean_from_float(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.to_string(), "true");
+        assert_eq!(test_state.bool_stack.to_string(), "TRUE");
         test_state.float_stack.push(0.01);
         boolean_from_float(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.to_string(), "false true");
+        assert_eq!(test_state.bool_stack.to_string(), "FALSE TRUE");
     }
 
     #[test]
@@ -263,10 +263,10 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.int_stack.push(0);
         boolean_from_integer(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.to_string(), "true");
+        assert_eq!(test_state.bool_stack.to_string(), "TRUE");
         test_state.int_stack.push(1);
         boolean_from_integer(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.to_string(), "false true");
+        assert_eq!(test_state.bool_stack.to_string(), "FALSE TRUE");
     }
 
     #[test]
@@ -299,7 +299,7 @@ mod tests {
         test_state.bool_stack.push(true);
         test_state.bool_stack.push(false);
         boolean_pop(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.to_string(), "true");
+        assert_eq!(test_state.bool_stack.to_string(), "TRUE");
     }
 
     #[test]
@@ -317,12 +317,12 @@ mod tests {
         test_state.bool_stack.push(false);
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "false true true"
+            "FALSE TRUE TRUE"
         );
         boolean_rot(&mut test_state, &icache());
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "true false true"
+            "TRUE FALSE TRUE"
         );
     }
 
@@ -335,13 +335,13 @@ mod tests {
         test_state.bool_stack.push(false);
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "false true true true"
+            "FALSE TRUE TRUE TRUE"
         );
         test_state.int_stack.push(2);
         boolean_shove(&mut test_state, &icache());
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "true true false true"
+            "TRUE TRUE FALSE TRUE"
         );
     }
 
@@ -361,9 +361,9 @@ mod tests {
         let mut test_state = PushState::new();
         test_state.bool_stack.push(true);
         test_state.bool_stack.push(false);
-        assert_eq!(test_state.bool_stack.to_string(), "false true");
+        assert_eq!(test_state.bool_stack.to_string(), "FALSE TRUE");
         boolean_swap(&mut test_state, &icache());
-        assert_eq!(test_state.bool_stack.to_string(), "true false");
+        assert_eq!(test_state.bool_stack.to_string(), "TRUE FALSE");
     }
 
     #[test]
@@ -375,13 +375,13 @@ mod tests {
         test_state.bool_stack.push(true);
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "true true false true"
+            "TRUE TRUE FALSE TRUE"
         );
         test_state.int_stack.push(2);
         boolean_yank(&mut test_state, &icache());
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "false true true true"
+            "FALSE TRUE TRUE TRUE"
         );
     }
 
@@ -394,13 +394,13 @@ mod tests {
         test_state.bool_stack.push(true);
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "true true false true"
+            "TRUE TRUE FALSE TRUE"
         );
         test_state.int_stack.push(2);
         boolean_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "false true true false true"
+            "FALSE TRUE TRUE FALSE TRUE"
         );
     }
 }

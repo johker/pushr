@@ -215,7 +215,7 @@ mod tests {
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         assert_eq!(
             push_state.exec_stack.to_string(),
-            "( ARG FLOAT.DEFINE EXEC.Y ( ARG FLOAT.* 1 INTEGER.- INTEGER.DUP 0 INTEGER.> EXEC.IF ( ) EXEC.POP ) )"
+            "( ARG FLOAT.DEFINE EXEC.Y ( ARG FLOAT.* 1 INTEGER.- INTEGER.DUP 0 INTEGER.> EXEC.IF (  ) EXEC.POP ) )"
         );
     }
 
@@ -230,7 +230,7 @@ mod tests {
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         assert_eq!(
             push_state.exec_stack.to_string(),
-            "( CODE.QUOTE ( CODE.DUP INTEGER.DUP 1 INTEGER.- CODE.DO INTEGER.* ) CODE.QUOTE ( INTEGER.POP 1 ) INTEGER.DUP 2 INTEGER.< CODE.IF");
+            "( CODE.QUOTE ( CODE.DUP INTEGER.DUP 1 INTEGER.- CODE.DO INTEGER.* ) CODE.QUOTE ( INTEGER.POP 1 ) INTEGER.DUP 2 INTEGER.< CODE.IF )");
     }
 
     #[test]
@@ -242,7 +242,7 @@ mod tests {
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         assert_eq!(
             push_state.exec_stack.to_string(),
-            "( [1,1,1,0,0] [2,345,-5] [3.3,1.2,4.1] )"
+            "( [TRUE,TRUE,TRUE,FALSE,FALSE] [2,345,-5] [3.3,1.2,4.1] )"
         );
     }
 

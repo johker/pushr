@@ -420,7 +420,7 @@ mod tests {
         test_state.float_stack.push(1.0);
         test_state.float_stack.push(3.0);
         float_max(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.to_string(), "3.0;");
+        assert_eq!(test_state.float_stack.to_string(), "3.0");
     }
 
     #[test]

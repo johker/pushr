@@ -395,7 +395,7 @@ mod tests {
             INT_STACK_ID,
         ]));
         list_add(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "( 1 [22] [1] [3.0] 1.0 TRUE )");
+        assert_eq!(test_state.code_stack.to_string(), "( 1 [22] [TRUE] [3.0] 1.0 TRUE )");
     }
 
     #[test]
@@ -488,7 +488,7 @@ mod tests {
         list_set(&mut test_state, &icache());
         assert_eq!(
             test_state.code_stack.to_string(),
-            "33 ( true false ) 11",
+            "33 ( TRUE FALSE ) 11",
             "Order of new list element reversed"
         );
     }
@@ -500,7 +500,7 @@ mod tests {
         test_state.bool_stack.push(false);
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "false true",
+            "FALSE TRUE",
             "Initial order of items"
         );
         test_state
@@ -518,7 +518,7 @@ mod tests {
         );
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "false true",
+            "FALSE TRUE",
             "Push/Pull of list preserves order of items"
         );
     }
@@ -529,7 +529,7 @@ mod tests {
         test_state.bool_stack.push(false);
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "false true",
+            "FALSE TRUE",
             "Initial order of items"
         );
         test_state
@@ -551,7 +551,7 @@ mod tests {
         );
         assert_eq!(
             test_state.bool_stack.to_string(),
-            "false true",
+            "FALSE TRUE",
             "Push/Pull of list preserves order of items"
         );
     }

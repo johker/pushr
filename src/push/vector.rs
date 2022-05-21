@@ -2592,7 +2592,7 @@ mod tests {
         float_vector_sort_desc(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[111.1,34.2,0,-1.5,-28.1]"
+            "[111.1,34.2,0.0,-1.5,-28.1]"
         );
     }
 
