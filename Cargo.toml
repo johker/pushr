@@ -18,5 +18,5 @@ rand_distr = "0.4.1"
 names = "0.10.0"
 
 [[bin]]
-name = "Pushr"
+name = "pushr"
 path = "src/main.rs"

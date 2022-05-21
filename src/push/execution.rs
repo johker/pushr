@@ -46,7 +46,7 @@ pub fn exec_id(push_state: &mut PushState, _instruction_set: &InstructionCache) 
 /// EXEC.CMD: Executes the top item of the name stack on the command line.
 pub fn exec_cmd(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(cmd) = push_state.name_stack.pop() {
-        Command::new(cmd).spawn();
+        Command::new(cmd).spawn().expect("Command failed to start");
     }
 }
 

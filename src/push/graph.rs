@@ -2,8 +2,8 @@ use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::state::PushState;
 use crate::push::stack::PushPrint;
-use crate::push::vector::{BoolVector, IntVector};
-use std::collections::{HashMap};
+use crate::push::vector::IntVector;
+use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -827,6 +827,7 @@ impl Node {
 
 #[cfg(test)]
 mod tests {
+    use crate::push::vector::BoolVector;
     use super::*;
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])

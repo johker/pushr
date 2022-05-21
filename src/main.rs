@@ -1,6 +1,6 @@
 use std::env;
 
-use pushr::push::instructions::{InstructionCache, InstructionSet};
+use pushr::push::instructions::InstructionSet;
 use pushr::push::interpreter::PushInterpreter;
 use pushr::push::parser::PushParser;
 use pushr::push::state::PushState;

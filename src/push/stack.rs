@@ -1,5 +1,4 @@
 use std::fmt;
-use std::any::type_name;
 
 #[derive(Clone, Debug)]
 pub struct PushStack<T> {
@@ -53,7 +52,7 @@ where
     /// Prints the stack from top to bottom enumerating its elements.
     pub fn to_string(&self) -> String {
         let mut result = "".to_string();
-        for (i, x) in self.elements.iter().rev().enumerate() {
+        for (_i, x) in self.elements.iter().rev().enumerate() {
              result.push_str(&format!(" {}", x.to_pstring()));
         }
         result.trim().to_string()

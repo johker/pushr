@@ -530,7 +530,7 @@ pub fn code_position(push_state: &mut PushState, _instruction_cache: &Instructio
 
 /// CODE.PRINT: Pushes the string representation of the code stack to the name stack. 
 pub fn code_print(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(code) = push_state.code_stack.get(0) {
+    if push_state.code_stack.size() > 0 {
         let code_str = push_state.code_stack.to_string();
         push_state.name_stack.push(code_str);
 
