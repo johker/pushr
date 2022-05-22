@@ -261,7 +261,6 @@ mod tests {
         let mut test_stack = PushStack {
             elements: vec![1, 2, 3],
         };
-                                              
         match test_stack.pop_vec(4) {
             None => assert!(true),
             Some(_pv) => assert!(false),

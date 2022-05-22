@@ -3,7 +3,9 @@ use crate::push::graph::Graph;
 use crate::push::index::Index;
 use crate::push::item::Item;
 use crate::push::stack::PushStack;
+use crate::push::buffer::PushBuffer;
 use crate::push::vector::{BoolVector, FloatVector, IntVector};
+use crate::push::io::Message;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -19,6 +21,8 @@ pub const INT_STACK_ID: i32 = 9;
 pub const INT_VECTOR_STACK_ID: i32 = 10;
 pub const NAME_STACK_ID: i32 = 11;
 pub const OUTPUT_STACK_ID: i32 = 12;
+
+pub const BUFFER_SIZE: usize = 20;
 
 pub struct PushState {
     // Scalar Types
@@ -36,8 +40,8 @@ pub struct PushState {
     pub int_vector_stack: PushStack<IntVector>,
 
     // IO
-    pub input_stack: PushStack<BoolVector>,
-    pub output_stack: PushStack<BoolVector>,
+    pub input_stack: PushBuffer<Message>,
+    pub output_stack: PushBuffer<Message>,
 
     // Graph
     pub graph_stack: PushStack<Graph>,
@@ -62,8 +66,8 @@ impl PushState {
             bool_vector_stack: PushStack::new(),
             float_vector_stack: PushStack::new(),
             int_vector_stack: PushStack::new(),
-            input_stack: PushStack::new(),
-            output_stack: PushStack::new(),
+            input_stack: PushBuffer::new(BUFFER_SIZE),  
+            output_stack: PushBuffer::new(BUFFER_SIZE),
             graph_stack: PushStack::new(),
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),

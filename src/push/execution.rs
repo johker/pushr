@@ -5,6 +5,7 @@ use crate::push::state::PushState;
 use crate::push::state::*;
 use std::collections::HashMap;
 use std::process::Command;
+use std::{thread, time::Duration};
 
 /// Code queued for execution. The EXEC stack maintains the execution state of the Push
 /// interpreter. Instructions that specifically manipulate the EXEC stack can be used to implement
@@ -43,10 +44,22 @@ pub fn exec_id(push_state: &mut PushState, _instruction_set: &InstructionCache) 
     push_state.int_stack.push(EXEC_STACK_ID);
 }
 
-/// EXEC.CMD: Executes the top item of the name stack on the command line.
+/// EXEC.CMD: Executes the top items of the name stack on the command line. The 
+/// number of arguments n is specified by the top INTEGER item. The command is found 
+/// at stack position n where the arguments are added in order of stack postion n-1...1.
 pub fn exec_cmd(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(cmd) = push_state.name_stack.pop() {
-        Command::new(cmd).spawn().expect("Command failed to start");
+    if let Some(num_args) = push_state.int_stack.pop() {
+        if num_args > -1 {
+            if let Some(mut nvals) = push_state.name_stack.pop_vec((num_args+1) as usize) {
+                let cmd = nvals.remove(0);
+                thread::sleep(Duration::from_millis(1000));
+                let mut child = Command::new(cmd).args(nvals).spawn().expect("Command failed to start");
+
+                if let Some(stdout) = child.stdout.as_mut() {
+                    println!("{:?}", stdout);
+                }
+            }
+        }
     }
 }
 

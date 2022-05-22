@@ -1,7 +1,41 @@
 use crate::push::instructions::Instruction;
 use crate::push::instructions::InstructionCache;
 use crate::push::state::PushState;
+use crate::push::stack::PushPrint;
+use crate::push::vector::{BoolVector,IntVector};
 use std::collections::HashMap;
+use std::fmt;
+
+#[derive(Clone, Debug, Default)]
+pub struct Message {
+    pub header: IntVector,
+    pub body: BoolVector,
+}
+
+impl Message {
+    pub fn new(header: IntVector, body: BoolVector) -> Self {
+        Self { header: header, body: body}
+    }
+}
+
+impl PushPrint for Message {
+   fn to_pstring(&self) -> String {
+       self.to_string()
+   }
+}
+
+impl fmt::Display for Message {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg_str = format!("{}&{}", self.header.to_string(), self.body.to_string());
+        write!(f, "{}", msg_str)
+    }
+}
+
+impl PartialEq for Message {
+    fn eq(&self, other: &Self) -> bool {
+        self.header.values == other.header.values && self.body.values == other.body.values
+    }
+}
 
 pub fn load_io_instructions(map: &mut HashMap<String, Instruction>) {
     map.insert(
@@ -41,16 +75,16 @@ pub fn input_flush(push_state: &mut PushState, _instruction_cache: &InstructionC
     push_state.input_stack.flush();
 }
 
-/// INPUT.GET: Pushes the nth bit of the first element if the FIFO queue to the
+/// INPUT.GET: Pushes the nth bit of the first element of the FIFO queue to the
 /// BOOLEAN stack. The index n is taken from the INTEGER stack.
 pub fn input_get(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(index) = push_state.int_stack.pop() {
         let input_size = push_state.input_stack.size();
         if input_size > 0 {
-            if let Some(input) = push_state.input_stack.get(input_size - 1) {
+            if let Some(input) = push_state.input_stack.peek_oldest() {
                 let list_index =
-                    i32::max(i32::min(input.values.len() as i32 - 1, index), 0) as usize;
-                push_state.bool_stack.push(input.values[list_index]);
+                    i32::max(i32::min(input.body.values.len() as i32 - 1, index), 0) as usize;
+                push_state.bool_stack.push(input.body.values[list_index]);
             }
         }
     }
@@ -58,7 +92,7 @@ pub fn input_get(push_state: &mut PushState, _instruction_cache: &InstructionCac
 
 /// INPUT.NEXT: Removes the first element of the input FIFO queue.
 pub fn input_next(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    push_state.input_stack.pop_front();
+    push_state.input_stack.pop();
 }
 
 /// INPUT.READ: This instruction reads the input stack as a FIFO queue. If non empty
@@ -66,8 +100,9 @@ pub fn input_next(push_state: &mut PushState, _instruction_cache: &InstructionCa
 pub fn input_read(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     let input_size = push_state.input_stack.size();
     if input_size > 0 {
-        if let Some(input) = push_state.input_stack.copy(input_size - 1) {
-            push_state.bool_vector_stack.push(input);
+        if let Some(input) = push_state.input_stack.copy_oldest() {
+            push_state.bool_vector_stack.push(input.body);
+            push_state.int_vector_stack.push(input.header);
         }
     }
 }
@@ -93,10 +128,13 @@ pub fn output_stack_depth(push_state: &mut PushState, _instruction_cache: &Instr
         .push(push_state.output_stack.size() as i32);
 }
 
-/// OUTPUT.WRITE: Pushes top item of the BOOLVECTOR stack OUTPUT stack.
+/// OUTPUT.WRITE: Creates a messages from the top items of the INTVECTOR stack (header) and
+/// the BOOLVECTOR stack (body) and pushes it to the OUTPUT stack.
 pub fn output_write(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-    if let Some(output) = push_state.bool_vector_stack.pop() {
-        push_state.output_stack.push(output);
+    if let Some(body) = push_state.bool_vector_stack.pop() {
+        if let Some(header) = push_state.int_vector_stack.pop() {
+            push_state.output_stack.push(Message::new(header, body));
+        }
     }
 }
 
@@ -116,7 +154,7 @@ mod tests {
         assert_eq!(test_state.bool_stack.pop().unwrap(), false);
         test_state
             .input_stack
-            .push(BoolVector::from_int_array(vec![0, 0, 0, 1]));
+            .push(Message::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 0, 0, 1])));
         input_available(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
     }
@@ -127,7 +165,7 @@ mod tests {
         test_state.int_stack.push(1);
         test_state
             .input_stack
-            .push(BoolVector::from_int_array(vec![0, 1, 0, 1]));
+            .push(Message::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 1, 0, 1])));
         input_get(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
     }
@@ -137,10 +175,11 @@ mod tests {
         let mut test_state = PushState::new();
         input_read(&mut test_state, &icache());
 
-        let test_vec1 = BoolVector::from_int_array(vec![1, 1]);
-        let test_vec2 = BoolVector::from_int_array(vec![0, 0]);
-        test_state.input_stack.push(test_vec1);
-        test_state.input_stack.push(test_vec2);
+        let header = IntVector::new(vec![]);
+        let body1 = BoolVector::from_int_array(vec![1, 1]);
+        let body2 = BoolVector::from_int_array(vec![0, 0]);
+        test_state.input_stack.push(Message::new(header.clone(), body1));
+        test_state.input_stack.push(Message::new(header.clone(), body2));
 
         input_read(&mut test_state, &icache());
         assert_eq!(
@@ -153,6 +192,9 @@ mod tests {
     fn output_write_pushes_top_item() {
         let mut test_state = PushState::new();
 
+        let test_header = IntVector::new(vec![]);
+        test_state.int_vector_stack.push(test_header.clone());
+        test_state.int_vector_stack.push(test_header);
         let test_vec1 = BoolVector::from_int_array(vec![1, 1]);
         let test_vec2 = BoolVector::from_int_array(vec![0, 0]);
         test_state.bool_vector_stack.push(test_vec1);
@@ -161,7 +203,7 @@ mod tests {
         output_write(&mut test_state, &icache());
         assert_eq!(
             test_state.output_stack.pop().unwrap(),
-            BoolVector::from_int_array(vec![0, 0])
+            Message::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 0]))
         );
     }
 }

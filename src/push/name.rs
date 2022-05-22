@@ -49,6 +49,7 @@ pub fn name_id(push_state: &mut PushState, _instruction_set: &InstructionCache) 
 fn name_cat(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(nvals) = push_state.name_stack.pop_vec(2) {
         let mut catstr = nvals[0].clone();
+        catstr.push_str(&" ".to_string());
         catstr.push_str(&nvals[1]);
         push_state.name_stack.push(catstr);
     }
@@ -170,7 +171,7 @@ mod tests {
         test_state.name_stack.push(String::from("Test"));
         test_state.name_stack.push(String::from("Test"));
         name_cat(&mut test_state, &icache());
-        assert_eq!(test_state.name_stack.pop().unwrap(), "TestTest".to_string());
+        assert_eq!(test_state.name_stack.pop().unwrap(), "Test Test".to_string());
     }
 
     #[test]

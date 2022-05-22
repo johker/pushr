@@ -653,6 +653,8 @@ pub fn code_yank_dup(push_state: &mut PushState, _instruction_cache: &Instructio
 mod tests {
     use super::*;
     use crate::push::index::Index;
+    use crate::push::parser::PushParser;
+    use crate::push::instructions::InstructionSet;
 
     pub fn icache() -> InstructionCache {
         InstructionCache::new(vec![])
@@ -1102,6 +1104,26 @@ mod tests {
         ]));
         code_position(&mut test_state, &icache());
         assert_eq!(test_state.int_stack.get(0).unwrap(), &4);
+    }
+
+    #[test]
+    fn code_print_creates_parseable_output() {
+        let mut test_state = PushState::new();
+        let mut instruction_set = InstructionSet::new();
+        instruction_set.load();
+        test_state.code_stack.push(Item::int(3));
+        test_state.code_stack.push(Item::list(vec![
+            Item::int(4),
+            Item::list(vec![Item::int(3)]),
+            Item::int(2),
+            Item::int(1),
+        ]));
+        code_print(&mut test_state, &icache());
+        assert_eq!(test_state.name_stack.size(), 1);
+        let printed_code = test_state.name_stack.copy(0).unwrap();
+        PushParser::parse_program(&mut test_state, &instruction_set, &printed_code);
+        assert_eq!(
+            test_state.exec_stack.to_string(), test_state.code_stack.to_string());
     }
 
     #[test]

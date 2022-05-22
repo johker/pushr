@@ -8,7 +8,7 @@ use crate::push::stack::PushPrint;
 use std::collections::HashMap;
 use std::fmt;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BoolVector {
     pub values: Vec<bool>,
 }
@@ -53,7 +53,7 @@ impl PartialEq for BoolVector {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct IntVector {
     pub values: Vec<i32>,
 }
@@ -88,7 +88,7 @@ impl PartialEq for IntVector {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FloatVector {
     pub values: Vec<f32>,
 }

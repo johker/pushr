@@ -40,6 +40,15 @@ impl PushParser {
         }
     }
 
+    /// Pushes the items on the execution stack to the code stack 
+    /// such that the order is preserved.
+    pub fn copy_to_code_stack(push_state: &mut PushState) {
+        let n = push_state.exec_stack.size();
+        if let Some(exec_code) = push_state.exec_stack.copy_vec(n) {
+            push_state.code_stack.push_vec(exec_code);
+        }
+    }
+
     /// Determines vector type and pushes corresponding item to stack. Ignores
     /// token if elements are not consistent.
     pub fn parse_vector(
