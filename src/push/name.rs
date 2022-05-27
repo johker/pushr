@@ -26,6 +26,7 @@ pub fn load_name_instructions(map: &mut HashMap<String, Instruction>) {
         Instruction::new(name_rand_bound),
     );
     map.insert(String::from("NAME.ROT"), Instruction::new(name_rot));
+    map.insert(String::from("NAME.SEND"), Instruction::new(name_send));
     map.insert(String::from("NAME.SHOVE"), Instruction::new(name_shove));
     map.insert(
         String::from("NAME.STACKDEPTH"),
@@ -104,6 +105,11 @@ pub fn name_rand_bound(push_state: &mut PushState, _instruction_cache: &Instruct
 /// it on top. This is equivalent to "2 NAME.YANK".
 pub fn name_rot(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     push_state.name_stack.yank(2);
+}
+
+/// NAME.SEND: Flags the top NAME item to be sent via the com module. 
+pub fn name_send(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+    push_state.send_name = true;
 }
 
 /// NAME.SHOVE: Inserts the top NAME "deep" in the stack, at the position indexed by the top

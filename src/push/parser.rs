@@ -212,7 +212,7 @@ mod tests {
         let mut instruction_set = InstructionSet::new();
         instruction_set.load();
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
-        assert_eq!(push_state.exec_stack.to_string(), "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR )");
+        assert_eq!(push_state.exec_stack.to_string(), "( 2 3 INTEGER.* 4.100 5.200 FLOAT.+ TRUE FALSE BOOLEAN.OR )");
     }
 
     #[test]
@@ -251,7 +251,7 @@ mod tests {
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         assert_eq!(
             push_state.exec_stack.to_string(),
-            "( [TRUE,TRUE,TRUE,FALSE,FALSE] [2,345,-5] [3.3,1.2,4.1] )"
+            "( [TRUE,TRUE,TRUE,FALSE,FALSE] [2,345,-5] [3.300,1.200,4.100] )"
         );
     }
 

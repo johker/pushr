@@ -584,6 +584,10 @@ impl Node {
             Instruction::new(graph_update),
             );
         map.insert(
+            String::from("GRAPH.PRINT"),
+            Instruction::new(graph_print),
+            );
+        map.insert(
             String::from("GRAPH.EDGE*ADD"),
             Instruction::new(graph_edge_add),
         );
@@ -667,6 +671,25 @@ impl Node {
         }
     }
 
+    /// GRAPH.PRINT: Pushes a string representation of the top GRAPH stack item to 
+    /// the name stack.
+    fn graph_print(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+        if let Some(graph) = push_state.graph_stack.get(0) {
+            push_state.name_stack.push(graph.to_string());
+        }
+    }
+
+    /// GRAPH.PRINT*DIFF: Pushes a string representation of the diff of the top to the second 
+    /// item on the GRAPH stack to the name stack.
+    fn graph_print_diff(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+        if let Some(new_graph) = push_state.graph_stack.get(0) {
+            if let Some(old_graph) = push_state.graph_stack.get(1) {
+                if let Some(diff) = old_graph.diff(new_graph) {
+                    push_state.name_stack.push(diff.to_string());
+                }
+            }
+        }
+    }
     /// GRAPH.UPDATE: Transfers post to pre values for all nodes and edges of the graph.
     fn graph_update(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
         if let Some(graph) = push_state.graph_stack.get_mut(0) {

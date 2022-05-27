@@ -121,7 +121,7 @@ mod tests {
         instruction_set.load();
         PushParser::parse_program(&mut push_state, &instruction_set, &input);
         PushInterpreter::copy_to_code_stack(&mut push_state);
-        assert_eq!(push_state.code_stack.to_string(), "( 2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR )");
+        assert_eq!(push_state.code_stack.to_string(), "( 2 3 INTEGER.* 4.100 5.200 FLOAT.+ TRUE FALSE BOOLEAN.OR )");
     }
 
     #[test]
@@ -147,7 +147,7 @@ mod tests {
             .push(Item::instruction("INTEGER.*".to_string()));
         push_state.exec_stack.push(Item::int(3));
         push_state.exec_stack.push(Item::int(2));
-        assert_eq!(push_state.exec_stack.to_string(), "2 3 INTEGER.* 4.1 5.2 FLOAT.+ TRUE FALSE BOOLEAN.OR");
+        assert_eq!(push_state.exec_stack.to_string(), "2 3 INTEGER.* 4.100 5.200 FLOAT.+ TRUE FALSE BOOLEAN.OR");
 
         assert_eq!(
             PushInterpreter::run(&mut push_state, &mut instruction_set),

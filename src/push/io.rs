@@ -7,31 +7,31 @@ use std::collections::HashMap;
 use std::fmt;
 
 #[derive(Clone, Debug, Default)]
-pub struct Message {
+pub struct PushMessage {
     pub header: IntVector,
     pub body: BoolVector,
 }
 
-impl Message {
+impl PushMessage {
     pub fn new(header: IntVector, body: BoolVector) -> Self {
         Self { header: header, body: body}
     }
 }
 
-impl PushPrint for Message {
+impl PushPrint for PushMessage {
    fn to_pstring(&self) -> String {
        self.to_string()
    }
 }
 
-impl fmt::Display for Message {
+impl fmt::Display for PushMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let msg_str = format!("{}&{}", self.header.to_string(), self.body.to_string());
         write!(f, "{}", msg_str)
     }
 }
 
-impl PartialEq for Message {
+impl PartialEq for PushMessage {
     fn eq(&self, other: &Self) -> bool {
         self.header.values == other.header.values && self.body.values == other.body.values
     }
@@ -133,7 +133,7 @@ pub fn output_stack_depth(push_state: &mut PushState, _instruction_cache: &Instr
 pub fn output_write(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(body) = push_state.bool_vector_stack.pop() {
         if let Some(header) = push_state.int_vector_stack.pop() {
-            push_state.output_stack.push(Message::new(header, body));
+            push_state.output_stack.push(PushMessage::new(header, body));
         }
     }
 }
@@ -154,7 +154,7 @@ mod tests {
         assert_eq!(test_state.bool_stack.pop().unwrap(), false);
         test_state
             .input_stack
-            .push(Message::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 0, 0, 1])));
+            .push(PushMessage::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 0, 0, 1])));
         input_available(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
     }
@@ -165,7 +165,7 @@ mod tests {
         test_state.int_stack.push(1);
         test_state
             .input_stack
-            .push(Message::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 1, 0, 1])));
+            .push(PushMessage::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 1, 0, 1])));
         input_get(&mut test_state, &icache());
         assert_eq!(test_state.bool_stack.pop().unwrap(), true);
     }
@@ -178,8 +178,8 @@ mod tests {
         let header = IntVector::new(vec![]);
         let body1 = BoolVector::from_int_array(vec![1, 1]);
         let body2 = BoolVector::from_int_array(vec![0, 0]);
-        test_state.input_stack.push(Message::new(header.clone(), body1));
-        test_state.input_stack.push(Message::new(header.clone(), body2));
+        test_state.input_stack.push(PushMessage::new(header.clone(), body1));
+        test_state.input_stack.push(PushMessage::new(header.clone(), body2));
 
         input_read(&mut test_state, &icache());
         assert_eq!(
@@ -203,7 +203,7 @@ mod tests {
         output_write(&mut test_state, &icache());
         assert_eq!(
             test_state.output_stack.pop().unwrap(),
-            Message::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 0]))
+            PushMessage::new(IntVector::new(vec![]), BoolVector::from_int_array(vec![0, 0]))
         );
     }
 }

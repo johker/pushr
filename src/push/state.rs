@@ -5,7 +5,7 @@ use crate::push::item::Item;
 use crate::push::stack::PushStack;
 use crate::push::buffer::PushBuffer;
 use crate::push::vector::{BoolVector, FloatVector, IntVector};
-use crate::push::io::Message;
+use crate::push::io::PushMessage;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -40,8 +40,8 @@ pub struct PushState {
     pub int_vector_stack: PushStack<IntVector>,
 
     // IO
-    pub input_stack: PushBuffer<Message>,
-    pub output_stack: PushBuffer<Message>,
+    pub input_stack: PushBuffer<PushMessage>,
+    pub output_stack: PushBuffer<PushMessage>,
 
     // Graph
     pub graph_stack: PushStack<Graph>,
@@ -50,7 +50,11 @@ pub struct PushState {
     pub name_bindings: HashMap<String, Item>,
 
     pub configuration: PushConfiguration,
+    // Push next encountered name to the NAME stack
     pub quote_name: bool,
+
+    // Send top item on the name stack 
+    pub send_name: bool,
 }
 
 impl PushState {
@@ -72,6 +76,7 @@ impl PushState {
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
             quote_name: false,
+            send_name: false,
         }
     }
 

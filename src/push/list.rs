@@ -395,7 +395,7 @@ mod tests {
             INT_STACK_ID,
         ]));
         list_add(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "( 1 [22] [TRUE] [3.0] 1.0 TRUE )");
+        assert_eq!(test_state.code_stack.to_string(), "( 1 [22] [TRUE] [3.000] 1.000 TRUE )");
     }
 
     #[test]
@@ -432,7 +432,7 @@ mod tests {
         list_get(&mut test_state, &icache());
         assert_eq!(
             test_state.exec_stack.to_string(),
-            "( 2.3 3 2 TRUE )",
+            "( 2.300 3 2 TRUE )",
             "Order of elements should be reversed"
         );
     }

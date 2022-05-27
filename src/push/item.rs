@@ -388,7 +388,7 @@ impl fmt::Display for Item {
                     PushType::Bool { val } => info = val.to_string().to_uppercase(),
                     PushType::Int { val } => info = val.to_string(),
                     PushType::Index { val } => info = val.to_string(),
-                    PushType::Float { val } => info = format!("{:.1}", val),
+                    PushType::Float { val } => info = format!("{:.3}", val),
                     PushType::BoolVector { val } => info = val.to_string(),
                     PushType::FloatVector { val } => info = val.to_string(),
                     PushType::IntVector { val } => info = val.to_string(),

@@ -111,7 +111,7 @@ impl fmt::Display for FloatVector {
             .values
             .clone()
             .into_iter()
-            .fold(String::new(), |acc, num| acc + &format!("{:.1}", num) + ",");
+            .fold(String::new(), |acc, num| acc + &format!("{:.3}", num) + ",");
         s.pop();
         write!(f, "[{}]", s)
     }
@@ -2348,7 +2348,7 @@ mod tests {
     #[test]
     fn float_vector_prints_values() {
         let fv = FloatVector::new(vec![1.2, 3.4, -4.5]);
-        assert_eq!(fv.to_string(), "[1.2,3.4,-4.5]");
+        assert_eq!(fv.to_string(), "[1.200,3.400,-4.500]");
     }
 
     #[test]
@@ -2529,13 +2529,13 @@ mod tests {
             .push(FloatVector::new(vec![1.0]));
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[1.0] [2.0] [3.0] [4.0]"
+            "[1.000] [2.000] [3.000] [4.000]"
         );
         test_state.int_stack.push(2);
         float_vector_shove(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[2.0] [3.0] [1.0] [4.0]"
+            "[2.000] [3.000] [1.000] [4.000]"
         );
     }
     #[test]
@@ -2587,12 +2587,12 @@ mod tests {
         float_vector_sort_asc(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[-28.1,-1.5,0.0,34.2,111.1]"
+            "[-28.100,-1.500,0.000,34.200,111.100]"
         );
         float_vector_sort_desc(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[111.1,34.2,0.0,-1.5,-28.1]"
+            "[111.100,34.200,0.000,-1.500,-28.100]"
         );
     }
 
@@ -2648,9 +2648,9 @@ mod tests {
         test_state
             .float_vector_stack
             .push(FloatVector::new(vec![1.0]));
-        assert_eq!(test_state.float_vector_stack.to_string(), "[1.0] [0.0]");
+        assert_eq!(test_state.float_vector_stack.to_string(), "[1.000] [0.000]");
         float_vector_swap(&mut test_state, &icache());
-        assert_eq!(test_state.float_vector_stack.to_string(), "[0.0] [1.0]");
+        assert_eq!(test_state.float_vector_stack.to_string(), "[0.000] [1.000]");
     }
 
     #[test]
@@ -2673,13 +2673,13 @@ mod tests {
             .push(FloatVector::new(vec![1.0]));
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[1.0] [2.0] [3.0] [4.0] [5.0]"
+            "[1.000] [2.000] [3.000] [4.000] [5.000]"
         );
         test_state.int_stack.push(3);
         float_vector_yank(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[4.0] [1.0] [2.0] [3.0] [5.0]"
+            "[4.000] [1.000] [2.000] [3.000] [5.000]"
         );
     }
 
@@ -2703,13 +2703,13 @@ mod tests {
             .push(FloatVector::new(vec![1.0]));
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[1.0] [2.0] [3.0] [4.0] [5.0]"
+            "[1.000] [2.000] [3.000] [4.000] [5.000]"
         );
         test_state.int_stack.push(3);
         float_vector_yank_dup(&mut test_state, &icache());
         assert_eq!(
             test_state.float_vector_stack.to_string(),
-            "[4.0] [1.0] [2.0] [3.0] [4.0] [5.0]"
+            "[4.000] [1.000] [2.000] [3.000] [4.000] [5.000]"
         );
     }
 

@@ -1047,7 +1047,7 @@ mod tests {
             .push(Item::list(vec![Item::int(0), Item::float(2.3)]));
         test_state.code_stack.push(Item::int(2));
         code_list(&mut test_state, &icache());
-        assert_eq!(test_state.code_stack.to_string(), "( 2 ( 2.3 0 ) ) 2 ( 2.3 0 )");
+        assert_eq!(test_state.code_stack.to_string(), "( 2 ( 2.300 0 ) ) 2 ( 2.300 0 )");
     }
 
     #[test]
