@@ -1,3 +1,10 @@
+use std::fmt;
+
+#[derive(Debug)]
+pub enum BufferType {
+    Queue,
+    Stack,
+}
 
 /// https://github.com/stjepangolemac/ringvec
 
@@ -8,13 +15,14 @@ pub struct PushBuffer<T> {
     start: usize,
     end: usize,
     len: usize,
+    buffer_type: BufferType,
 }
 
 impl<T> PushBuffer<T>
 where
-    T: Clone + Default + PartialEq 
+    T: Clone + fmt::Display + Default + PartialEq + fmt::Debug
 {
-    pub fn new(capacity: usize) -> Self {
+    pub fn new(buffer_type: BufferType, capacity: usize) -> Self {
         let mut container = Vec::with_capacity(capacity);
 
         for _ in 0..capacity {
@@ -27,6 +35,7 @@ where
             start: 0,
             end: 0,
             len: 0,
+            buffer_type,
         }
     }
 
@@ -88,6 +97,7 @@ where
 
         self.len += 1;
         self.inc_start();
+        println!("push - start = {}, end = {}", self.start, self.end);
     }
 
     pub fn push_force(&mut self, element: T) {
@@ -102,20 +112,39 @@ where
         }
 
         self.inc_start();
+        println!("push force - start = {}, end = {}", self.start, self.end);
     }
 
     pub fn pop(&mut self) -> Option<T> {
         if !self.is_empty() {
-            let cell = self.container.get_mut(self.end).unwrap();
-
-            let result = std::mem::take(cell);
-
-            self.len -= 1;
-            self.inc_end();
-
-            Some(result)
+            match self.buffer_type {
+                BufferType::Queue => {
+                    let cell = self.container.get_mut(self.end).unwrap();
+                    let result = std::mem::take(cell);
+                    self.len -= 1;
+                    self.inc_end();
+                    println!("queue pop - start = {}, end = {}", self.start, self.end);
+                    println!("result = {}", result);
+                    return Some(result);
+                },
+                BufferType::Stack => {
+                    let mut last_idx = self.start;
+                    if last_idx == 0 {
+                        last_idx += self.capacity -1;
+                    } else {
+                        last_idx -= 1;
+                    }
+                    let cell = self.container.get_mut(last_idx).unwrap();
+                    let result = std::mem::take(cell);
+                    self.len -= 1;
+                    self.start = last_idx;
+                    println!("stack pop - start = {}, end = {}", self.start, self.end);
+                    println!("result = {}", result);
+                    return Some(result);
+                },
+            }
         } else {
-            None
+            return None;
         }
     }
 
@@ -180,8 +209,8 @@ mod test {
     use super::*;
 
     #[test]
-    fn ringvec() {
-        let mut v = PushBuffer::new(3);
+    fn buffer_type_queue_pops_oldest() {
+        let mut v = PushBuffer::new(BufferType::Queue, 3);
 
         assert!(v.is_empty());
         assert!(!v.is_full());
@@ -204,14 +233,52 @@ mod test {
 
         assert_eq!(v.pop(), Some(4));
         assert_eq!(v.pop(), Some(5));
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
 
         assert!(v.is_empty());
         assert!(!v.is_full());
     }
 
     #[test]
-    fn ringvec2() {
-        let mut v = PushBuffer::new(3);
+    fn buffer_type_stack_pops_oldest() {
+        let mut v = PushBuffer::new(BufferType::Stack, 3);
+
+        assert!(v.is_empty());
+        assert!(!v.is_full());
+
+        v.push(1);
+        v.push(2);
+        v.push(3);
+        v.push_force(4);
+        v.push_force(5);
+
+        assert!(!v.is_empty());
+        assert!(v.is_full());
+
+        assert_eq!(v.peek_oldest(), Some(&3));
+        assert_eq!(v.peek_newest(), Some(&5));
+        assert_eq!(v.pop(), Some(5));
+
+        assert!(!v.is_empty());
+        assert!(!v.is_full());
+
+        assert_eq!(v.pop(), Some(4));
+        assert_eq!(v.pop(), Some(3));
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
+
+        assert!(v.is_empty());
+        assert!(!v.is_full());
+    }
+
+    #[test]
+    fn buffer_type_stack_pops_newest_when_force_push() {
+        let mut v = PushBuffer::new(BufferType::Stack, 3);
 
         assert!(v.is_empty());
         assert!(!v.is_full());
@@ -226,34 +293,25 @@ mod test {
 
         assert_eq!(v.peek_oldest(), Some(&5));
         assert_eq!(v.peek_newest(), Some(&7));
-        assert_eq!(v.pop(), Some(5));
+        assert_eq!(v.pop(), Some(7));
 
         assert!(!v.is_empty());
         assert!(!v.is_full());
 
         assert_eq!(v.pop(), Some(6));
-        assert_eq!(v.pop(), Some(7));
+        assert_eq!(v.pop(), Some(5));
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
+        assert_eq!(v.pop(), None);
 
         assert!(v.is_empty());
         assert!(!v.is_full());
     }
 
     #[test]
-    fn ringvec3() {
-        let mut v = PushBuffer::new(3);
-        v.push_force(4);
-        v.push_force(5);
-        v.push_force(6);
-        v.push_force(7);
-        v.push_force(8);
-        v.push_force(9);
-
-        v.peek_newest();
-    }
-
-    #[test]
-    fn iter() {
-        let mut v = PushBuffer::new(3);
+    fn buffer_iterates_returns_all_elements() {
+        let mut v = PushBuffer::new(BufferType::Stack,3);
 
         assert!(v.is_empty());
         assert!(!v.is_full());

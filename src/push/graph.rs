@@ -198,7 +198,7 @@ impl Node {
         }
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, Default)]
     pub struct Graph {
         // Incoming edge list
         pub edges: HashMap<usize, Vec<Edge>>,
