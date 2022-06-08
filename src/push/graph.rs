@@ -1153,7 +1153,7 @@ mod tests {
         test_state.graph_stack.push(test_graph.clone());
         graph_node_state_switch(&mut test_state, &icache());
         let modified_graph = test_state.graph_stack.pop().unwrap();
-        println!("Graph Changes = {}", test_graph.diff(&modified_graph).unwrap());
+        //println!("GRAPH CHANGES = {}", test_graph.diff(&modified_graph).unwrap());
         assert_eq!(modified_graph.get_post_state(&(ids_to_switch[0] as usize)).unwrap(), on_state); 
         assert_eq!(modified_graph.get_post_state(&(ids_to_switch[1] as usize)).unwrap(), off_state); 
         assert_eq!(modified_graph.get_post_state(&(ids_to_switch[2] as usize)).unwrap(), on_state); 

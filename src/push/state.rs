@@ -48,7 +48,7 @@ pub struct PushState {
     pub output_stack: PushBuffer<PushMessage>,
 
     // Graph
-    pub graph_stack: PushStack<Graph>,
+    pub graph_stack: PushBuffer<Graph>,
 
     // Bindings
     pub name_bindings: HashMap<String, Item>,
@@ -73,8 +73,7 @@ impl PushState {
             int_vector_stack: PushStack::new(),
             input_stack: PushBuffer::new(BufferType::Queue, INPUT_BUFFER_SIZE),
             output_stack: PushBuffer::new(BufferType::Queue, OUTPUT_BUFFER_SIZE),
-            graph_stack: PushStack::new(),
-            //graph_stack: PushBuffer::new(BufferType::Stack, GRAPH_BUFFER_SIZE),
+            graph_stack: PushBuffer::new(BufferType::Stack, GRAPH_BUFFER_SIZE),
             name_bindings: HashMap::new(),
             configuration: PushConfiguration::new(),
             quote_name: false,

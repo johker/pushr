@@ -46,6 +46,25 @@ where
         self.len
     }
 
+    pub fn to_string(&self) -> String {
+        let mut result = "".to_string();
+        for i in 0..self.size() {
+            let mut index = self.start as i32 - i as i32;
+            if index < 0 {
+                index += self.capacity as i32;
+            }
+             result.push_str(&format!(" {}", self.container[index as usize]));
+        }
+        result.trim().to_string()
+    }
+
+    pub fn copy(&self, i: usize) -> Option<T> {
+        if let Some(index) = self.get_index(i) {
+            return Some(self.container[index].clone())
+        }
+        None
+    }
+
     pub fn copy_oldest(&self) -> Option<T> {
         if !self.is_empty() {
             Some(self.container[self.end].clone())
@@ -63,6 +82,46 @@ where
         self.len = 0;
     }
 
+    /// Returns the index of the ith position 
+    /// in the container depending on the BufferType or None
+    /// if i is larger than the size of the container.
+    fn get_index(&self, i: usize) -> Option<usize>  {
+        if self.size() == 0 || i > self.size() - 1  {
+            None
+        } else {
+            match self.buffer_type {
+                BufferType::Stack => {
+                    let mut index = self.start as i32 - (i+1) as i32;
+                    if index < 0 {
+                        index += self.capacity as i32;
+                    }
+                    Some(index as usize)
+                },
+                BufferType::Queue => {
+                    let mut index = (self.end + i) as i32;
+                    if index > (self.capacity -1) as i32{
+                        index -= self.capacity as i32;
+                    }
+                    Some(index as usize)
+                },
+            }
+        }
+
+    }
+
+    pub fn get(&self, i: usize) -> Option<&T> {
+        if let Some(index) = self.get_index(i) {
+            return Some(&self.container[index])
+        }
+        None
+    }
+
+    pub fn get_mut(&mut self, i: usize) -> Option<&mut T> {
+        if let Some(index) = self.get_index(i) {
+            return Some(&mut self.container[index])
+        }
+        None
+    }
 
     #[inline(always)]
     pub fn is_empty(&self) -> bool {
@@ -116,36 +175,30 @@ where
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        if !self.is_empty() {
-            match self.buffer_type {
-                BufferType::Queue => {
-                    let cell = self.container.get_mut(self.end).unwrap();
+        match self.buffer_type {
+            BufferType::Queue => {
+                if let Some(first_index) = self.get_index(0) {
+                    println!("Index {}", first_index);
+                    let cell = self.container.get_mut(first_index).unwrap();
                     let result = std::mem::take(cell);
                     self.len -= 1;
                     self.inc_end();
                     println!("queue pop - start = {}, end = {}", self.start, self.end);
-                    println!("result = {}", result);
                     return Some(result);
-                },
-                BufferType::Stack => {
-                    let mut last_idx = self.start;
-                    if last_idx == 0 {
-                        last_idx += self.capacity -1;
-                    } else {
-                        last_idx -= 1;
-                    }
+                }
+            },
+            BufferType::Stack => {
+                if let Some (last_idx) = self.get_index(0) {
                     let cell = self.container.get_mut(last_idx).unwrap();
                     let result = std::mem::take(cell);
                     self.len -= 1;
                     self.start = last_idx;
                     println!("stack pop - start = {}, end = {}", self.start, self.end);
-                    println!("result = {}", result);
                     return Some(result);
-                },
+                }
             }
-        } else {
-            return None;
         }
+        return None;
     }
 
     pub fn peek_oldest(&self) -> Option<&T> {
@@ -207,6 +260,47 @@ impl<'ring, T> ExactSizeIterator for PushBufferIterator<'ring, T> {}
 #[cfg(test)]
 mod test {
     use super::*;
+
+
+    #[test]
+    fn buffer_stack_index_updated_after_carryover() {
+
+        let mut v = PushBuffer::new(BufferType::Stack, 3);
+        assert_eq!(v.get_index(0), None);
+        v.push(-11);
+        assert_eq!(v.get_index(0), Some(0));
+        v.push(-22);
+        assert_eq!(v.get_index(0), Some(1));
+        v.push(-33);
+        assert_eq!(v.get_index(0), Some(2));
+        v.push_force(-44);
+        assert_eq!(v.get_index(0), Some(0));
+        v.push_force(-55);
+        assert_eq!(v.get_index(0), Some(1));
+        assert_eq!(v.get_index(1), Some(0));
+        assert_eq!(v.get_index(2), Some(2));
+        assert_eq!(v.get_index(3), None);
+    }
+
+    #[test]
+    fn buffer_queue_index_updated_after_carryover() {
+
+        let mut v = PushBuffer::new(BufferType::Queue, 3);
+        assert_eq!(v.get_index(0), None);
+        v.push(-11);
+        assert_eq!(v.get_index(0), Some(0));
+        v.push(-22);
+        assert_eq!(v.get_index(0), Some(0));
+        v.push(-33);
+        assert_eq!(v.get_index(0), Some(0));
+        v.push_force(-44);
+        assert_eq!(v.get_index(0), Some(1));
+        v.push_force(-55);
+        assert_eq!(v.get_index(0), Some(2));
+        assert_eq!(v.get_index(1), Some(0));
+        assert_eq!(v.get_index(2), Some(1));
+        assert_eq!(v.get_index(3), None);
+    }
 
     #[test]
     fn buffer_type_queue_pops_oldest() {
