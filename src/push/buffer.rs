@@ -28,6 +28,7 @@ where
         for _ in 0..capacity {
             container.push(T::default());
         }
+        println!("Buffer initialized = {:?} ", container);
 
         Self {
             capacity,
@@ -77,6 +78,9 @@ where
     pub fn flush(&mut self)  {
         let capacity = self.capacity;
         self.container = Vec::with_capacity(capacity);
+        for _ in 0..capacity {
+            self.container.push(T::default());
+        }
         self.start = 0;
         self.end = 0;
         self.len = 0;
@@ -149,18 +153,16 @@ where
         if self.is_full() {
             return;
         }
-
-        let cell = self.container.get_mut(self.start).unwrap();
-
+        println!("Buffer push = {:?} ", self.container);
+        let cell = &mut self.container[self.start];
         *cell = element;
-
         self.len += 1;
         self.inc_start();
         println!("push - start = {}, end = {}", self.start, self.end);
     }
 
     pub fn push_force(&mut self, element: T) {
-        let cell = self.container.get_mut(self.start).unwrap();
+        let cell = &mut self.container[self.start];
 
         *cell = element;
 
