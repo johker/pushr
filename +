@@ -691,10 +691,10 @@ impl Node {
     /// to the integer stack. ID and position are the second and the top item of the INTEGER stack
     /// respectively.
     fn graph_node_history(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-        if let Some(pos) = push_state.int_stack.pop() {
-            if pos >= 0 {
-                if let Some(id) = push_state.int_stack.pop() {
-                    if let Some(graph) = push_state.graph_stack.get_mut(pos as usize) {
+        if let Some(id) = push_state.int_stack.pop() {
+            if let Some(pos) = push_state.int_stack.pop() {
+                if pos >= 0 {
+                    if let Some(graph) = push_state.graph_stack.get_mut(pos) {
                         if id > 0 {
                             if let Some(state) = graph.get_pre_state(&(id as usize)) {
                                 push_state.int_stack.push(state);
@@ -873,13 +873,12 @@ impl Node {
     /// origin and destination id. The stack position is top item of the INTEGER stack
     /// destination and origin ids are second and third items respectively.
     fn graph_edge_history(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
-        if let Some(pos) = push_state.int_stack.pop() {
+        if let Some(pos) = push_state.graph_stack.get_mut(0) {
             if pos > 0 {
-                 if let Some(graph) = push_state.graph_stack.get_mut(pos as usize) {
+                 if let Some(graph) = push_state.graph_stack.get_mut(pos) {
                      if let Some(ids) = push_state.int_stack.pop_vec(2) {
                         let origin_id = ids[0] as usize;
                         let destination_id = ids[1] as usize;
-                        println!("Origin = {}, Destination = {}", origin_id,destination_id);
                         if let Some(weight) = graph.get_pre_weight(&origin_id, &destination_id) {
                            push_state.float_stack.push(weight);
                         }
@@ -1283,100 +1282,39 @@ mod tests {
         test_graph.add_edge(test_ids[1], test_ids[0], test_weights[0]);
         test_graph.add_edge(test_ids[2], test_ids[0], test_weights[1]);
         test_graph.add_edge(test_ids[3], test_ids[0], test_weights[2]);
-        test_state.graph_stack.push(test_graph.clone());
-        graph_update(&mut test_state, &icache());
-        
-        for _i in 0..3 {
-            graph_dup(&mut test_state, &icache());
-     
-            // Adjust test weights
-            test_weights = test_weights.into_iter().map(|x| x + 10.0 ).collect();
-            let edit_graph = test_state.graph_stack.get_mut(0).unwrap();
-
-            edit_graph.set_weight(&test_ids[1], &test_ids[0], test_weights[0]);
-            edit_graph.set_weight(&test_ids[2], &test_ids[0], test_weights[1]);
-            edit_graph.set_weight(&test_ids[3], &test_ids[0], test_weights[2]);
-            graph_update(&mut test_state, &icache());
-        }
-
-        // Stack position 2
-        test_state.int_stack.push(test_ids[1] as i32);
-        test_state.int_stack.push(test_ids[0] as i32);
-        test_state.int_stack.push(1);
-        graph_edge_history(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.pop().unwrap(), 21.0);
-        test_state.int_stack.push(test_ids[2] as i32);
-        test_state.int_stack.push(test_ids[0] as i32);
-        test_state.int_stack.push(1);
-        graph_edge_history(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.pop().unwrap(), 22.0);
-        test_state.int_stack.push(test_ids[3] as i32);
-        test_state.int_stack.push(test_ids[0] as i32);
-        test_state.int_stack.push(1);
-        graph_edge_history(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.pop().unwrap(), 23.0);
-
-        // Stack position 4
-        test_state.int_stack.push(test_ids[1] as i32);
-        test_state.int_stack.push(test_ids[0] as i32);
-        test_state.int_stack.push(3);
-        graph_edge_history(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.pop().unwrap(), 1.0);
-        test_state.int_stack.push(test_ids[2] as i32);
-        test_state.int_stack.push(test_ids[0] as i32);
-        test_state.int_stack.push(3);
-        graph_edge_history(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.pop().unwrap(), 2.0);
-        test_state.int_stack.push(test_ids[3] as i32);
-        test_state.int_stack.push(test_ids[0] as i32);
-        test_state.int_stack.push(3);
-        graph_edge_history(&mut test_state, &icache());
-        assert_eq!(test_state.float_stack.pop().unwrap(), 3.0);
-    }
-
-    #[test]
-    fn graph_node_history_pushes_state_of_stack_position() {
-        let mut test_state = PushState::new();
-        let mut test_graph = Graph::new();
-        let mut test_ids : Vec<usize> = vec![];
-        let mut test_states = vec![1,2];
-        test_ids.push(test_graph.add_node(test_states[0]));
-        test_ids.push(test_graph.add_node(test_states[1]));
-       
         test_state.graph_stack.push(test_graph);
-        graph_update(&mut test_state, &icache());
         
-        for _i in 0..3 {
+        for i in 0..3 {
             graph_dup(&mut test_state, &icache());
      
             // Adjust test weights
-            test_states = test_states.into_iter().map(|x| x + 10 ).collect();
-            let edit_graph = test_state.graph_stack.get_mut(0).unwrap();
+            test_weights = test_weights.into_iter().map(|x| x + 10 ).collect();
+            test_graph = test_state.get_mut(0).unwrap();
 
-            edit_graph.set_state(&test_ids[0], test_states[0]);
-            edit_graph.set_state(&test_ids[1], test_states[1]);
-            graph_update(&mut test_state, &icache());
+            test_graph.set_weight(test_ids[1], test_ids[0], test_weights[0]);
+            test_graph.set_weight(test_ids[2], test_ids[0], test_weights[1]);
+            test_graph.set_weight(test_ids[3], test_ids[0], test_weights[2]);
         }
 
-        // Stack position 2
-        test_state.int_stack.push(test_ids[0] as i32);
-        test_state.int_stack.push(1);
-        graph_node_history(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.pop().unwrap(),21);
-        test_state.int_stack.push(test_ids[1] as i32);
-        test_state.int_stack.push(1);
-        graph_node_history(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.pop().unwrap(),22);
+        // Stack position 1
+        test_state.int_stack.push(test_ids[0]);
+        test_state.int_stack.push(test_ids[1]);
+        test_state.int_stack.push(1); 
+        assert_eq!(test_state.float_stack.pop().unwrap(), 21.0);
+        test_state.int_stack.push(test_ids[0]);
+        test_state.int_stack.push(test_ids[1]);
+        test_state.int_stack.push(1); 
+        assert_eq!(test_state.float_stack.pop().unwrap(), 22.0);
+        test_state.int_stack.push(test_ids[0]);
+        test_state.int_stack.push(test_ids[1]);
+        test_state.int_stack.push(1); 
+        assert_eq!(test_state.float_stack.pop().unwrap(), 23.0);
+        assert!(false); 
 
-        // Stack position 4
-        test_state.int_stack.push(test_ids[0] as i32);
-        test_state.int_stack.push(3);
-        graph_node_history(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.pop().unwrap(),1);
-        test_state.int_stack.push(test_ids[1] as i32);
-        test_state.int_stack.push(3);
-        graph_node_history(&mut test_state, &icache());
-        assert_eq!(test_state.int_stack.pop().unwrap(),2);
+
+
+        assert!(diff.contains(&format!("~E[{} <= [ONID: {}, 1.3/1.3 <= WEIGHT => 1.3/0.2]]",test_ids[0], test_ids[1])));
+
     }
 
     #[test]

@@ -28,7 +28,6 @@ where
         for _ in 0..capacity {
             container.push(T::default());
         }
-        println!("Buffer initialized = {:?} ", container);
 
         Self {
             capacity,
@@ -153,7 +152,6 @@ where
         if self.is_full() {
             return;
         }
-        println!("Buffer push = {:?} ", self.container);
         let cell = &mut self.container[self.start];
         *cell = element;
         self.len += 1;

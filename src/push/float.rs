@@ -146,8 +146,7 @@ pub fn float_define(push_state: &mut PushState, _instruction_cache: &Instruction
     }
 }
 
-/// FLOAT.DUP: Duplicates the top item on the FLOAT stack. Does not pop its argument (which, if it
-/// did, would negate the effect of the duplication!).
+/// FLOAT.DUP: Duplicates the top item on the FLOAT stack.
 pub fn float_dup(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
     if let Some(fval) = push_state.float_stack.copy(0) {
         push_state.float_stack.push(fval);
