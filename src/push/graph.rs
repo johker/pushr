@@ -585,6 +585,10 @@ impl Node {
             Instruction::new(graph_nodes),
         );
         map.insert(
+            String::from("GRAPH.STACKDEPTH"),
+            Instruction::new(graph_nodes),
+        );
+        map.insert(
             String::from("GRAPH.UPDATE"),
             Instruction::new(graph_update),
             );
@@ -730,6 +734,13 @@ impl Node {
         if let Some(graph) = push_state.graph_stack.get_mut(0) {
             graph.update_all();
         }
+    }
+
+    /// GRAPH.STACKDEPTH: Pushes the stack depth onto the INTEGER stack (thereby increasing it!).
+    pub fn graph_stack_depth(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+        push_state
+            .int_stack
+            .push(push_state.graph_stack.size() as i32);
     }
 
     /// GRAPH.NODE*SETSTATE: Sets the state for the node with the specified id where the
