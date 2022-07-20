@@ -156,7 +156,7 @@ where
         *cell = element;
         self.len += 1;
         self.inc_start();
-        println!("push - start = {}, end = {}", self.start, self.end);
+        //println!("push - start = {}, end = {}", self.start, self.end);
     }
 
     pub fn push_force(&mut self, element: T) {
@@ -171,19 +171,19 @@ where
         }
 
         self.inc_start();
-        println!("push force - start = {}, end = {}", self.start, self.end);
+        //println!("push force - start = {}, end = {}", self.start, self.end);
     }
 
     pub fn pop(&mut self) -> Option<T> {
         match self.buffer_type {
             BufferType::Queue => {
                 if let Some(first_index) = self.get_index(0) {
-                    println!("Index {}", first_index);
+                    //println!("Index {}", first_index);
                     let cell = self.container.get_mut(first_index).unwrap();
                     let result = std::mem::take(cell);
                     self.len -= 1;
                     self.inc_end();
-                    println!("queue pop - start = {}, end = {}", self.start, self.end);
+                    //println!("queue pop - start = {}, end = {}", self.start, self.end);
                     return Some(result);
                 }
             },
@@ -193,7 +193,7 @@ where
                     let result = std::mem::take(cell);
                     self.len -= 1;
                     self.start = last_idx;
-                    println!("stack pop - start = {}, end = {}", self.start, self.end);
+                    //println!("stack pop - start = {}, end = {}", self.start, self.end);
                     return Some(result);
                 }
             }

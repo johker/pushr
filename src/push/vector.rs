@@ -493,9 +493,11 @@ pub fn bool_vector_set(push_state: &mut PushState, _instruction_cache: &Instruct
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(new_element) = push_state.bool_stack.pop() {
             if let Some(item_to_change) = push_state.bool_vector_stack.get_mut(0) {
-                let i =
-                    i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
-                item_to_change.values[i] = new_element;
+                if item_to_change.values.len() > 0 {
+                    let i =
+                        i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
+                    item_to_change.values[i] = new_element;
+                }
             }
         }
     }
@@ -798,9 +800,11 @@ pub fn int_vector_set(push_state: &mut PushState, _instruction_cache: &Instructi
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(new_element) = push_state.int_stack.pop() {
             if let Some(item_to_change) = push_state.int_vector_stack.get_mut(0) {
-                let i =
-                    i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
-                item_to_change.values[i] = new_element;
+                if item_to_change.values.len() >0 {
+                    let i =
+                        i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
+                    item_to_change.values[i] = new_element;
+                }
             }
         }
     }
@@ -1188,9 +1192,10 @@ pub fn float_vector_set(push_state: &mut PushState, _instruction_cache: &Instruc
     if let Some(index) = push_state.int_stack.pop() {
         if let Some(new_element) = push_state.float_stack.pop() {
             if let Some(item_to_change) = push_state.float_vector_stack.get_mut(0) {
-                let i =
-                    i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
-                item_to_change.values[i] = new_element;
+                if item_to_change.values.len() > 0 {
+                    let i = i32::max(i32::min(index, item_to_change.values.len() as i32 - 1), 0) as usize;
+                    item_to_change.values[i] = new_element;
+                }
             }
         }
     }
