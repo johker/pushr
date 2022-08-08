@@ -18,11 +18,18 @@ This implementation supports all Push3 instructions for the types desribed in th
 * INTEGER
 * NAME
 
-It also provides the vector types for boolean, float and integer:
+Additional stack types:
 
 * BOOLVECTOR
 * FLOATVECTOR
 * INTVECTOR
+* INDEX
+* GRAPH
+* INPUT
+* OUTPUT
+
+
+## Supported instructions
 
 The default instructions for vector types are 'dup', 'equal', 'flush', 'get', 'set', 'shove', 'stackdepth', 'rand', 'swap', 'yank' and 'yankdup'. Additionally, the instruction set contains 'add', 'subtract', 'multiply' and 'divide' for float and integer vectors, as well as 'and', 'or' and 'not' for boolean vectors. To initialize vectors the instructions 'ones'  and 'zeros' can be used.
 

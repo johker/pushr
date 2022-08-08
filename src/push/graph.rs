@@ -520,12 +520,20 @@ impl Node {
             Instruction::new(graph_nodes),
         );
         map.insert(
+            String::from("GRAPH.NODES*HISTORY"),
+            Instruction::new(graph_nodes_history),
+        );
+        map.insert(
             String::from("GRAPH.STACKDEPTH"),
             Instruction::new(graph_stack_depth),
         );
         map.insert(
             String::from("GRAPH.PRINT"),
             Instruction::new(graph_print),
+            );
+        map.insert(
+            String::from("GRAPH.PRINT*DIFF"),
+            Instruction::new(graph_print_diff),
             );
         map.insert(
             String::from("GRAPH.EDGE*ADD"),
@@ -605,6 +613,23 @@ impl Node {
                 let pf = graph.filter(&states.values);
                     push_state.int_vector_stack.push(IntVector::new(pf)); 
                 }
+        }
+    }
+
+    /// GRAPH.NODES*HISTORY: Pushes the IDs of the nodes that are in one of the predefined states 
+    /// and specified GRAPH stack position to the INTVECTOR stack. The states are taken from the top item 
+    /// of the INTVECTOR stack and the stack position from the top of the INTEGER stack. 
+    /// If the array is empty all node IDs of the graph are pushed. 
+    fn graph_nodes_history(push_state: &mut PushState, _instruction_cache: &InstructionCache) {
+        if let Some(pos) = push_state.int_stack.pop() {
+            if pos >= 0 {
+                if let Some(graph) = push_state.graph_stack.get(pos as usize) {
+                    if let Some(states) = push_state.int_vector_stack.pop() {
+                        let pf = graph.filter(&states.values);
+                            push_state.int_vector_stack.push(IntVector::new(pf)); 
+                        }
+                }
+            }
         }
     }
 
@@ -772,10 +797,10 @@ impl Node {
                     if node_id > 0 {
                         let mut successors = vec![];
                         for (k,v) in graph.edges.iter() {
-                            println!("Checking incoming nodes: {:?}", v);
+                            //println!("Checking incoming nodes: {:?}", v);
                             if v.contains(&Edge::new(node_id as usize,0.0)) {
                                 if let Some(successor) = graph.nodes.get(k) {
-                                    println!("...Found");
+                                    //println!("...Found");
                                     if states.values.len() == 0 || states.values.contains(&successor.get_state()) {
                                         successors.push(*k as i32);
                                     }
