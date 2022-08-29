@@ -1,5 +1,7 @@
 ## Pushr
 
+![Tests](https://github.com/johker/pushr/actions/workflows/rust.yml/badge.svg)
+
 Pushr is a Rust based interpreter for Push programs.
 
 ## What is Push?
