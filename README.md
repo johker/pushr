@@ -22,11 +22,13 @@ This implementation supports all Push3 instructions for the types desribed in th
 
 Additional stack types:
 
-* BOOLVECTOR
-* FLOATVECTOR
-* INTVECTOR
-* INDEX
-* GRAPH
+* BOOLVECTOR: vector with boolean elements
+* FLOATVECTOR: vector with float elements
+* INTVECTOR: vector with integer elements
+* INDEX: simplifies loop syntax
+* GRAPH: graph object used as a memory
+
+FIFO queues are used to communicate with other modules. The type is BOOLVECTOR. 
 * INPUT
 * OUTPUT
 
