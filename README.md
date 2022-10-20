@@ -26,7 +26,7 @@ Additional stack types:
 * FLOATVECTOR: vector with float elements
 * INTVECTOR: vector with integer elements
 * INDEX: simplifies loop syntax
-* GRAPH: graph object used as a memory
+* GRAPH: graph object that can be used as memory
 
 FIFO queues are used to communicate with other modules. The type is BOOLVECTOR. 
 * INPUT
