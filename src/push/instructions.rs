@@ -78,11 +78,11 @@ impl InstructionCache {
 }
 
 pub struct Instruction {
-    pub execute: Box<dyn FnMut(&mut PushState, &InstructionCache)>,
+    pub execute: Box<dyn FnMut(&mut PushState, &InstructionCache) + Send>,
 }
 
 impl Instruction {
-    pub fn new(execute: impl FnMut(&mut PushState, &InstructionCache) + 'static) -> Self {
+    pub fn new(execute: impl FnMut(&mut PushState, &InstructionCache) + 'static + std::marker::Send) -> Self {
         Self {
             execute: Box::new(execute),
         }
